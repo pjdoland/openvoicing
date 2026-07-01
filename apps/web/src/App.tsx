@@ -5,6 +5,7 @@ import { mediaTimeAtTick, tickAtMediaTime, type SyncPoint } from "@openvoicing/s
 import soundFontUrl from "@coderline/alphatab/soundfont/sonivox.sf3?url";
 import { DEMO_TEX } from "./demo";
 import { RecordingPanel } from "./RecordingPanel";
+import { storage, type StoredFile } from "./storage";
 
 const SPEEDS = [0.5, 0.6, 0.7, 0.8, 0.9, 1, 1.1, 1.25];
 
@@ -29,11 +30,15 @@ export function App() {
   const [position, setPosition] = useState({ current: 0, total: 0 });
 
   const [recordingLoaded, setRecordingLoaded] = useState(false);
+  const [recordingFileName, setRecordingFileName] = useState<string | null>(null);
   const [syncPoints, setSyncPoints] = useState<SyncPoint[] | null>(null);
   const syncPointsRef = useRef<SyncPoint[] | null>(null);
   const [follow, setFollow] = useState(false);
   const [tapCount, setTapCount] = useState<number | null>(null);
   const tapsRef = useRef<number[]>([]);
+  // Persistence effects stay quiet until the stored session has been restored,
+  // so the initial empty state does not overwrite it.
+  const hydratedRef = useRef(false);
 
   useEffect(() => {
     syncPointsRef.current = syncPoints;
@@ -68,8 +73,23 @@ export function App() {
       (window as unknown as Record<string, unknown>).__ovPlayer = player;
       (window as unknown as Record<string, unknown>).__ovRecording = recording;
     }
-    player.loadTex(DEMO_TEX);
+    let disposed = false;
+    void (async () => {
+      let stored: StoredFile | undefined;
+      try {
+        stored = await storage.get<StoredFile>("score");
+      } catch {
+        stored = undefined;
+      }
+      if (disposed) return;
+      if (stored) {
+        player.load(new Uint8Array(stored.data));
+      } else {
+        player.loadTex(DEMO_TEX);
+      }
+    })();
     return () => {
+      disposed = true;
       playerRef.current = null;
       player.destroy();
     };
@@ -85,6 +105,54 @@ export function App() {
       setTapCount(null);
     });
   }, [recording]);
+
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const stored = await storage.get<StoredFile>("recording");
+        if (cancelled || !stored) return;
+        await recording.load(stored.data);
+        if (cancelled) return;
+        setRecordingFileName(stored.name);
+        const sync = await storage.get<SyncPoint[]>("sync");
+        if (cancelled || !sync?.length) return;
+        setSyncPoints(sync);
+        setFollow((await storage.get<boolean>("follow")) ?? true);
+      } catch (error) {
+        console.error("[openvoicing] session restore failed", error);
+      } finally {
+        hydratedRef.current = true;
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [recording]);
+
+  useEffect(() => {
+    if (!hydratedRef.current) return;
+    const timer = setTimeout(() => {
+      if (syncPoints?.length) void storage.set("sync", syncPoints);
+      else void storage.delete("sync");
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [syncPoints]);
+
+  useEffect(() => {
+    if (!hydratedRef.current) return;
+    void storage.set("follow", follow);
+  }, [follow]);
+
+  async function openRecordingFile(file: File) {
+    const buffer = await file.arrayBuffer();
+    // decodeAudioData detaches the buffer, so persist a copy.
+    const copy = buffer.slice(0);
+    await recording.load(buffer);
+    setRecordingFileName(file.name);
+    void storage.set("recording", { name: file.name, data: copy } satisfies StoredFile);
+    void storage.delete("sync");
+  }
 
   useEffect(() => {
     if (!follow || !syncPoints) return;
@@ -198,7 +266,13 @@ export function App() {
     const file = e.target.files?.[0];
     if (!file) return;
     const buffer = await file.arrayBuffer();
-    playerRef.current?.load(new Uint8Array(buffer));
+    const loaded = playerRef.current?.load(new Uint8Array(buffer));
+    if (loaded) {
+      void storage.set("score", { name: file.name, data: buffer } satisfies StoredFile);
+      void storage.delete("sync");
+      setSyncPoints(null);
+      setFollow(false);
+    }
     e.target.value = "";
   }
 
@@ -280,6 +354,8 @@ export function App() {
 
       <RecordingPanel
         player={recording}
+        fileName={recordingFileName}
+        onOpenFile={openRecordingFile}
         syncPoints={syncPoints}
         onMoveSyncPoint={moveSyncPoint}
       />

@@ -24,18 +24,25 @@ interface DragState {
 
 interface RecordingPanelProps {
   player: RecordingPlayer;
+  fileName: string | null;
+  onOpenFile: (file: File) => Promise<void>;
   /** Sync anchors to render as draggable markers, or null when unsynced. */
   syncPoints: SyncPoint[] | null;
   onMoveSyncPoint: (index: number, timeSeconds: number) => void;
 }
 
-export function RecordingPanel({ player, syncPoints, onMoveSyncPoint }: RecordingPanelProps) {
+export function RecordingPanel({
+  player,
+  fileName,
+  onOpenFile,
+  syncPoints,
+  onMoveSyncPoint,
+}: RecordingPanelProps) {
   const playerRef = useRef<RecordingPlayer | null>(player);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const peaksRef = useRef<WaveformPeaks | null>(null);
   const [drag, setDrag] = useState<DragState | null>(null);
   const [markerDrag, setMarkerDrag] = useState<number | null>(null);
-  const [fileName, setFileName] = useState<string | null>(null);
   const [playing, setPlaying] = useState(false);
   const [speed, setSpeed] = useState(1);
   const [loop, setLoop] = useState<LoopRegion | null>(null);
@@ -160,9 +167,7 @@ export function RecordingPanel({ player, syncPoints, onMoveSyncPoint }: Recordin
   async function openFile(e: ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
-    const buffer = await file.arrayBuffer();
-    await playerRef.current?.load(buffer);
-    setFileName(file.name);
+    await onOpenFile(file);
     e.target.value = "";
   }
 
