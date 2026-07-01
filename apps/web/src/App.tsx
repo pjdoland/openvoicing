@@ -1,7 +1,16 @@
 import { useEffect, useRef, useState, type ChangeEvent } from "react";
 import { Player, type TrackInfo } from "@openvoicing/player";
 import { RecordingPlayer } from "@openvoicing/audio-engine";
-import { mediaTimeAtTick, tickAtMediaTime, type SyncPoint } from "@openvoicing/score-model";
+import {
+  importMusicXml,
+  mediaTimeAtTick,
+  ScoreEditor,
+  tickAtMediaTime,
+  toAlphaTex,
+  type BeatAddress,
+  type ScoreDocument,
+  type SyncPoint,
+} from "@openvoicing/score-model";
 import {
   BUNDLE_FORMAT,
   BUNDLE_FORMAT_VERSION,
@@ -22,12 +31,28 @@ interface ScoreSource {
   data: ArrayBuffer;
 }
 
-function loadScoreIntoPlayer(player: Player, source: ScoreSource): void {
+/**
+ * Loads a score source, routing plain MusicXML through the canonical score
+ * model (which makes it editable) and everything else through alphaTab's own
+ * parsers. Returns an editor when the model path succeeded.
+ */
+function loadScoreIntoPlayer(player: Player, source: ScoreSource): ScoreEditor | null {
   if (source.type === "alphatex") {
     player.loadTex(new TextDecoder().decode(source.data));
-  } else {
-    player.load(new Uint8Array(source.data));
+    return null;
   }
+  if (source.type === "musicxml") {
+    try {
+      const doc = importMusicXml(new TextDecoder().decode(source.data));
+      player.loadTex(toAlphaTex(doc));
+      return new ScoreEditor(doc);
+    } catch {
+      // Binary containers (.mxl) and files the v0 importer cannot handle
+      // fall back to alphaTab's native parser, read-only.
+    }
+  }
+  player.load(new Uint8Array(source.data));
+  return null;
 }
 
 function newRecordingId(): string {
@@ -59,8 +84,36 @@ export function App() {
   const [tracks, setTracks] = useState<TrackInfo[]>([]);
   const [barCount, setBarCount] = useState(0);
   const [scoreTitle, setScoreTitle] = useState("");
+  const [scoreArtist, setScoreArtist] = useState("");
   const scoreSourceRef = useRef<ScoreSource | null>(null);
   const [position, setPosition] = useState({ current: 0, total: 0 });
+
+  const editorRef = useRef<ScoreEditor | null>(null);
+  const [hasEditor, setHasEditor] = useState(false);
+  const [editMode, setEditMode] = useState(false);
+  const editModeRef = useRef(false);
+  const selectedBeatRef = useRef<BeatAddress | null>(null);
+  const [selectedBeat, setSelectedBeat] = useState<BeatAddress | null>(null);
+
+  useEffect(() => {
+    editModeRef.current = editMode;
+    if (!editMode) {
+      selectedBeatRef.current = null;
+      setSelectedBeat(null);
+    }
+  }, [editMode]);
+
+  useEffect(() => {
+    selectedBeatRef.current = selectedBeat;
+  }, [selectedBeat]);
+
+  function adoptEditor(editor: ScoreEditor | null): void {
+    editorRef.current = editor;
+    setHasEditor(editor !== null);
+    setEditMode(false);
+    if (editor) void storage.set("scoreDoc", editor.doc);
+    else void storage.delete("scoreDoc");
+  }
 
   const [recordings, setRecordings] = useState<RecordingMeta[]>([]);
   const [activeRecId, setActiveRecId] = useState<string | null>(null);
@@ -89,6 +142,7 @@ export function App() {
       setTracks(info.tracks);
       setBarCount(player.barTicks.length);
       setScoreTitle(info.title);
+      setScoreArtist(info.artist);
     });
     player.on("playerReady", () => setReady(true));
     player.on("playerStateChanged", setPlaying);
@@ -98,32 +152,63 @@ export function App() {
         return prev.current === next.current && prev.total === next.total ? prev : next;
       });
     });
-    player.on("beatClicked", (tick) => {
+    player.on("beatClicked", (tick, location) => {
+      if (editModeRef.current) {
+        setSelectedBeat({
+          partIndex: location.trackIndex,
+          barIndex: location.barIndex,
+          voiceIndex: location.voiceIndex,
+          beatIndex: location.beatIndex,
+        });
+        return;
+      }
       const points = syncPointsRef.current;
       if (points) recording.seek(mediaTimeAtTick(points, tick));
     });
     player.on("error", (error) => console.error("[openvoicing]", error));
     if (import.meta.env.DEV) {
-      (window as unknown as Record<string, unknown>).__ovPlayer = player;
-      (window as unknown as Record<string, unknown>).__ovRecording = recording;
+      const w = window as unknown as Record<string, unknown>;
+      w.__ovPlayer = player;
+      w.__ovRecording = recording;
+      w.__ovEditor = () => editorRef.current;
+      w.__ovSelected = () => selectedBeatRef.current;
     }
     let disposed = false;
     void (async () => {
+      let doc: ScoreDocument | undefined;
       let stored: (StoredFile & { type?: ScoreType }) | undefined;
       try {
+        doc = await storage.get<ScoreDocument>("scoreDoc");
         stored = await storage.get<StoredFile & { type?: ScoreType }>("score");
       } catch {
+        doc = undefined;
         stored = undefined;
       }
       if (disposed) return;
-      if (stored) {
+      if (doc) {
+        // An editing session in progress restores from the canonical document.
+        const tex = toAlphaTex(doc);
+        player.loadTex(tex);
+        editorRef.current = new ScoreEditor(doc);
+        setHasEditor(true);
+        if (stored) {
+          scoreSourceRef.current = {
+            name: stored.name,
+            type: stored.type ?? scoreTypeFromFileName(stored.name),
+            data: stored.data,
+          };
+        }
+      } else if (stored) {
         const source: ScoreSource = {
           name: stored.name,
           type: stored.type ?? scoreTypeFromFileName(stored.name),
           data: stored.data,
         };
         scoreSourceRef.current = source;
-        loadScoreIntoPlayer(player, source);
+        const editor = loadScoreIntoPlayer(player, source);
+        editorRef.current = editor;
+        setHasEditor(editor !== null);
+        if (editor) void storage.set("scoreDoc", editor.doc);
       } else {
         const data = new TextEncoder().encode(DEMO_TEX).buffer as ArrayBuffer;
         scoreSourceRef.current = { name: "demo.alphatex", type: "alphatex", data };
@@ -339,6 +424,39 @@ export function App() {
     return () => window.removeEventListener("keydown", onKey);
   });
 
+  function rerenderScore() {
+    const editor = editorRef.current;
+    const player = playerRef.current;
+    if (!editor || !player) return;
+    player.loadTex(toAlphaTex(editor.doc));
+    void storage.set("scoreDoc", editor.doc);
+  }
+
+  useEffect(() => {
+    if (!editMode) return;
+    const onKey = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement | null;
+      if (target && (target.tagName === "INPUT" || target.tagName === "SELECT")) return;
+      const editor = editorRef.current;
+      if (!editor) return;
+      if ((e.metaKey || e.ctrlKey) && e.code === "KeyZ") {
+        e.preventDefault();
+        const changed = e.shiftKey ? editor.redo() : editor.undo();
+        if (changed) rerenderScore();
+        return;
+      }
+      const selected = selectedBeatRef.current;
+      if (!selected) return;
+      if (e.code === "ArrowUp" || e.code === "ArrowDown") {
+        e.preventDefault();
+        const delta = (e.code === "ArrowUp" ? 1 : -1) * (e.shiftKey ? 12 : 1);
+        if (editor.transposeBeat(selected, delta)) rerenderScore();
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [editMode]);
+
   function changeSpeed(e: ChangeEvent<HTMLSelectElement>) {
     const value = Number(e.target.value);
     setSpeed(value);
@@ -376,17 +494,19 @@ export function App() {
   async function openFile(e: ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
+    const player = playerRef.current;
+    if (!player) return;
     const buffer = await file.arrayBuffer();
-    const loaded = playerRef.current?.load(new Uint8Array(buffer));
-    if (loaded) {
-      const type = scoreTypeFromFileName(file.name);
-      scoreSourceRef.current = { name: file.name, type, data: buffer };
-      void storage.set("score", { name: file.name, type, data: buffer });
-      // Sync maps anchor to the old score's ticks; they do not carry over.
-      for (const meta of recordings) void storage.delete(`sync:${meta.id}`);
-      setSyncPoints(null);
-      setFollow(false);
-    }
+    const type = scoreTypeFromFileName(file.name);
+    const source: ScoreSource = { name: file.name, type, data: buffer };
+    const editor = loadScoreIntoPlayer(player, source);
+    adoptEditor(editor);
+    scoreSourceRef.current = source;
+    void storage.set("score", { name: file.name, type, data: buffer });
+    // Sync maps anchor to the old score's ticks; they do not carry over.
+    for (const meta of recordings) void storage.delete(`sync:${meta.id}`);
+    setSyncPoints(null);
+    setFollow(false);
     e.target.value = "";
   }
 
@@ -417,6 +537,7 @@ export function App() {
         format: BUNDLE_FORMAT,
         formatVersion: BUNDLE_FORMAT_VERSION,
         title: scoreTitle || "Untitled",
+        ...(scoreArtist ? { attribution: { artist: scoreArtist } } : {}),
         score: { path: scorePath, type: source.type },
         recordings: manifestRecordings,
       },
@@ -447,7 +568,7 @@ export function App() {
         data: scoreData,
       };
       scoreSourceRef.current = source;
-      if (player) loadScoreIntoPlayer(player, source);
+      if (player) adoptEditor(loadScoreIntoPlayer(player, source));
       void storage.set("score", { name: source.name, type: source.type, data: scoreData });
 
       // Opening a bundle replaces the session's recordings.
@@ -535,6 +656,27 @@ export function App() {
         <label className="control">
           <input type="checkbox" checked={countIn} onChange={toggleCountIn} /> Count-in
         </label>
+
+        {hasEditor && (
+          <label className="control">
+            <input
+              type="checkbox"
+              checked={editMode}
+              onChange={(e) => {
+                setEditMode(e.target.checked);
+                e.target.blur();
+              }}
+            />
+            Edit
+          </label>
+        )}
+        {editMode && (
+          <span className="hint">
+            {selectedBeat
+              ? "arrows transpose (shift = octave), Cmd+Z undo"
+              : "click a note to select it"}
+          </span>
+        )}
 
         <span className="position">
           {formatTime(position.current)} / {formatTime(position.total)}

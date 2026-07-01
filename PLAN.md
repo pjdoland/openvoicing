@@ -158,14 +158,20 @@ see Status above. What remains, in order:
 - Publish the bundle manifest spec in `docs/`
 - Sync editor refinements as needed: finer-than-bar anchors, guide notes
 
-### Phase 4: The Editor (the hardest phase)
+### Phase 4: The Editor (the hardest phase, started)
 
-- Note entry (mouse, keyboard shortcuts, MIDI input), undo/redo via command
-  pattern over the versioned document
-- Renderer decision checkpoint first: commit to alphaTab (investing upstream in
-  edit-oriented APIs) or move to Verovio
-- v1 coverage: notes/rests, voices, ties/slurs, articulations, dynamics,
-  lyrics, chord symbols, tab fingering, repeats/endings, text
+- Renderer checkpoint resolved for v1: stay on alphaTab, with the canonical
+  model as source of truth rendered via alphaTex regeneration on every edit.
+  Full-document re-render is fine at practice-piece scale; revisit incremental
+  rendering (or Verovio) if large scores make it slow
+- Done so far: MusicXML imports route through the canonical model, toAlphaTex
+  bridges model to renderer, ScoreEditor provides snapshot undo/redo with
+  stable entity IDs, and the app has an edit mode (select a beat, transpose by
+  semitone or octave, undo/redo) with the document persisting across reloads
+- Next: note entry (keyboard shortcuts, then MIDI input), duration editing,
+  add/remove notes and bars
+- v1 coverage target: notes/rests, voices, ties/slurs, articulations,
+  dynamics, lyrics, chord symbols, tab fingering, repeats/endings, text
 - Export: MusicXML, MIDI, PDF, PNG; bundles gain the canonical score JSON
 
 ### Phase 5: Scanning and Transcription Assist

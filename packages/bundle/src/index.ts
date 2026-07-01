@@ -9,6 +9,7 @@ export {
 export { BUNDLE_FORMAT, BUNDLE_FORMAT_VERSION } from "./types";
 export type {
   Bundle,
+  BundleAttribution,
   BundleManifest,
   BundleRecording,
   BundleScore,

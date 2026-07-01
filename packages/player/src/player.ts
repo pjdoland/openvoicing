@@ -15,13 +15,21 @@ export interface PlayerOptions {
   scale?: number;
 }
 
+/** Structural address of a beat within the score. */
+export interface BeatLocation {
+  trackIndex: number;
+  barIndex: number;
+  voiceIndex: number;
+  beatIndex: number;
+}
+
 export interface PlayerEvents {
   scoreLoaded: (info: { title: string; artist: string; tracks: TrackInfo[] }) => void;
   playerStateChanged: (playing: boolean) => void;
   positionChanged: (currentSeconds: number, totalSeconds: number) => void;
   playerReady: () => void;
-  /** A beat was clicked; the argument is its absolute playback tick. */
-  beatClicked: (tick: number) => void;
+  /** A beat was clicked: its absolute playback tick and structural address. */
+  beatClicked: (tick: number, location: BeatLocation) => void;
   error: (error: Error) => void;
 }
 
@@ -76,7 +84,12 @@ export class Player {
       this.emit("positionChanged", args.currentTime / 1000, args.endTime / 1000);
     });
     this.api.beatMouseDown.on((beat) => {
-      this.emit("beatClicked", beat.absolutePlaybackStart);
+      this.emit("beatClicked", beat.absolutePlaybackStart, {
+        trackIndex: beat.voice.bar.staff.track.index,
+        barIndex: beat.voice.bar.index,
+        voiceIndex: beat.voice.index,
+        beatIndex: beat.index,
+      });
     });
     this.api.error.on((error) => this.emit("error", error));
   }

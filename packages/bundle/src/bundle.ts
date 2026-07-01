@@ -24,6 +24,17 @@ export function validateManifest(value: unknown): BundleManifest {
     fail(`unsupported bundle version ${JSON.stringify(m["formatVersion"])}`);
   }
   if (typeof m["title"] !== "string") fail("missing title");
+  if (m["attribution"] !== undefined) {
+    const attribution = m["attribution"];
+    if (typeof attribution !== "object" || attribution === null) {
+      fail("attribution must be an object");
+    }
+    for (const [key, value] of Object.entries(attribution)) {
+      if (value !== undefined && typeof value !== "string") {
+        fail(`attribution.${key} must be a string`);
+      }
+    }
+  }
   const score = m["score"] as Record<string, unknown> | undefined;
   if (!score || typeof score["path"] !== "string") fail("missing score.path");
   if (!SCORE_TYPES.has(String(score["type"]))) {

@@ -21,10 +21,22 @@ export interface BundleRecording {
   syncPoints?: SyncPoint[];
 }
 
+/** Attribution and licensing metadata. All fields are free text and optional. */
+export interface BundleAttribution {
+  composer?: string;
+  artist?: string;
+  copyright?: string;
+  /** License of the bundle contents, ideally an SPDX id or a URL. */
+  license?: string;
+  /** Where the material came from, e.g. a URL. */
+  source?: string;
+}
+
 export interface BundleManifest {
   format: typeof BUNDLE_FORMAT;
   formatVersion: number;
   title: string;
+  attribution?: BundleAttribution;
   score: BundleScore;
   recordings: BundleRecording[];
 }

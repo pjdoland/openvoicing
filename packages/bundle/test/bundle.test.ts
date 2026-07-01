@@ -75,6 +75,19 @@ describe("bundle round-trip", () => {
     expect(() => createBundle(bundle)).toThrow(/unsupported bundle version/);
   });
 
+  it("round-trips attribution metadata", () => {
+    const bundle = demoBundle();
+    bundle.manifest.attribution = { composer: "Trad.", license: "CC-BY-4.0" };
+    const parsed = readBundle(createBundle(bundle));
+    expect(parsed.manifest.attribution).toEqual({ composer: "Trad.", license: "CC-BY-4.0" });
+  });
+
+  it("rejects non-string attribution values", () => {
+    const bundle = demoBundle();
+    (bundle.manifest as { attribution: unknown }).attribution = { composer: 42 };
+    expect(() => createBundle(bundle)).toThrow(/attribution\.composer/);
+  });
+
   it("rejects malformed sync points", () => {
     const bundle = demoBundle();
     (bundle.manifest.recordings[0] as { syncPoints: unknown }).syncPoints = [{ tick: "a" }];

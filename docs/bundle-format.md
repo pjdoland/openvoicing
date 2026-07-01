@@ -49,6 +49,9 @@ the format.
 - `format` (string, required): always `"openvoicing-bundle"`
 - `formatVersion` (number, required): `0` for this spec
 - `title` (string, required): display title
+- `attribution` (object, optional): free-text metadata, all fields optional
+  strings: `composer`, `artist`, `copyright`, `license` (ideally an SPDX id or
+  URL), `source` (where the material came from)
 - `score` (object, required):
   - `path`: archive path of the score file
   - `type`: one of `"guitarpro"`, `"musicxml"`, `"alphatex"`
@@ -85,7 +88,6 @@ platform's `decodeAudioData` accepts will work; MP3 is the safest choice.
 ## Planned for future versions
 
 - Canonical score JSON (the OpenVoicing score model) alongside the source file
-- Attribution and licensing metadata fields
 - Cover images and precomputed waveform peaks
 - Video recordings
 - An unpacked directory layout with the same manifest for large-media

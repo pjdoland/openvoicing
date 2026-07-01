@@ -4,3 +4,6 @@ export { importMusicXml } from "./musicxml";
 export { absoluteTick, barDurationTicks, mediaTimeAt, syncMapToPoints } from "./syncmap";
 export { mediaTimeAtTick, tickAtMediaTime } from "./sync-points";
 export type { SyncPoint } from "./sync-points";
+export { durationName, toAlphaTex } from "./alphatex";
+export { midiToPitch, pitchToMidi, ScoreEditor } from "./edits";
+export type { BeatAddress } from "./edits";
