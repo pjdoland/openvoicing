@@ -229,6 +229,37 @@ export class ScoreEditor {
     return true;
   }
 
+  /**
+   * Toggle a tie between a beat and the next beat (crossing barlines) when
+   * both hold the same pitches.
+   */
+  toggleTie(address: BeatAddress): boolean {
+    const nextAddress = neighborBeatAddress(this.doc, address, 1);
+    if (!nextAddress) return false;
+    const from = this.locateBeat(this.doc, address);
+    const to = this.locateBeat(this.doc, nextAddress);
+    if (!from || !to || from.notes.length === 0 || from.notes.length !== to.notes.length) {
+      return false;
+    }
+    const key = (n: Note) => `${n.step}/${n.alter}/${n.octave}`;
+    const fromKeys = from.notes.map(key).sort();
+    const toKeys = to.notes.map(key).sort();
+    if (fromKeys.some((k, i) => k !== toKeys[i])) return false;
+
+    const tied = from.notes.every((n) => n.tieStart) && to.notes.every((n) => n.tieStop);
+    const next = structuredClone(this.doc);
+    for (const note of this.locateBeat(next, address)!.notes) {
+      if (tied) delete note.tieStart;
+      else note.tieStart = true;
+    }
+    for (const note of this.locateBeat(next, nextAddress)!.notes) {
+      if (tied) delete note.tieStop;
+      else note.tieStop = true;
+    }
+    this.commit(next);
+    return true;
+  }
+
   /** Toggle enharmonic spelling (C# to Db and back) for every altered note. */
   respellBeat(address: BeatAddress): boolean {
     const notes = this.locateNotes(this.doc, address);

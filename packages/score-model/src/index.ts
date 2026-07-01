@@ -9,4 +9,5 @@ export { midiToPitch, neighborBeatAddress, pitchToMidi, ScoreEditor } from "./ed
 export type { BeatAddress } from "./edits";
 export { toMusicXml } from "./musicxml-export";
 export { createEmptyScore } from "./create";
+export { toMidi } from "./midi";
 export type { CreateScoreOptions } from "./create";

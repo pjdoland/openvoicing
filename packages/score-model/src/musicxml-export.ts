@@ -81,8 +81,17 @@ function beatToXml(beat: Beat): string[] {
     out.push(`          <octave>${note.octave}</octave>`);
     out.push("        </pitch>");
     out.push(`        <duration>${beat.durationTicks}</duration>`);
+    if (note.tieStop) out.push('        <tie type="stop"/>');
+    if (note.tieStart) out.push('        <tie type="start"/>');
     out.push("        <voice>1</voice>");
     if (type) out.push(`        ${type}`);
+    if (note.tieStart || note.tieStop) {
+      const tied = [
+        ...(note.tieStop ? ['<tied type="stop"/>'] : []),
+        ...(note.tieStart ? ['<tied type="start"/>'] : []),
+      ].join("");
+      out.push(`        <notations>${tied}</notations>`);
+    }
     out.push("      </note>");
   });
   return out;

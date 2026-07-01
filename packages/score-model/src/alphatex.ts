@@ -57,6 +57,10 @@ function barTicks(ts: TimeSignature): number {
 function beatToTex(beat: Beat): string {
   const duration = durationName(beat.durationTicks);
   if (beat.rest || beat.notes.length === 0) return `r.${duration}`;
+  // A tie continuation is written as "-" placeholders: (-).4 or (- -).4.
+  if (beat.notes.every((n) => n.tieStop)) {
+    return `(${beat.notes.map(() => "-").join(" ")}).${duration}`;
+  }
   if (beat.notes.length === 1) return `${noteToTex(beat.notes[0]!)}.${duration}`;
   return `(${beat.notes.map(noteToTex).join(" ")}).${duration}`;
 }

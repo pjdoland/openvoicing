@@ -9,6 +9,7 @@ import {
   ScoreEditor,
   tickAtMediaTime,
   toAlphaTex,
+  toMidi,
   toMusicXml,
   type BeatAddress,
   type ScoreDocument,
@@ -481,17 +482,27 @@ export function App() {
     setSelectedBeat(first);
   }
 
+  function downloadBlob(blob: Blob, extension: string) {
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = `${(scoreTitle || "score").replace(/[^\w-]+/g, "-").toLowerCase() || "score"}.${extension}`;
+    link.click();
+    URL.revokeObjectURL(link.href);
+  }
+
   function exportMusicXml() {
     const editor = editorRef.current;
     if (!editor) return;
-    const blob = new Blob([toMusicXml(editor.doc)], {
-      type: "application/vnd.recordare.musicxml+xml",
-    });
-    const link = document.createElement("a");
-    link.href = URL.createObjectURL(blob);
-    link.download = `${(scoreTitle || "score").replace(/[^\w-]+/g, "-").toLowerCase() || "score"}.musicxml`;
-    link.click();
-    URL.revokeObjectURL(link.href);
+    downloadBlob(
+      new Blob([toMusicXml(editor.doc)], { type: "application/vnd.recordare.musicxml+xml" }),
+      "musicxml",
+    );
+  }
+
+  function exportMidi() {
+    const editor = editorRef.current;
+    if (!editor) return;
+    downloadBlob(new Blob([toMidi(editor.doc) as BlobPart], { type: "audio/midi" }), "mid");
   }
 
   useEffect(() => {
@@ -533,6 +544,11 @@ export function App() {
       if (e.code === "KeyJ") {
         e.preventDefault();
         if (editor.respellBeat(selected)) rerenderScore();
+        return;
+      }
+      if (e.code === "KeyT") {
+        e.preventDefault();
+        if (editor.toggleTie(selected)) rerenderScore();
         return;
       }
       if (e.code === "ArrowUp" || e.code === "ArrowDown") {
@@ -812,7 +828,7 @@ export function App() {
         {editMode && (
           <span className="hint">
             {selectedBeat
-              ? "a-g pitch, ←→ select, ↑↓ transpose, 1/2/4/8/6/3 duration, r rest, i insert, x delete, j respell, Cmd+Z undo"
+              ? "a-g pitch, ←→ select, ↑↓ transpose, 1/2/4/8/6/3 duration, r rest, i insert, x delete, t tie, j respell, Cmd+Z undo"
               : "click a note to select it"}
           </span>
         )}
@@ -823,7 +839,10 @@ export function App() {
 
         <button onClick={newScore}>New score</button>
         {hasEditor && (
-          <button onClick={exportMusicXml}>Export MusicXML</button>
+          <>
+            <button onClick={exportMusicXml}>Export MusicXML</button>
+            <button onClick={exportMidi}>Export MIDI</button>
+          </>
         )}
         <label className="control open-file">
           Open file…
