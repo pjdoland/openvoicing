@@ -63,11 +63,22 @@ export function createBundle(bundle: Bundle): Uint8Array {
 
 /** Parse .ovb bytes into an in-memory bundle. Throws BundleError when invalid. */
 export function readBundle(data: Uint8Array): Bundle {
+  if (data.length < 4 || data[0] !== 0x50 || data[1] !== 0x4b) {
+    const preview = strFromU8(data.slice(0, 256)).trimStart().toLowerCase();
+    if (preview.startsWith("<")) {
+      fail(
+        "not a bundle: the data is an HTML page, not a .ovb file. " +
+          "Check the bundle URL; servers with SPA fallbacks often return their " +
+          "index page for missing files.",
+      );
+    }
+    fail("not a bundle: the data is not a ZIP archive");
+  }
   let entries: Record<string, Uint8Array>;
   try {
     entries = unzipSync(data);
   } catch {
-    fail("not a valid bundle: could not read the archive");
+    fail("not a valid bundle: could not read the archive (truncated or corrupt)");
   }
   const manifestBytes = entries[MANIFEST_PATH];
   if (!manifestBytes) fail("not a valid bundle: missing manifest.json");

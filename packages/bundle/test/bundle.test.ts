@@ -60,6 +60,15 @@ describe("bundle round-trip", () => {
     expect(() => readBundle(bytes.slice(0, 10))).toThrow(BundleError);
   });
 
+  it("explains when the data is an HTML page instead of a bundle", () => {
+    const html = new TextEncoder().encode("<!doctype html><html><body>404</body></html>");
+    expect(() => readBundle(html)).toThrow(/HTML page/);
+  });
+
+  it("explains when the data is not a ZIP at all", () => {
+    expect(() => readBundle(new Uint8Array([1, 2, 3, 4, 5]))).toThrow(/not a ZIP archive/);
+  });
+
   it("rejects unknown format versions", () => {
     const bundle = demoBundle();
     (bundle.manifest as { formatVersion: number }).formatVersion = 99;
