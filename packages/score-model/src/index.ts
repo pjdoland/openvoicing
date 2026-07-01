@@ -8,3 +8,5 @@ export { durationName, toAlphaTex } from "./alphatex";
 export { midiToPitch, neighborBeatAddress, pitchToMidi, ScoreEditor } from "./edits";
 export type { BeatAddress } from "./edits";
 export { toMusicXml } from "./musicxml-export";
+export { createEmptyScore } from "./create";
+export type { CreateScoreOptions } from "./create";

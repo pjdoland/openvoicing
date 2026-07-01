@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type ChangeEvent } from "react";
 import { Player, type TrackInfo } from "@openvoicing/player";
 import { RecordingPlayer } from "@openvoicing/audio-engine";
 import {
+  createEmptyScore,
   importMusicXml,
   mediaTimeAtTick,
   neighborBeatAddress,
@@ -439,6 +440,28 @@ export function App() {
     void storage.set("score", { name: "score.musicxml", type: "musicxml", data });
   }
 
+  function newScore() {
+    const player = playerRef.current;
+    if (!player) return;
+    const doc = createEmptyScore();
+    const editor = new ScoreEditor(doc);
+    editorRef.current = editor;
+    setHasEditor(true);
+    player.loadTex(toAlphaTex(doc));
+    void storage.set("scoreDoc", doc);
+    const xml = toMusicXml(doc);
+    const data = new TextEncoder().encode(xml).buffer as ArrayBuffer;
+    scoreSourceRef.current = { name: "score.musicxml", type: "musicxml", data };
+    void storage.set("score", { name: "score.musicxml", type: "musicxml", data });
+    for (const meta of recordings) void storage.delete(`sync:${meta.id}`);
+    setSyncPoints(null);
+    setFollow(false);
+    setEditMode(true);
+    const first: BeatAddress = { partIndex: 0, barIndex: 0, voiceIndex: 0, beatIndex: 0 };
+    selectedBeatRef.current = first;
+    setSelectedBeat(first);
+  }
+
   function exportMusicXml() {
     const editor = editorRef.current;
     if (!editor) return;
@@ -779,6 +802,7 @@ export function App() {
           {formatTime(position.current)} / {formatTime(position.total)}
         </span>
 
+        <button onClick={newScore}>New score</button>
         {hasEditor && (
           <button onClick={exportMusicXml}>Export MusicXML</button>
         )}
