@@ -184,7 +184,9 @@ see Status above. What remains, in order:
 
 ### Phase 6: Reach
 
-- PWA: installable, offline practice, touch-first controls
+- PWA: shipped (installable manifest, service worker precaching the app,
+  fonts, soundfont, and demo bundle; both the app and the embed player work
+  fully offline). Touch-first control polish remains
 - Video recordings in bundles; YouTube sync as a convenience tier with
   documented ToS limits (no audio extraction, coarse rate control)
 - Optional community layer: a static-friendly gallery that indexes bundles
