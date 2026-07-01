@@ -163,11 +163,10 @@ export function App() {
     });
   }, [follow, syncPoints, recording]);
 
+  // The existing sync map stays until Done replaces it, so Cancel loses nothing.
   function startTapSync() {
     tapsRef.current = [];
     setTapCount(0);
-    setFollow(false);
-    setSyncPoints(null);
     recording.seek(0);
     void recording.play();
   }
@@ -202,6 +201,11 @@ export function App() {
     setTapCount(null);
   }
 
+  function undoTap() {
+    tapsRef.current.pop();
+    setTapCount(tapsRef.current.length);
+  }
+
   function moveSyncPoint(index: number, timeSeconds: number) {
     setSyncPoints((points) => {
       if (!points) return points;
@@ -222,6 +226,9 @@ export function App() {
       if (e.code === "Space") {
         e.preventDefault();
         tap();
+      } else if (e.code === "Backspace") {
+        e.preventDefault();
+        undoTap();
       }
     };
     window.addEventListener("keydown", onKey);
@@ -391,10 +398,14 @@ export function App() {
               <button className="tap-button" onClick={tap}>
                 Tap bar {tapCount + 1} of {barCount} (or press Space)
               </button>
+              <button onClick={undoTap} disabled={tapCount === 0}>
+                Undo tap (Backspace)
+              </button>
               <button onClick={finishTapSync} disabled={tapsRef.current.length < 2}>
                 Done
               </button>
               <button onClick={cancelTapSync}>Cancel</button>
+              <span className="hint">tip: slow the recording speed to make tapping easier</span>
             </>
           )}
         </div>
