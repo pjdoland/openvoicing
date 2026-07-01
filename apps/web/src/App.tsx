@@ -134,6 +134,20 @@ export function App() {
     setTapCount(null);
   }
 
+  function moveSyncPoint(index: number, timeSeconds: number) {
+    setSyncPoints((points) => {
+      if (!points) return points;
+      const gap = 0.05;
+      const min = index > 0 ? points[index - 1]!.timeSeconds + gap : 0;
+      const max =
+        index < points.length - 1
+          ? points[index + 1]!.timeSeconds - gap
+          : recording.duration;
+      const clamped = Math.min(Math.max(timeSeconds, min), Math.max(min, max));
+      return points.map((p, i) => (i === index ? { ...p, timeSeconds: clamped } : p));
+    });
+  }
+
   useEffect(() => {
     if (tapCount === null) return;
     const onKey = (e: KeyboardEvent) => {
@@ -264,7 +278,11 @@ export function App() {
         </div>
       )}
 
-      <RecordingPanel player={recording} />
+      <RecordingPanel
+        player={recording}
+        syncPoints={syncPoints}
+        onMoveSyncPoint={moveSyncPoint}
+      />
 
       {recordingLoaded && (
         <div className="sync-bar">

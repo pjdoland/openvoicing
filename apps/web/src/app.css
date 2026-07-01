@@ -146,6 +146,40 @@ body {
   touch-action: none;
 }
 
+.sync-lane {
+  position: relative;
+  height: 20px;
+  background: #eef4fe;
+  border-top: 1px solid #d5e3f7;
+}
+
+.sync-marker {
+  position: absolute;
+  top: 1px;
+  transform: translateX(-50%);
+  min-width: 16px;
+  height: 17px;
+  padding: 0 4px;
+  border-radius: 4px;
+  background: #2563eb;
+  color: #fff;
+  font-size: 11px;
+  line-height: 17px;
+  text-align: center;
+  cursor: ew-resize;
+  user-select: none;
+  touch-action: none;
+}
+
+.sync-marker.dragging {
+  background: #1e3a8a;
+  z-index: 2;
+}
+
+.sync-marker:hover {
+  z-index: 1;
+}
+
 .sync-bar {
   display: flex;
   align-items: center;

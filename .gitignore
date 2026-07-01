@@ -8,3 +8,4 @@ coverage/
 !.env.example
 .turbo/
 apps/web/public/alphatab/
+.playwright-mcp/

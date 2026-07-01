@@ -5,6 +5,7 @@ import {
   type LoopRegion,
   type WaveformPeaks,
 } from "@openvoicing/audio-engine";
+import type { SyncPoint } from "@openvoicing/score-model";
 
 const SPEEDS = [0.5, 0.6, 0.7, 0.8, 0.9, 1, 1.1, 1.25];
 const WAVE_WIDTH = 1200;
@@ -21,11 +22,19 @@ interface DragState {
   currentX: number;
 }
 
-export function RecordingPanel({ player }: { player: RecordingPlayer }) {
+interface RecordingPanelProps {
+  player: RecordingPlayer;
+  /** Sync anchors to render as draggable markers, or null when unsynced. */
+  syncPoints: SyncPoint[] | null;
+  onMoveSyncPoint: (index: number, timeSeconds: number) => void;
+}
+
+export function RecordingPanel({ player, syncPoints, onMoveSyncPoint }: RecordingPanelProps) {
   const playerRef = useRef<RecordingPlayer | null>(player);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const peaksRef = useRef<WaveformPeaks | null>(null);
   const [drag, setDrag] = useState<DragState | null>(null);
+  const [markerDrag, setMarkerDrag] = useState<number | null>(null);
   const [fileName, setFileName] = useState<string | null>(null);
   const [playing, setPlaying] = useState(false);
   const [speed, setSpeed] = useState(1);
@@ -84,11 +93,18 @@ export function RecordingPanel({ player }: { player: RecordingPlayer }) {
       }
     }
 
+    if (syncPoints && duration > 0) {
+      ctx.fillStyle = "rgba(37, 99, 235, 0.7)";
+      for (const p of syncPoints) {
+        ctx.fillRect((p.timeSeconds / duration) * WAVE_WIDTH - 0.5, 0, 1, WAVE_HEIGHT);
+      }
+    }
+
     if (duration > 0) {
       ctx.fillStyle = "#e53e3e";
       ctx.fillRect((position / duration) * WAVE_WIDTH - 1, 0, 2, WAVE_HEIGHT);
     }
-  }, [position, duration, loop, drag, playing, fileName]);
+  }, [position, duration, loop, drag, playing, fileName, syncPoints]);
 
   function canvasX(e: PointerEvent<HTMLCanvasElement>): number {
     const rect = e.currentTarget.getBoundingClientRect();
@@ -120,6 +136,20 @@ export function RecordingPanel({ player }: { player: RecordingPlayer }) {
     const region = { start: from, end: to };
     setLoop(region);
     player.setLoopRegion(region);
+  }
+
+  function onMarkerPointerDown(e: PointerEvent<HTMLDivElement>, index: number) {
+    e.stopPropagation();
+    e.currentTarget.setPointerCapture(e.pointerId);
+    setMarkerDrag(index);
+  }
+
+  function onMarkerPointerMove(e: PointerEvent<HTMLDivElement>, index: number) {
+    if (markerDrag !== index || duration === 0) return;
+    const lane = e.currentTarget.parentElement?.getBoundingClientRect();
+    if (!lane) return;
+    const timeSeconds = ((e.clientX - lane.left) / lane.width) * duration;
+    onMoveSyncPoint(index, timeSeconds);
   }
 
   function clearLoop() {
@@ -177,6 +207,23 @@ export function RecordingPanel({ player }: { player: RecordingPlayer }) {
           </>
         )}
       </div>
+      {fileName && syncPoints && duration > 0 && (
+        <div className="sync-lane">
+          {syncPoints.map((p, i) => (
+            <div
+              key={i}
+              className={markerDrag === i ? "sync-marker dragging" : "sync-marker"}
+              style={{ left: `${(p.timeSeconds / duration) * 100}%` }}
+              title={`Bar ${i + 1}: ${p.timeSeconds.toFixed(2)}s. Drag to adjust.`}
+              onPointerDown={(e) => onMarkerPointerDown(e, i)}
+              onPointerMove={(e) => onMarkerPointerMove(e, i)}
+              onPointerUp={() => setMarkerDrag(null)}
+            >
+              {i + 1}
+            </div>
+          ))}
+        </div>
+      )}
       {fileName && (
         <canvas
           ref={canvasRef}
