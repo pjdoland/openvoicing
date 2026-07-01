@@ -20,7 +20,15 @@ export interface PlayerEvents {
   playerStateChanged: (playing: boolean) => void;
   positionChanged: (currentSeconds: number, totalSeconds: number) => void;
   playerReady: () => void;
+  /** A beat was clicked; the argument is its absolute playback tick. */
+  beatClicked: (tick: number) => void;
   error: (error: Error) => void;
+}
+
+export interface BarTicks {
+  /** Absolute playback tick where the bar starts. */
+  start: number;
+  duration: number;
 }
 
 /**
@@ -35,6 +43,7 @@ export class Player {
     playerStateChanged: new Set(),
     positionChanged: new Set(),
     playerReady: new Set(),
+    beatClicked: new Set(),
     error: new Set(),
   };
 
@@ -65,6 +74,9 @@ export class Player {
     });
     this.api.playerPositionChanged.on((args) => {
       this.emit("positionChanged", args.currentTime / 1000, args.endTime / 1000);
+    });
+    this.api.beatMouseDown.on((beat) => {
+      this.emit("beatClicked", beat.absolutePlaybackStart);
     });
     this.api.error.on((error) => this.emit("error", error));
   }
@@ -123,6 +135,28 @@ export class Player {
 
   setCountIn(enabled: boolean): void {
     this.api.countInVolume = enabled ? 1 : 0;
+  }
+
+  /** Start tick and duration of each bar, in absolute playback ticks. */
+  get barTicks(): BarTicks[] {
+    const score = this.api.score;
+    if (!score) return [];
+    return score.masterBars.map((mb) => ({
+      start: mb.start,
+      duration: mb.calculateDuration(),
+    }));
+  }
+
+  /**
+   * The playback cursor position in absolute ticks. Setting it moves the
+   * rendered cursor and scrolls to it, whether or not the synth is playing.
+   */
+  get cursorTick(): number {
+    return this.api.tickPosition;
+  }
+
+  set cursorTick(tick: number) {
+    this.api.tickPosition = tick;
   }
 
   get tracks(): TrackInfo[] {

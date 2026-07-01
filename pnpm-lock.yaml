@@ -19,6 +19,9 @@ importers:
       '@openvoicing/player':
         specifier: workspace:*
         version: link:../../packages/player
+      '@openvoicing/score-model':
+        specifier: workspace:*
+        version: link:../../packages/score-model
       react:
         specifier: ^19.2.7
         version: 19.2.7

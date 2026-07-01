@@ -146,6 +146,32 @@ body {
   touch-action: none;
 }
 
+.sync-bar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 14px;
+  padding: 8px 20px;
+  font-size: 13px;
+  background: #f2f7ff;
+  border-bottom: 1px solid #d5e3f7;
+}
+
+.sync-bar button {
+  padding: 4px 12px;
+  border: 1px solid #c8ceda;
+  border-radius: 6px;
+  background: #fff;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.tap-button {
+  font-weight: 600;
+  border-color: #3b82f6 !important;
+  color: #1d4ed8;
+}
+
 .score {
   flex: 1;
   background: #fff;

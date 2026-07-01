@@ -1,3 +1,4 @@
+import { mediaTimeAtTick, type SyncPoint } from "./sync-points";
 import { PPQ, type BarSpec, type SyncAnchor, type SyncMap } from "./types";
 
 export function barDurationTicks(bar: BarSpec): number {
@@ -15,6 +16,14 @@ export function absoluteTick(bars: BarSpec[], barIndex: number, tick: number): n
   return total + tick;
 }
 
+/** Bar-relative sync anchors converted to absolute-tick sync points. */
+export function syncMapToPoints(syncMap: SyncMap, bars: BarSpec[]): SyncPoint[] {
+  return syncMap.anchors.map((a: SyncAnchor) => ({
+    tick: absoluteTick(bars, a.barIndex, a.tick),
+    timeSeconds: a.timeSeconds,
+  }));
+}
+
 /**
  * Media timestamp for a musical position, linearly interpolated between the
  * surrounding anchors. Positions outside the anchored range extrapolate from
@@ -26,26 +35,5 @@ export function mediaTimeAt(
   barIndex: number,
   tick: number,
 ): number {
-  const anchors = syncMap.anchors;
-  if (anchors.length === 0) throw new Error("sync map has no anchors");
-  const pos = absoluteTick(bars, barIndex, tick);
-  const points = anchors.map((a: SyncAnchor) => ({
-    tick: absoluteTick(bars, a.barIndex, a.tick),
-    time: a.timeSeconds,
-  }));
-  points.sort((a, b) => a.tick - b.tick);
-
-  const first = points[0]!;
-  if (points.length === 1) return first.time;
-
-  let lo = first;
-  let hi = points[points.length - 1]!;
-  for (let i = 0; i < points.length - 1; i++) {
-    if (points[i]!.tick <= pos) {
-      lo = points[i]!;
-      hi = points[i + 1]!;
-    }
-  }
-  if (hi.tick === lo.tick) return lo.time;
-  return lo.time + ((pos - lo.tick) / (hi.tick - lo.tick)) * (hi.time - lo.time);
+  return mediaTimeAtTick(syncMapToPoints(syncMap, bars), absoluteTick(bars, barIndex, tick));
 }

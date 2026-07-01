@@ -21,8 +21,8 @@ interface DragState {
   currentX: number;
 }
 
-export function RecordingPanel() {
-  const playerRef = useRef<RecordingPlayer | null>(null);
+export function RecordingPanel({ player }: { player: RecordingPlayer }) {
+  const playerRef = useRef<RecordingPlayer | null>(player);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const peaksRef = useRef<WaveformPeaks | null>(null);
   const [drag, setDrag] = useState<DragState | null>(null);
@@ -34,25 +34,22 @@ export function RecordingPanel() {
   const [duration, setDuration] = useState(0);
 
   useEffect(() => {
-    const player = new RecordingPlayer();
     playerRef.current = player;
-    if (import.meta.env.DEV) {
-      (window as unknown as Record<string, unknown>).__ovRecording = player;
-    }
-    player.on("stateChanged", setPlaying);
-    player.on("positionChanged", (seconds, total) => {
-      setPosition(seconds);
-      setDuration(total);
-    });
-    player.on("loaded", ({ channels }) => {
-      peaksRef.current = computePeaks(channels, WAVE_WIDTH);
-      setLoop(null);
-    });
+    const unsubs = [
+      player.on("stateChanged", setPlaying),
+      player.on("positionChanged", (seconds, total) => {
+        setPosition(seconds);
+        setDuration(total);
+      }),
+      player.on("loaded", ({ channels }) => {
+        peaksRef.current = computePeaks(channels, WAVE_WIDTH);
+        setLoop(null);
+      }),
+    ];
     return () => {
-      playerRef.current = null;
-      player.destroy();
+      for (const unsub of unsubs) unsub();
     };
-  }, []);
+  }, [player]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
