@@ -4,9 +4,11 @@ import { RecordingPlayer } from "@openvoicing/audio-engine";
 import {
   importMusicXml,
   mediaTimeAtTick,
+  neighborBeatAddress,
   ScoreEditor,
   tickAtMediaTime,
   toAlphaTex,
+  toMusicXml,
   type BeatAddress,
   type ScoreDocument,
   type SyncPoint,
@@ -430,6 +432,24 @@ export function App() {
     if (!editor || !player) return;
     player.loadTex(toAlphaTex(editor.doc));
     void storage.set("scoreDoc", editor.doc);
+    // Bundles must carry the edited score, re-importable as MusicXML.
+    const xml = toMusicXml(editor.doc);
+    const data = new TextEncoder().encode(xml).buffer as ArrayBuffer;
+    scoreSourceRef.current = { name: "score.musicxml", type: "musicxml", data };
+    void storage.set("score", { name: "score.musicxml", type: "musicxml", data });
+  }
+
+  function exportMusicXml() {
+    const editor = editorRef.current;
+    if (!editor) return;
+    const blob = new Blob([toMusicXml(editor.doc)], {
+      type: "application/vnd.recordare.musicxml+xml",
+    });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = `${(scoreTitle || "score").replace(/[^\w-]+/g, "-").toLowerCase() || "score"}.musicxml`;
+    link.click();
+    URL.revokeObjectURL(link.href);
   }
 
   useEffect(() => {
@@ -447,6 +467,32 @@ export function App() {
       }
       const selected = selectedBeatRef.current;
       if (!selected || e.metaKey || e.ctrlKey || e.altKey) return;
+      if (e.code === "ArrowLeft" || e.code === "ArrowRight") {
+        e.preventDefault();
+        const next = neighborBeatAddress(
+          editor.doc,
+          selected,
+          e.code === "ArrowRight" ? 1 : -1,
+        );
+        if (next) {
+          selectedBeatRef.current = next;
+          setSelectedBeat(next);
+          const player = playerRef.current;
+          const beat =
+            editor.doc.parts[next.partIndex]?.measures[next.barIndex]?.voices[next.voiceIndex]
+              ?.beats[next.beatIndex];
+          const barStart = player?.barTicks[next.barIndex]?.start;
+          if (player && beat && barStart !== undefined) {
+            player.cursorTick = barStart + beat.startTick;
+          }
+        }
+        return;
+      }
+      if (e.code === "KeyJ") {
+        e.preventDefault();
+        if (editor.respellBeat(selected)) rerenderScore();
+        return;
+      }
       if (e.code === "ArrowUp" || e.code === "ArrowDown") {
         e.preventDefault();
         const delta = (e.code === "ArrowUp" ? 1 : -1) * (e.shiftKey ? 12 : 1);
@@ -724,7 +770,7 @@ export function App() {
         {editMode && (
           <span className="hint">
             {selectedBeat
-              ? "a-g pitch, arrows transpose, 1/2/4/8/6/3 duration, r rest, i insert, x delete, Cmd+Z undo"
+              ? "a-g pitch, ←→ select, ↑↓ transpose, 1/2/4/8/6/3 duration, r rest, i insert, x delete, j respell, Cmd+Z undo"
               : "click a note to select it"}
           </span>
         )}
@@ -733,6 +779,9 @@ export function App() {
           {formatTime(position.current)} / {formatTime(position.total)}
         </span>
 
+        {hasEditor && (
+          <button onClick={exportMusicXml}>Export MusicXML</button>
+        )}
         <label className="control open-file">
           Open file…
           <input

@@ -24,6 +24,12 @@ See the [bundle format spec](docs/bundle-format.md).
   pitch change, metronome, count-in, and opening MusicXML or Guitar Pro files,
   plus a recording panel: open an audio file, see its waveform, click to seek,
   drag to loop a passage, and slow it down without changing pitch
+- The beginnings of the editor: plain MusicXML imports become editable
+  documents. Toggle Edit, click a note, then: a-g set pitch, left/right arrows
+  move the selection, up/down transpose (shift for octave), 1/2/4/8/6/3 set
+  duration, r rests, i inserts, x deletes, j respells enharmonics, and
+  Cmd+Z / Shift+Cmd+Z undo and redo. Edited scores export as MusicXML and are
+  carried in bundles
 
 ## Quickstart
 

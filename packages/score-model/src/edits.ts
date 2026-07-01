@@ -45,6 +45,48 @@ export interface BeatAddress {
 }
 
 /**
+ * The neighboring beat in reading order within the same part and voice,
+ * crossing bar boundaries and skipping empty measures. Null at either end.
+ */
+export function neighborBeatAddress(
+  doc: ScoreDocument,
+  address: BeatAddress,
+  direction: 1 | -1,
+): BeatAddress | null {
+  const part = doc.parts[address.partIndex];
+  if (!part) return null;
+  const beatsIn = (barIndex: number) =>
+    part.measures[barIndex]?.voices[address.voiceIndex]?.beats ?? [];
+
+  const within = address.beatIndex + direction;
+  if (within >= 0 && within < beatsIn(address.barIndex).length) {
+    return { ...address, beatIndex: within };
+  }
+  let barIndex = address.barIndex + direction;
+  while (barIndex >= 0 && barIndex < part.measures.length) {
+    const beats = beatsIn(barIndex);
+    if (beats.length > 0) {
+      return { ...address, barIndex, beatIndex: direction === 1 ? 0 : beats.length - 1 };
+    }
+    barIndex += direction;
+  }
+  return null;
+}
+
+const RESPELL: Record<string, { step: NoteStep; alter: number }> = {
+  "C1": { step: "D", alter: -1 },
+  "D-1": { step: "C", alter: 1 },
+  "D1": { step: "E", alter: -1 },
+  "E-1": { step: "D", alter: 1 },
+  "F1": { step: "G", alter: -1 },
+  "G-1": { step: "F", alter: 1 },
+  "G1": { step: "A", alter: -1 },
+  "A-1": { step: "G", alter: 1 },
+  "A1": { step: "B", alter: -1 },
+  "B-1": { step: "A", alter: 1 },
+};
+
+/**
  * Edits over a ScoreDocument with undo/redo. History is snapshot-based:
  * documents are small, and structuredClone preserves the stable entity IDs
  * that annotations and sync maps reference.
@@ -183,6 +225,22 @@ export class ScoreEditor {
     const voice = this.locateVoice(next, address)!;
     voice.beats.splice(address.beatIndex, 1);
     this.recomputeStartTicks(voice);
+    this.commit(next);
+    return true;
+  }
+
+  /** Toggle enharmonic spelling (C# to Db and back) for every altered note. */
+  respellBeat(address: BeatAddress): boolean {
+    const notes = this.locateNotes(this.doc, address);
+    if (!notes || !notes.some((n) => RESPELL[`${n.step}${n.alter}`])) return false;
+    const next = structuredClone(this.doc);
+    for (const note of this.locateNotes(next, address)!) {
+      const spelling = RESPELL[`${note.step}${note.alter}`];
+      if (spelling) {
+        note.step = spelling.step;
+        note.alter = spelling.alter;
+      }
+    }
     this.commit(next);
     return true;
   }
