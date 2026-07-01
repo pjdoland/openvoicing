@@ -446,11 +446,62 @@ export function App() {
         return;
       }
       const selected = selectedBeatRef.current;
-      if (!selected) return;
+      if (!selected || e.metaKey || e.ctrlKey || e.altKey) return;
       if (e.code === "ArrowUp" || e.code === "ArrowDown") {
         e.preventDefault();
         const delta = (e.code === "ArrowUp" ? 1 : -1) * (e.shiftKey ? 12 : 1);
         if (editor.transposeBeat(selected, delta)) rerenderScore();
+        return;
+      }
+      const pitchMatch = /^Key([A-G])$/.exec(e.code);
+      if (pitchMatch) {
+        e.preventDefault();
+        if (editor.setBeatPitch(selected, pitchMatch[1] as "A")) rerenderScore();
+        return;
+      }
+      const DURATIONS: Record<string, number> = {
+        Digit1: 3840,
+        Digit2: 1920,
+        Digit4: 960,
+        Digit8: 480,
+        Digit6: 240,
+        Digit3: 120,
+      };
+      if (e.code in DURATIONS) {
+        e.preventDefault();
+        if (editor.setBeatDuration(selected, DURATIONS[e.code]!)) rerenderScore();
+        return;
+      }
+      if (e.code === "KeyR") {
+        e.preventDefault();
+        if (editor.setBeatRest(selected)) rerenderScore();
+        return;
+      }
+      if (e.code === "KeyI" || e.code === "Enter") {
+        e.preventDefault();
+        const inserted = editor.insertBeatAfter(selected);
+        if (inserted) {
+          selectedBeatRef.current = inserted;
+          setSelectedBeat(inserted);
+          rerenderScore();
+        }
+        return;
+      }
+      if (e.code === "KeyX" || e.code === "Delete") {
+        e.preventDefault();
+        if (editor.deleteBeat(selected)) {
+          const beats =
+            editor.doc.parts[selected.partIndex]?.measures[selected.barIndex]?.voices[
+              selected.voiceIndex
+            ]?.beats ?? [];
+          const nextSelection =
+            beats.length === 0
+              ? null
+              : { ...selected, beatIndex: Math.min(selected.beatIndex, beats.length - 1) };
+          selectedBeatRef.current = nextSelection;
+          setSelectedBeat(nextSelection);
+          rerenderScore();
+        }
       }
     };
     window.addEventListener("keydown", onKey);
@@ -673,7 +724,7 @@ export function App() {
         {editMode && (
           <span className="hint">
             {selectedBeat
-              ? "arrows transpose (shift = octave), Cmd+Z undo"
+              ? "a-g pitch, arrows transpose, 1/2/4/8/6/3 duration, r rest, i insert, x delete, Cmd+Z undo"
               : "click a note to select it"}
           </span>
         )}

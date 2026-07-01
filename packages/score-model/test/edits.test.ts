@@ -72,4 +72,63 @@ describe("ScoreEditor", () => {
     expect(editor.transposeBeat({ ...FIRST_BEAT, beatIndex: 2 }, 1)).toBe(false);
     expect(editor.canUndo).toBe(false);
   });
+
+  it("sets a pitch in the nearest octave", () => {
+    const editor = new ScoreEditor(importMusicXml(fixture));
+    // First beat is C4/E4; B should land at B3 (nearest to C4), not B4.
+    expect(editor.setBeatPitch(FIRST_BEAT, "B")).toBe(true);
+    expect(firstBeatPitches(editor)).toEqual(["B3"]);
+    expect(editor.setBeatPitch(FIRST_BEAT, "C")).toBe(true);
+    expect(firstBeatPitches(editor)).toEqual(["C4"]);
+  });
+
+  it("turns a rest into a note", () => {
+    const editor = new ScoreEditor(importMusicXml(fixture));
+    const restAddress = { ...FIRST_BEAT, beatIndex: 2 };
+    expect(editor.setBeatPitch(restAddress, "G")).toBe(true);
+    const beat = editor.doc.parts[0]!.measures[0]!.voices[0]!.beats[2]!;
+    expect(beat.rest).toBe(false);
+    // Nearest G to the middle-C reference is G3 (5 semitones vs 7 up to G4).
+    expect(beat.notes.map((n) => `${n.step}${n.octave}`)).toEqual(["G3"]);
+  });
+
+  it("changes durations and repacks tick offsets", () => {
+    const editor = new ScoreEditor(importMusicXml(fixture));
+    expect(editor.setBeatDuration(FIRST_BEAT, 480)).toBe(true);
+    const beats = editor.doc.parts[0]!.measures[0]!.voices[0]!.beats;
+    expect(beats[0]!.durationTicks).toBe(480);
+    expect(beats[1]!.startTick).toBe(480);
+    expect(beats[2]!.startTick).toBe(480 + 960);
+  });
+
+  it("turns a note into a rest", () => {
+    const editor = new ScoreEditor(importMusicXml(fixture));
+    expect(editor.setBeatRest(FIRST_BEAT)).toBe(true);
+    const beat = editor.doc.parts[0]!.measures[0]!.voices[0]!.beats[0]!;
+    expect(beat.rest).toBe(true);
+    expect(beat.notes).toEqual([]);
+    expect(editor.setBeatRest(FIRST_BEAT)).toBe(false);
+  });
+
+  it("inserts a copy after a beat with fresh ids", () => {
+    const editor = new ScoreEditor(importMusicXml(fixture));
+    const inserted = editor.insertBeatAfter(FIRST_BEAT);
+    expect(inserted).toEqual({ ...FIRST_BEAT, beatIndex: 1 });
+    const beats = editor.doc.parts[0]!.measures[0]!.voices[0]!.beats;
+    expect(beats).toHaveLength(4);
+    expect(beats[1]!.notes.map((n) => `${n.step}${n.octave}`)).toEqual(["C4", "E4"]);
+    expect(beats[1]!.id).not.toBe(beats[0]!.id);
+    expect(beats[1]!.startTick).toBe(960);
+    expect(beats[2]!.startTick).toBe(1920);
+  });
+
+  it("deletes a beat and repacks", () => {
+    const editor = new ScoreEditor(importMusicXml(fixture));
+    expect(editor.deleteBeat(FIRST_BEAT)).toBe(true);
+    const beats = editor.doc.parts[0]!.measures[0]!.voices[0]!.beats;
+    expect(beats).toHaveLength(2);
+    expect(beats[0]!.startTick).toBe(0);
+    expect(editor.undo()).toBe(true);
+    expect(editor.doc.parts[0]!.measures[0]!.voices[0]!.beats).toHaveLength(3);
+  });
 });
