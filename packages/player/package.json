@@ -1,0 +1,20 @@
+{
+  "name": "@openvoicing/player",
+  "version": "0.0.1",
+  "description": "Embeddable OpenVoicing player: notation rendering, playback, practice tools",
+  "license": "MPL-2.0",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json",
+    "build": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@coderline/alphatab": "^1.8.3"
+  },
+  "devDependencies": {
+    "typescript": "^6.0.3"
+  }
+}

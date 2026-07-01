@@ -1,0 +1,28 @@
+{
+  "name": "@openvoicing/web",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "predev": "node scripts/copy-alphatab-assets.mjs",
+    "dev": "vite",
+    "prebuild": "node scripts/copy-alphatab-assets.mjs",
+    "build": "vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@coderline/alphatab": "^1.8.3",
+    "@openvoicing/player": "workspace:*",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7"
+  },
+  "devDependencies": {
+    "@coderline/alphatab-vite": "^1.8.3",
+    "@types/react": "^19.2.17",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^6.0.3",
+    "typescript": "^6.0.3",
+    "vite": "^8.1.2"
+  }
+}
