@@ -159,6 +159,11 @@ export class Player {
     this.api.tickPosition = tick;
   }
 
+  /** Seek synth playback to a time position in seconds. */
+  seekSeconds(seconds: number): void {
+    this.api.timePosition = seconds * 1000;
+  }
+
   get tracks(): TrackInfo[] {
     const score = this.api.score;
     if (!score) return [];

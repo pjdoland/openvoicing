@@ -37,6 +37,27 @@ pnpm typecheck
 pnpm build
 ```
 
+## Embedding
+
+Host a `.ovb` bundle on any static server, then add the player to any page:
+
+```html
+<script src="https://your-player-host/openvoicing-embed.js"></script>
+<div data-openvoicing-bundle="https://example.com/tune.ovb"></div>
+```
+
+Or drive it from JavaScript:
+
+```js
+const player = OpenVoicing.create("#slot", { bundle: "https://example.com/tune.ovb" });
+player.on("ready", (e) => console.log(e.title));
+player.play();
+player.setSpeed(0.5);
+player.seek(30);
+```
+
+Try it locally: `pnpm dev`, then open http://localhost:5173/sdk-demo.html.
+
 ## Layout
 
 ```

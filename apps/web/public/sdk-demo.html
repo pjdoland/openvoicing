@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" href="data:," />
+    <title>OpenVoicing embed SDK demo</title>
+    <style>
+      body {
+        margin: 0;
+        padding: 24px;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        background: #f4f5f7;
+        color: #1b1f27;
+        max-width: 960px;
+        margin: 0 auto;
+      }
+      h1 { font-size: 20px; }
+      .external-controls {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        margin: 12px 0;
+        font-size: 14px;
+      }
+      button {
+        padding: 6px 14px;
+        border: 1px solid #c8ceda;
+        border-radius: 6px;
+        background: #fff;
+        cursor: pointer;
+      }
+      #status { color: #5b6472; font-variant-numeric: tabular-nums; }
+      #slot { border: 1px solid #dfe3e8; border-radius: 8px; overflow: hidden; background: #fff; }
+      p.note { font-size: 13px; color: #5b6472; }
+    </style>
+  </head>
+  <body>
+    <h1>This is a third-party website embedding OpenVoicing</h1>
+    <p class="note">
+      The buttons below live on the host page and drive the player through the
+      SDK's JS API. Everything inside the frame is the OpenVoicing player,
+      loaded from a bundle URL.
+    </p>
+
+    <div class="external-controls">
+      <button id="play">Play</button>
+      <button id="pause">Pause</button>
+      <button id="seek">Seek to bar 5</button>
+      <button id="slow">Speed 50%</button>
+      <button id="full">Speed 100%</button>
+      <span id="status">waiting for player…</span>
+    </div>
+
+    <div id="slot"></div>
+
+    <script src="/openvoicing-embed.js"></script>
+    <script>
+      var player = OpenVoicing.create("#slot", { bundle: "/demo.ovb", height: 460 });
+      var statusEl = document.getElementById("status");
+      var title = "";
+      player.on("ready", function (e) {
+        title = e.title;
+        statusEl.textContent = title + " ready";
+      });
+      player.on("position", function (e) {
+        statusEl.textContent =
+          title + "  " + e.current.toFixed(1) + "s / " + e.total.toFixed(1) + "s";
+      });
+      document.getElementById("play").onclick = function () { player.play(); };
+      document.getElementById("pause").onclick = function () { player.pause(); };
+      document.getElementById("seek").onclick = function () { player.seek(4 * 2.6667); };
+      document.getElementById("slow").onclick = function () { player.setSpeed(0.5); };
+      document.getElementById("full").onclick = function () { player.setSpeed(1); };
+    </script>
+  </body>
+</html>

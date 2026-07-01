@@ -102,6 +102,11 @@ function EmbedApp() {
     };
   }, []);
 
+  function isPlaying(): boolean {
+    if (hasRecordingRef.current) return recordingRef.current?.playing ?? false;
+    return playerRef.current?.playing ?? false;
+  }
+
   function togglePlay() {
     if (hasRecordingRef.current) {
       const recording = recordingRef.current;
@@ -113,8 +118,12 @@ function EmbedApp() {
     }
   }
 
-  function changeSpeed(e: ChangeEvent<HTMLSelectElement>) {
-    const value = Number(e.target.value);
+  function seek(seconds: number) {
+    if (hasRecordingRef.current) recordingRef.current?.seek(seconds);
+    else playerRef.current?.seekSeconds(seconds);
+  }
+
+  function applySpeed(value: number) {
     setSpeed(value);
     if (hasRecordingRef.current && recordingRef.current) {
       recordingRef.current.speed = value;
@@ -122,6 +131,65 @@ function EmbedApp() {
       playerRef.current.speed = value;
     }
   }
+
+  function changeSpeed(e: ChangeEvent<HTMLSelectElement>) {
+    applySpeed(Number(e.target.value));
+  }
+
+  // Cross-frame control protocol for the embed SDK. Messages are marked with
+  // ov: true in both directions; the child never assumes a specific parent origin
+  // because bundles are public content.
+  useEffect(() => {
+    function onMessage(e: MessageEvent) {
+      const msg = e.data as { ov?: boolean; type?: string; seconds?: number; value?: number };
+      if (!msg || msg.ov !== true) return;
+      switch (msg.type) {
+        case "toggle":
+          togglePlay();
+          break;
+        case "play":
+          if (!isPlaying()) togglePlay();
+          break;
+        case "pause":
+          if (isPlaying()) togglePlay();
+          break;
+        case "seek":
+          if (typeof msg.seconds === "number") seek(msg.seconds);
+          break;
+        case "setSpeed":
+          if (typeof msg.value === "number") applySpeed(msg.value);
+          break;
+      }
+    }
+    window.addEventListener("message", onMessage);
+    return () => window.removeEventListener("message", onMessage);
+  });
+
+  const embedded = window.parent !== window;
+
+  useEffect(() => {
+    if (!embedded || !title) return;
+    window.parent.postMessage(
+      { ov: true, type: "ready", title, hasRecording, duration: position.total },
+      "*",
+    );
+    // position.total intentionally omitted from deps: ready fires on title/recording
+    // changes, not on every position tick.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [embedded, title, hasRecording]);
+
+  useEffect(() => {
+    if (embedded) window.parent.postMessage({ ov: true, type: "state", playing }, "*");
+  }, [embedded, playing]);
+
+  useEffect(() => {
+    if (embedded) {
+      window.parent.postMessage(
+        { ov: true, type: "position", current: position.current, total: position.total },
+        "*",
+      );
+    }
+  }, [embedded, position]);
 
   if (error) {
     return <div className="embed-error">{error}</div>;
