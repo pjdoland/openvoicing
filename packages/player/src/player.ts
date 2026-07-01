@@ -150,6 +150,11 @@ export class Player {
     this.api.countInVolume = enabled ? 1 : 0;
   }
 
+  /** The score's nominal tempo in beats per minute. */
+  get tempoBpm(): number {
+    return this.api.score?.tempo ?? 120;
+  }
+
   /** Start tick and duration of each bar, in absolute playback ticks. */
   get barTicks(): BarTicks[] {
     const score = this.api.score;

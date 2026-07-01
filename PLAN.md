@@ -178,8 +178,9 @@ see Status above. What remains, in order:
 
 - PDF/photo to notation via Audiveris as a local CLI companion tool
 - Audio-to-MIDI drafts via basic-pitch, clearly labeled as drafts
-- Automatic sync: onset detection plus dynamic time warping against expected
-  note times from the score, proposing anchors a human confirms
+- Automatic sync: shipped in v1 form (energy-flux onset detection, global
+  tempo-scale and offset search with tie-breaks toward nominal tempo, onset
+  snapping per bar). DTW-based local alignment for rubato passages remains
 
 ### Phase 6: Reach
 

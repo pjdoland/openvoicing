@@ -7,7 +7,7 @@ export interface LoopRegion {
 }
 
 export interface RecordingPlayerEvents {
-  loaded: (info: { duration: number; channels: Float32Array[] }) => void;
+  loaded: (info: { duration: number; channels: Float32Array[]; sampleRate: number }) => void;
   stateChanged: (playing: boolean) => void;
   positionChanged: (seconds: number, duration: number) => void;
 }
@@ -75,7 +75,11 @@ export class RecordingPlayer {
     this._duration = buffer.duration;
     this._position = 0;
     this._loop = null;
-    this.emit("loaded", { duration: buffer.duration, channels });
+    this.emit("loaded", {
+      duration: buffer.duration,
+      channels,
+      sampleRate: buffer.sampleRate,
+    });
     this.emit("positionChanged", 0, this._duration);
   }
 

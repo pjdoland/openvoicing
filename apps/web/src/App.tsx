@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type ChangeEvent } from "react";
 import { Player, type TrackInfo } from "@openvoicing/player";
-import { RecordingPlayer } from "@openvoicing/audio-engine";
+import { alignBarsToOnsets, detectOnsets, RecordingPlayer } from "@openvoicing/audio-engine";
 import {
   createEmptyScore,
   importMusicXml,
@@ -227,8 +227,13 @@ export function App() {
 
   useEffect(() => () => recording.destroy(), [recording]);
 
+  const recordingAudioRef = useRef<{ channels: Float32Array[]; sampleRate: number } | null>(
+    null,
+  );
+
   useEffect(() => {
-    return recording.on("loaded", () => {
+    return recording.on("loaded", ({ channels, sampleRate }) => {
+      recordingAudioRef.current = { channels, sampleRate };
       setSyncPoints(null);
       setFollow(false);
       setTapCount(null);
@@ -354,6 +359,20 @@ export function App() {
       player.cursorTick = Math.max(0, Math.round(tickAtMediaTime(syncPoints, seconds)));
     });
   }, [follow, syncPoints, recording]);
+
+  function autoSync() {
+    const player = playerRef.current;
+    const audio = recordingAudioRef.current;
+    if (!player || !audio) return;
+    const bars = player.barTicks;
+    if (bars.length === 0) return;
+    const secondsPerTick = 60 / (player.tempoBpm * 960);
+    const expected = bars.map((b) => b.start * secondsPerTick);
+    const onsets = detectOnsets(audio.channels, audio.sampleRate);
+    const times = alignBarsToOnsets(expected, onsets);
+    setSyncPoints(bars.map((b, i) => ({ tick: b.start, timeSeconds: times[i]! })));
+    setFollow(true);
+  }
 
   // The existing sync map stays until Done replaces it, so Cancel loses nothing.
   function startTapSync() {
@@ -858,6 +877,7 @@ export function App() {
           <strong>Sync</strong>
           {tapCount === null ? (
             <>
+              <button onClick={autoSync}>Auto sync</button>
               <button onClick={startTapSync}>Start tap sync</button>
               {syncPoints ? (
                 <>
