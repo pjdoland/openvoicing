@@ -1,11 +1,13 @@
 # OpenVoicing
 
 Open source living sheet music: interactive notation that plays, syncs to real
-recordings, and comes with serious practice tools. An open, self-hostable
-alternative to Soundslice.
+recordings, and comes with serious practice tools. An open alternative to
+Soundslice built around an **open file format instead of a hosted service**:
+the editor exports self-contained bundles (`.ovb`) holding a score, recordings,
+and sync maps, and the embeddable player plays bundles from any static URL.
+See the [bundle format spec](docs/bundle-format.md).
 
-**Status: early development.** The interactive player (Phase 1 of the
-[plan](PLAN.md)) is taking shape; everything else is ahead of us.
+**Status: early development.** See the [plan](PLAN.md) for where this is going.
 
 ## What works today
 
@@ -41,7 +43,9 @@ pnpm build
 packages/score-model   # document format, converters, sync maps (MPL-2.0)
 packages/player        # embeddable player (MPL-2.0)
 packages/audio-engine  # time-stretch playback, waveforms (MPL-2.0)
-apps/web               # demo web app
+packages/bundle        # .ovb bundle format: create, read, validate (MPL-2.0)
+apps/web               # authoring app + embeddable player page
+docs/                  # format specs
 ```
 
 ## Roadmap

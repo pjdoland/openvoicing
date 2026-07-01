@@ -1,0 +1,160 @@
+import { useEffect, useRef, useState, type ChangeEvent } from "react";
+import { createRoot } from "react-dom/client";
+import { Player } from "@openvoicing/player";
+import { RecordingPlayer } from "@openvoicing/audio-engine";
+import { mediaTimeAtTick, tickAtMediaTime, type SyncPoint } from "@openvoicing/score-model";
+import { readBundle } from "@openvoicing/bundle";
+import soundFontUrl from "@coderline/alphatab/soundfont/sonivox.sf3?url";
+import "./embed.css";
+
+const SPEEDS = [0.5, 0.6, 0.7, 0.8, 0.9, 1, 1.1, 1.25];
+
+function formatTime(seconds: number): string {
+  const m = Math.floor(seconds / 60);
+  const s = Math.floor(seconds % 60);
+  return `${m}:${String(s).padStart(2, "0")}`;
+}
+
+function EmbedApp() {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const playerRef = useRef<Player | null>(null);
+  const recordingRef = useRef<RecordingPlayer | null>(null);
+  const syncRef = useRef<SyncPoint[] | null>(null);
+  const hasRecordingRef = useRef(false);
+  const [error, setError] = useState<string | null>(null);
+  const [title, setTitle] = useState("");
+  const [ready, setReady] = useState(false);
+  const [hasRecording, setHasRecording] = useState(false);
+  const [playing, setPlaying] = useState(false);
+  const [speed, setSpeed] = useState(1);
+  const [position, setPosition] = useState({ current: 0, total: 0 });
+
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+    const url = new URLSearchParams(window.location.search).get("bundle");
+    if (!url) {
+      setError("No bundle specified. Use embed.html?bundle=<url>.");
+      return;
+    }
+
+    const player = new Player(container, {
+      soundFontUrl,
+      fontDirectory: "/alphatab/font/",
+    });
+    playerRef.current = player;
+    const recording = new RecordingPlayer();
+    recordingRef.current = recording;
+
+    player.on("scoreLoaded", (info) => setTitle(info.title));
+    player.on("playerReady", () => setReady(true));
+    player.on("playerStateChanged", (p) => {
+      if (!hasRecordingRef.current) setPlaying(p);
+    });
+    player.on("positionChanged", (current, total) => {
+      if (!hasRecordingRef.current) setPosition({ current, total });
+    });
+    player.on("beatClicked", (tick) => {
+      const points = syncRef.current;
+      if (points) recordingRef.current?.seek(mediaTimeAtTick(points, tick));
+    });
+    recording.on("stateChanged", setPlaying);
+    recording.on("positionChanged", (current, total) => {
+      setPosition({ current, total });
+      const points = syncRef.current;
+      if (points) {
+        player.cursorTick = Math.max(0, Math.round(tickAtMediaTime(points, current)));
+      }
+    });
+
+    void (async () => {
+      try {
+        const response = await fetch(url);
+        if (!response.ok) throw new Error(`Could not fetch bundle (HTTP ${response.status})`);
+        const bundle = readBundle(new Uint8Array(await response.arrayBuffer()));
+        const { manifest } = bundle;
+
+        const scoreBytes = bundle.files.get(manifest.score.path)!;
+        if (manifest.score.type === "alphatex") {
+          player.loadTex(new TextDecoder().decode(scoreBytes));
+        } else {
+          player.load(scoreBytes.slice());
+        }
+
+        const rec = manifest.recordings[0];
+        if (rec) {
+          const bytes = bundle.files.get(rec.path)!;
+          await recording.load(bytes.slice().buffer as ArrayBuffer);
+          hasRecordingRef.current = true;
+          setHasRecording(true);
+          if (rec.syncPoints?.length) syncRef.current = rec.syncPoints;
+        }
+      } catch (err) {
+        setError(err instanceof Error ? err.message : String(err));
+      }
+    })();
+
+    return () => {
+      playerRef.current = null;
+      recordingRef.current = null;
+      player.destroy();
+      recording.destroy();
+    };
+  }, []);
+
+  function togglePlay() {
+    if (hasRecordingRef.current) {
+      const recording = recordingRef.current;
+      if (!recording) return;
+      if (recording.playing) recording.pause();
+      else void recording.play();
+    } else {
+      playerRef.current?.playPause();
+    }
+  }
+
+  function changeSpeed(e: ChangeEvent<HTMLSelectElement>) {
+    const value = Number(e.target.value);
+    setSpeed(value);
+    if (hasRecordingRef.current && recordingRef.current) {
+      recordingRef.current.speed = value;
+    } else if (playerRef.current) {
+      playerRef.current.speed = value;
+    }
+  }
+
+  if (error) {
+    return <div className="embed-error">{error}</div>;
+  }
+
+  return (
+    <div className="embed">
+      <div className="embed-toolbar">
+        <button onClick={togglePlay} disabled={!ready && !hasRecording}>
+          {playing ? "Pause" : "Play"}
+        </button>
+        <label>
+          Speed
+          <select value={speed} onChange={changeSpeed}>
+            {SPEEDS.map((s) => (
+              <option key={s} value={s}>
+                {Math.round(s * 100)}%
+              </option>
+            ))}
+          </select>
+        </label>
+        <span className="embed-position">
+          {formatTime(position.current)} / {formatTime(position.total)}
+        </span>
+        <span className="embed-title">{title}</span>
+        {hasRecording && <span className="embed-badge">recording{syncRef.current ? " + sync" : ""}</span>}
+        <a className="embed-brand" href="https://github.com/openvoicing" target="_blank" rel="noreferrer">
+          OpenVoicing
+        </a>
+      </div>
+      <div className="embed-score" ref={containerRef} />
+    </div>
+  );
+}
+
+createRoot(document.getElementById("root")!).render(<EmbedApp />);

@@ -2,200 +2,224 @@
 
 ## 1. Vision
 
-OpenVoicing is an open source, self-hostable platform for interactive sheet music: notation that plays, follows along with real recordings, and comes with serious practice tools. The goal is feature parity with Soundslice's core experience (player, practice tools, audio/video sync, web-based editor, scanning) while adding what only open source can offer: self-hosting, an open document format, an open API, and no vendor lock-in for teachers and publishers.
+OpenVoicing is an open source platform for interactive sheet music: notation
+that plays, follows along with real recordings, and comes with serious practice
+tools. Its architecture is deliberately different from Soundslice's: instead of
+a hosted service with accounts and a database, OpenVoicing is an **open file
+format plus tools that read and write it**.
+
+The unit of sharing is a **bundle**: a single self-contained file holding a
+score, one or more recordings, and the sync maps that tie them together. The
+editor exports bundles. The player, embeddable on any website, plays bundles
+from any URL. Sharing a piece means sending a file or hosting it on any static
+server; there is no account to create, no service to depend on, and nothing
+that stops working if a company disappears.
 
 Target users, in priority order:
 
-1. Music teachers and students (practice tools, courses, assignments)
-2. Transcribers and arrangers (editor, import/export, publishing)
-3. Publishers and course platforms (embeddable player, API)
-4. Self-hosters and institutions (schools, conservatories) who cannot put their catalogs on a third-party SaaS
+1. Music teachers and students (practice tools, shareable lesson bundles)
+2. Transcribers and arrangers (authoring, publishing bundles on their own sites)
+3. Publishers and course platforms (embeddable player, no platform lock-in)
+4. Anyone who wants their music library to outlive any particular service
 
-## 2. Feature Parity Targets
+## 2. Status
 
-Reference: Soundslice's public feature set as of mid-2026.
+Phases 0 to 2 of the original plan are largely built:
 
-| Area | Soundslice capability | Parity goal |
-|---|---|---|
-| Player | Notes light up during playback, click-to-seek, responsive reflow on any screen | Phase 1 |
-| Practice tools | Loop by dragging across notes (snaps to notes/barlines), slow down without pitch change, transpose, metronome/count-in, mute/solo parts, hide parts | Phase 1 |
-| Playback | Synth playback from notation (soundfonts), per-part volume | Phase 1 |
-| Recordings | Sync notation to real audio and video, multiple recordings per piece, YouTube sync | Phase 2 |
-| Editor | Full web-based notation and tab editor, sync point editor | Phase 3 |
-| Import | MusicXML, Guitar Pro (GP3 to GP8), MIDI, PowerTab | Phases 1 and 3 |
-| Export | MusicXML, MIDI, PDF, PNG | Phase 3 |
-| Scanning | PDF/photo to editable notation (OMR) | Phase 4 |
-| Teaching | Courses, lists, private sharing, student practice tracking | Phase 5 |
-| Embedding | Embeddable player with API for third-party sites | Phase 5 |
-| Community | Channels, public catalog, search | Phase 5 |
-| Mobile | Good touch UX, offline practice (PWA first, apps later) | Phase 6 |
+- Monorepo (pnpm), CI, strict TypeScript
+- `score-model`: canonical document format v0, MusicXML importer, sync-point
+  interpolation (both directions), tests
+- `player`: notation and tab rendering with synth playback on alphaTab, behind
+  a renderer-agnostic API (cursor control, bar ticks, beat click events)
+- `audio-engine`: time-stretched recording playback (Signalsmith Stretch in an
+  AudioWorklet), region looping, waveform peaks
+- Web app: practice toolbar, recording panel with zoomable waveform,
+  drag-to-loop, tap-along sync editor with draggable syncpoint markers,
+  follow-recording cursor, click-a-note-to-seek, IndexedDB session persistence
 
-Explicit non-goals for v1: a paid marketplace/store, native mobile apps, and real-time collaborative editing. These can come after parity.
+## 3. The Bundle
 
-## 3. The Three Hard Problems
+The core design artifact of the project. Working extension: `.ovb`
+(a ZIP archive). Contents:
 
-Everything else in this plan is ordinary web engineering. These three are not, and they drive the architecture.
+```
+manifest.json          # format id + version, title, attribution, content index
+score/                 # the score, in one or more representations
+  score.alphatex       #   or score.gp, score.musicxml, score.json (canonical)
+recordings/
+  take1.mp3            # one or more audio (later video) files
+  take2.ogg
+```
 
-### 3.1 Notation rendering and layout
+The manifest indexes everything and carries the sync maps (they are small):
 
-Engraving is a deep domain (beaming, spacing, collision avoidance, multi-voice layout, tab, reflow). Writing a layout engine from scratch is a multi-year project on its own, so we build on an existing engine and contribute upstream.
+```json
+{
+  "format": "openvoicing-bundle",
+  "formatVersion": 0,
+  "title": "Blackbird",
+  "score": { "path": "score/score.gp", "type": "guitarpro" },
+  "recordings": [
+    {
+      "id": "take1",
+      "name": "Studio take",
+      "path": "recordings/take1.mp3",
+      "syncPoints": [ { "tick": 0, "timeSeconds": 1.2 }, ... ]
+    }
+  ]
+}
+```
 
-Candidates:
+Format principles:
 
-- **alphaTab** (MPL-2.0): TypeScript, renders standard notation plus guitar tab, imports Guitar Pro and MusicXML natively, has a built-in synth and a cursor/playback API. Weakness: its internal model was not designed for interactive editing.
-- **Verovio** (LGPL-3.0): C++/WASM, superb engraving quality, MEI-native, good MusicXML import. Weakness: tab support and editing ergonomics.
-- **OSMD/VexFlow** (BSD/MIT): pure JS, flexible, but engraving quality and completeness require significant work.
+- **Versioned and specified.** The manifest schema is published and versioned;
+  readers must reject versions they do not understand rather than guess
+- **Self-contained.** A bundle on a USB stick in ten years still works
+- **Lossless.** The original score source file is preserved alongside any
+  canonical-format conversion, so nothing is destroyed by importing
+- **Progressive.** v0 carries the score source, recordings, and sync points.
+  Later versions add the canonical score JSON, waveform peak caches, cover
+  images, and multiple sync granularities
+- **Streamable variant.** A ZIP cannot be range-requested, so bundles download
+  whole; fine for song-sized audio. The same manifest can later live in an
+  unpacked directory layout for large-media streaming, with the ZIP as the
+  portable form
 
-**Decision: start with alphaTab for the player** (it ships the most Soundslice-shaped feature set out of the box: tab, GP import, playback cursor, responsive layout) and design our document model so the renderer is swappable. Re-evaluate against Verovio before the editor phase; the editor is where the renderer choice really locks in.
+## 4. The Three Hard Problems
 
-### 3.2 The document model and sync model
+Everything else is ordinary web engineering. These three drive the
+architecture.
 
-The core intellectual property of the project is a well-designed score document format. Requirements:
+### 4.1 Notation rendering and layout
 
-- Own canonical format: versioned JSON, losslessly convertible to/from MusicXML, streamable, diffable (enables undo history and future collaboration)
-- Stable IDs on every musical entity (note, beat, bar, part) so annotations, sync points, and comments survive edits
-- A **SyncMap** as a first-class, separate object: an ordered list of (musical position, media timestamp) anchor pairs per recording, with interpolation between anchors. One score, many recordings, many sync maps
-- Musical position addressed as (bar, beat-tick) rather than pixel or note index, so sync survives re-layout and most edits
+Engraving is a deep domain. We build on **alphaTab** (MPL-2.0): it renders
+standard notation plus tab, imports Guitar Pro and MusicXML, and has a synth
+and cursor API. The player wraps it behind a renderer-agnostic interface so it
+stays swappable; re-evaluate against Verovio before the editor phase, which is
+where the renderer choice locks in.
 
-### 3.3 Time-stretched playback
+### 4.2 The document model and sync model
 
-Slowing real recordings without pitch change, in the browser, with acceptable quality and latency.
+The canonical score format: versioned JSON, losslessly convertible to and from
+MusicXML, with stable IDs on every musical entity so annotations and sync
+anchors survive edits. Sync maps are first-class objects: ordered
+(musical position, media timestamp) anchor pairs per recording, interpolated
+between anchors. Positions are addressed as ticks, not pixels or note indexes,
+so sync survives re-layout. Built and tested; the importer routes through it,
+and the editor phase makes it the single source of truth.
 
-**Decision: signalsmith-stretch** (MIT, C++ with a WASM/JS build) as the primary stretcher, running in an AudioWorklet. Fallback: SoundTouch WASM. Rubber Band has better quality but is GPL, which is fine for us but worth isolating behind an interface in case embedders need alternatives. Pitch-shifting for transposition of recordings uses the same engine.
+### 4.3 Time-stretched playback
 
-## 4. Architecture
+Slowing real recordings without pitch change, in the browser. Built:
+**signalsmith-stretch** (MIT) in an AudioWorklet, with loop regions and
+position events. Validated end to end, including sync-following at reduced
+speed.
 
-Monorepo (pnpm workspaces + Turborepo):
+## 5. Architecture
 
 ```
 openvoicing/
   packages/
-    score-model/       # Canonical document format, MusicXML/GP/MIDI converters, validation
-    player/            # Embeddable player: rendering, playback, practice tools. Zero backend deps
-    editor/            # Notation editor + sync editor, builds on player
-    audio-engine/      # AudioWorklet graph: synth, time-stretch, metronome, mixer
-    ui/                # Shared design system components
+    score-model/       # canonical format, converters, sync maps (MPL-2.0)
+    player/            # rendering + playback + practice tools (MPL-2.0)
+    audio-engine/      # time-stretch, waveforms, mixing (MPL-2.0)
+    bundle/            # .ovb format: create, read, validate (MPL-2.0)
   apps/
-    web/               # Main web app (catalog, accounts, courses, embed pages)
-    server/            # API server
-    workers/           # Background jobs: transcode, waveform, OMR, audio analysis
-  docs/
-  infra/               # Docker Compose for self-hosting, Helm chart later
+    web/               # local-first authoring app + embeddable player page
+  docs/                # format specs: bundle manifest, score JSON
 ```
 
-### Frontend
+There is **no server** in the core system.
 
-- TypeScript, React, Vite. The player package must also work framework-free (vanilla JS embed) since embedding is a headline feature
-- Rendering via alphaTab (SVG/canvas) wrapped behind a `Renderer` interface owned by `score-model` types
-- Audio: Web Audio API. Synth playback via alphaTab's soundfont synth initially; a dedicated FluidSynth-WASM or sfumato-based synth in `audio-engine` when we need per-part routing and better sounds
-- Waveform display: precomputed peaks (server-side) rendered with a lightweight custom canvas component
+- The **authoring app** is a static web app. Sessions persist locally in
+  IndexedDB; the durable output is an exported bundle
+- The **player** ships two ways: an iframe-embeddable page (available first)
+  and a single-script embed with a JS API (load, seek, loop, events)
+- **Scanning (OMR) and audio analysis** run client-side where feasible
+  (onset detection, alignment in WASM); heavyweight OMR (Audiveris) becomes a
+  local CLI tool rather than a hosted worker
+- **Optional layers can come later, outside the core**: a gallery/registry
+  that indexes publicly hosted bundles, or a classroom server (accounts,
+  practice tracking) for institutions. Both speak the same bundle format and
+  are never load-bearing
 
-### Backend
+## 6. Roadmap
 
-- **API server: Node.js + TypeScript (Fastify) + PostgreSQL + Redis**, S3-compatible object storage for media. One language across the stack lowers the contribution barrier, and score-model code (validation, conversion) is shared between client and server
-- Background workers (BullMQ): ffmpeg transcode of uploads, waveform peak generation, YouTube metadata fetch, OMR jobs, MusicXML/GP import for large files
-- OMR: wrap **Audiveris** (AGPL, Java) as a containerized worker service; treat its MusicXML output as an import. Later, evaluate ML-based OMR (e.g. oemer) as an alternative backend
-- Audio-to-notation assist: **basic-pitch** (Apache-2.0) for audio-to-MIDI as a transcription starting point, clearly labeled as a draft, not magic
-- Auth: email + OAuth via self-hostable identity (Lucia-style sessions or Keycloak for institutions); SSO matters for schools
+Phases 0 to 2 (foundations, player, recordings and sync) are essentially done;
+see Status above. What remains, in order:
 
-### Data model (core tables)
+### Phase 3: Bundles and Embedding (current)
 
-- `users`, `organizations` (schools/studios)
-- `scores` (canonical JSON document, versioned; every save is a new version)
-- `recordings` (uploaded audio/video or YouTube reference; transcoded renditions; waveform peaks)
-- `syncmaps` (score_id, recording_id, anchor list)
-- `collections` (folders/lists), `courses` (ordered lessons wrapping scores + text/video)
-- `shares` (secret links, embed tokens, org visibility), `annotations` (text/drawing tied to entity IDs)
-- `practice_sessions` (per-user telemetry: what was looped, at what speed, for how long) for the practice-tracking feature
+- `bundle` package: create/read/validate `.ovb` (ZIP via fflate)
+- Export bundle and Open bundle in the authoring app
+- Embeddable player page: `embed.html?bundle=<url>` with the practice tools,
+  iframe-ready for any website
+- Single-script embed build with a JS API; oEmbed later
+- Publish the bundle manifest spec in `docs/`
+- Sync editor refinements as needed: finer-than-bar anchors, guide notes
 
-## 5. Roadmap
+### Phase 4: The Editor (the hardest phase)
 
-Each phase ends with something shippable and demoable.
+- Note entry (mouse, keyboard shortcuts, MIDI input), undo/redo via command
+  pattern over the versioned document
+- Renderer decision checkpoint first: commit to alphaTab (investing upstream in
+  edit-oriented APIs) or move to Verovio
+- v1 coverage: notes/rests, voices, ties/slurs, articulations, dynamics,
+  lyrics, chord symbols, tab fingering, repeats/endings, text
+- Export: MusicXML, MIDI, PDF, PNG; bundles gain the canonical score JSON
 
-### Phase 0: Foundations (4 to 6 weeks)
+### Phase 5: Scanning and Transcription Assist
 
-- Monorepo, CI, lint/test/release infrastructure
-- `score-model` v0: document schema, MusicXML import, alphaTab adapter
-- Rendering spike: same scores through alphaTab and Verovio; document the comparison publicly (good first blog post, attracts contributors)
-- Visual regression test harness for notation (render corpus scores to images, diff on every PR). This is the single highest-leverage piece of test infrastructure the project will have
+- PDF/photo to notation via Audiveris as a local CLI companion tool
+- Audio-to-MIDI drafts via basic-pitch, clearly labeled as drafts
+- Automatic sync: onset detection plus dynamic time warping against expected
+  note times from the score, proposing anchors a human confirms
 
-### Phase 1: The Player (8 to 12 weeks). First public release
+### Phase 6: Reach
 
-- Upload/import MusicXML and Guitar Pro; render notation and tab; responsive reflow
-- Synth playback with lit-up notes and click-to-seek
-- Practice tools: drag-to-loop with snapping, speed control (synth), transposition, metronome and count-in, per-part mute/solo/hide
-- Minimal web app: accounts, upload, private/unlisted/public scores, share links
-- Docker Compose self-host story from day one
+- PWA: installable, offline practice, touch-first controls
+- Video recordings in bundles; YouTube sync as a convenience tier with
+  documented ToS limits (no audio extraction, coarse rate control)
+- Optional community layer: a static-friendly gallery that indexes bundles
+  hosted elsewhere; an optional AGPL classroom server for institutions
 
-Milestone: "MuseScore file to practiceable web link in 60 seconds, on your own server."
+## 7. Licensing and Governance
 
-### Phase 2: Real Recordings (8 to 12 weeks). The differentiator
+- **All core packages and apps: MPL-2.0.** With no hosted service in the core,
+  AGPL's SaaS protection buys little; MPL keeps embedding frictionless, which
+  is the adoption path. Any future optional server layer: AGPL-3.0
+- **Format specs (bundle manifest, score JSON): CC-BY.** The format outliving
+  the software is a feature, not a risk
+- DCO for contributions; BDFL-with-maintainers until there are more than 3
+  regular contributors, then a lightweight RFC process
 
-- Audio/video upload, transcode, waveform display; YouTube-synced playback via IFrame API (note: YouTube ToS constrains rate control to YouTube's own speed steps and forbids audio extraction; document this honestly)
-- Sync point editor: tap-along-to-the-beat UX plus manual anchor dragging on the waveform
-- Time-stretch playback of recordings in an AudioWorklet; loop and speed tools work identically on synth and real recordings
-- Multiple recordings per score with quick switching
-- Optional beat-tracking assist (onset detection to propose anchors, human confirms)
+Sustainability options: paid support, sponsorship, and later a hosted
+convenience gallery or classroom service built on the same open pieces.
 
-### Phase 3: The Editor (12 to 20 weeks). The hardest phase
+## 8. Quality and Testing
 
-- Note entry (mouse, keyboard shortcuts modeled on MuseScore conventions, MIDI keyboard input)
-- Edit operations on the document model with full undo/redo (command pattern over the versioned document)
-- Coverage target for v1: notes/rests, voices, ties/slurs, articulations, dynamics, lyrics, chord symbols, tab fingering, repeats/endings, text
-- Export: MusicXML, MIDI, PDF (server-side render), PNG
-- Renderer decision checkpoint: commit to alphaTab (and invest upstream in edit-oriented APIs) or move to Verovio, based on Phase 0/1 experience
+- Unit tests per package (importers, sync math, peaks, bundle round-trip)
+- Score corpus of CC0/PD files for import round-trip and, once the editor
+  lands, visual regression (render to images, diff on every PR)
+- Browser verification of the practice loop end to end (Playwright)
+- Format conformance: published example bundles plus a validator, so third
+  party implementations have something to test against
 
-### Phase 4: Scanning and Transcription Assist (6 to 10 weeks)
-
-- PDF/photo upload to Audiveris worker to draft score, opening directly in the editor for correction
-- Audio-to-MIDI draft via basic-pitch for transcribers
-- Batch import tooling for publishers (CLI + API)
-
-### Phase 5: Teaching, Embedding, Community (8 to 12 weeks)
-
-- Courses: ordered lessons combining scores, text, video; student rosters via organizations; practice tracking dashboards
-- Embeddable player: script tag + oEmbed + signed embed tokens; JS API (load, seek, loop, events) so course platforms can script it
-- Public catalog with search (Postgres FTS first), channels/profiles, following
-- Public REST API with tokens; webhooks
-
-### Phase 6: Mobile and Offline
-
-- PWA: installable, offline score cache, wake-lock during practice, touch-first loop/speed controls
-- Native apps only if PWA limits demand it (iOS audio latency is the likely forcing function)
-
-## 6. Licensing and Governance
-
-- **Core (server, web app, editor): AGPL-3.0.** Protects against closed-source SaaS forks, the main commercial risk to sustainability
-- **Player + score-model packages: MPL-2.0** (matching alphaTab), so publishers can embed the player in proprietary sites, which is essential for adoption of the embed feature
-- Contributor agreement: DCO (not CLA) to keep contribution friction low
-- Open document format spec published separately under CC-BY; the format outliving the software is a feature
-- Governance: BDFL-with-maintainers to start; adopt a lightweight RFC process once there are more than 3 regular contributors
-
-Sustainability options (pick later, design for now): hosted SaaS of the same code (Plausible/Cal.com model), paid support for institutions, GitHub Sponsors/Open Collective.
-
-## 7. Quality and Testing Strategy
-
-- Score corpus: several hundred CC0/PD MusicXML and GP files spanning genres and notation edge cases, used for import round-trip tests and visual regression
-- Round-trip invariant tests: MusicXML in, our format, MusicXML out, semantic diff
-- Audio engine: offline-render tests (deterministic WAV output hashing) plus manual latency QA matrix (Chrome/Firefox/Safari, macOS/Windows/Android/iOS)
-- Sync accuracy: golden sync maps with tolerance assertions after edits and re-layout
-- Playwright end-to-end tests for the practice loop: import, play, loop, slow down
-
-## 8. Risks
+## 9. Risks
 
 | Risk | Mitigation |
 |---|---|
-| Editor scope explodes (it will) | Strict v1 coverage list in Phase 3; everything else behind an "unsupported yet" import warning that preserves data losslessly in the document |
-| Renderer bet turns out wrong | Renderer interface from day one; Phase 0 spike; decision checkpoint before Phase 3 |
-| Time-stretch quality/latency on Safari and mobile | Prototype in Phase 0 alongside rendering spike; it is cheap to validate early and expensive to discover late |
-| YouTube ToS limits sync features | Design recordings as first-class uploads; YouTube is a convenience tier with documented limits |
-| Copyright liability for hosted catalog | Self-hosting is the primary story; the flagship instance ships with DMCA process, private-by-default uploads, and no audio ripping features |
-| One-person project stalls | Public roadmap, monthly demo posts, "good first issue" curation from Phase 0; the rendering-comparison and format-spec posts are contributor magnets |
+| Format churn breaks published bundles | Versioned manifest, readers reject unknown majors, spec + example corpus published early |
+| Editor scope explodes | Strict v1 coverage list; unsupported elements preserved losslessly in the document |
+| Renderer bet turns out wrong | Renderer-agnostic player API already in place; decision checkpoint before the editor |
+| Copyright concerns land on bundle sharers | Same posture as any file format: we ship tools and a format, not a catalog. Manifest carries attribution/licensing fields; docs are explicit about responsibility |
+| Zip-whole-download hurts long media | Directory-layout variant of the same manifest for streaming; ZIP remains the portable form |
+| One-person project stalls | Public roadmap, the format spec as a contributor magnet, good-first-issue curation |
 
-## 9. Immediate Next Steps
+## 10. Immediate Next Steps
 
-1. `git init`, scaffold the monorepo, CI, and the empty packages
-2. Write the score-model schema draft (the format spec is the first real design artifact)
-3. Build the Phase 0 rendering spike: one page that loads a MusicXML file and renders it via alphaTab with a playback cursor
-4. Build the time-stretch spike: load an MP3, loop a region at 70% speed via signalsmith-stretch in an AudioWorklet
-5. Name check and trademark search for "OpenVoicing"; register domain and org handles
+1. `bundle` package with round-trip tests
+2. Export/Open bundle in the authoring app
+3. Embeddable player page playing a bundle by URL
+4. Write `docs/bundle-format.md` (manifest spec v0)
+5. Single-script embed build with JS API

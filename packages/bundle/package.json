@@ -1,0 +1,23 @@
+{
+  "name": "@openvoicing/bundle",
+  "version": "0.0.1",
+  "description": "The OpenVoicing bundle (.ovb) format: create, read, validate",
+  "license": "MPL-2.0",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc -p tsconfig.json",
+    "build": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@openvoicing/score-model": "workspace:*",
+    "fflate": "^0.8.3"
+  },
+  "devDependencies": {
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.9"
+  }
+}

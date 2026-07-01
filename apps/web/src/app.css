@@ -35,6 +35,30 @@ body {
   color: #9aa3b2;
 }
 
+.header-actions {
+  margin-left: auto;
+  display: flex;
+  gap: 10px;
+}
+
+.header-button {
+  padding: 4px 12px;
+  border: 1px solid #3d4452;
+  border-radius: 6px;
+  background: transparent;
+  color: #d6dae2;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.header-button:hover {
+  background: #2a303c;
+}
+
+.header-button input {
+  display: none;
+}
+
 .toolbar {
   position: sticky;
   top: 0;

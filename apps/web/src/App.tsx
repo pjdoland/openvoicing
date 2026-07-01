@@ -2,10 +2,33 @@ import { useEffect, useRef, useState, type ChangeEvent } from "react";
 import { Player, type TrackInfo } from "@openvoicing/player";
 import { RecordingPlayer } from "@openvoicing/audio-engine";
 import { mediaTimeAtTick, tickAtMediaTime, type SyncPoint } from "@openvoicing/score-model";
+import {
+  BUNDLE_FORMAT,
+  BUNDLE_FORMAT_VERSION,
+  createBundle,
+  readBundle,
+  scoreFileExtension,
+  scoreTypeFromFileName,
+  type ScoreType,
+} from "@openvoicing/bundle";
 import soundFontUrl from "@coderline/alphatab/soundfont/sonivox.sf3?url";
 import { DEMO_TEX } from "./demo";
 import { RecordingPanel } from "./RecordingPanel";
 import { storage, type StoredFile } from "./storage";
+
+interface ScoreSource {
+  name: string;
+  type: ScoreType;
+  data: ArrayBuffer;
+}
+
+function loadScoreIntoPlayer(player: Player, source: ScoreSource): void {
+  if (source.type === "alphatex") {
+    player.loadTex(new TextDecoder().decode(source.data));
+  } else {
+    player.load(new Uint8Array(source.data));
+  }
+}
 
 const SPEEDS = [0.5, 0.6, 0.7, 0.8, 0.9, 1, 1.1, 1.25];
 
@@ -27,6 +50,8 @@ export function App() {
   const [countIn, setCountIn] = useState(false);
   const [tracks, setTracks] = useState<TrackInfo[]>([]);
   const [barCount, setBarCount] = useState(0);
+  const [scoreTitle, setScoreTitle] = useState("");
+  const scoreSourceRef = useRef<ScoreSource | null>(null);
   const [position, setPosition] = useState({ current: 0, total: 0 });
 
   const [recordingLoaded, setRecordingLoaded] = useState(false);
@@ -55,6 +80,7 @@ export function App() {
     player.on("scoreLoaded", (info) => {
       setTracks(info.tracks);
       setBarCount(player.barTicks.length);
+      setScoreTitle(info.title);
     });
     player.on("playerReady", () => setReady(true));
     player.on("playerStateChanged", setPlaying);
@@ -75,16 +101,24 @@ export function App() {
     }
     let disposed = false;
     void (async () => {
-      let stored: StoredFile | undefined;
+      let stored: (StoredFile & { type?: ScoreType }) | undefined;
       try {
-        stored = await storage.get<StoredFile>("score");
+        stored = await storage.get<StoredFile & { type?: ScoreType }>("score");
       } catch {
         stored = undefined;
       }
       if (disposed) return;
       if (stored) {
-        player.load(new Uint8Array(stored.data));
+        const source: ScoreSource = {
+          name: stored.name,
+          type: stored.type ?? scoreTypeFromFileName(stored.name),
+          data: stored.data,
+        };
+        scoreSourceRef.current = source;
+        loadScoreIntoPlayer(player, source);
       } else {
+        const data = new TextEncoder().encode(DEMO_TEX).buffer as ArrayBuffer;
+        scoreSourceRef.current = { name: "demo.alphatex", type: "alphatex", data };
         player.loadTex(DEMO_TEX);
       }
     })();
@@ -275,7 +309,9 @@ export function App() {
     const buffer = await file.arrayBuffer();
     const loaded = playerRef.current?.load(new Uint8Array(buffer));
     if (loaded) {
-      void storage.set("score", { name: file.name, data: buffer } satisfies StoredFile);
+      const type = scoreTypeFromFileName(file.name);
+      scoreSourceRef.current = { name: file.name, type, data: buffer };
+      void storage.set("score", { name: file.name, type, data: buffer });
       void storage.delete("sync");
       setSyncPoints(null);
       setFollow(false);
@@ -283,11 +319,96 @@ export function App() {
     e.target.value = "";
   }
 
+  async function exportBundle() {
+    const source = scoreSourceRef.current;
+    if (!source) return;
+    const scorePath = `score/score.${scoreFileExtension(source.type)}`;
+    const files = new Map<string, Uint8Array>([[scorePath, new Uint8Array(source.data)]]);
+    const recordings = [];
+    const rec = await storage.get<StoredFile>("recording");
+    if (rec) {
+      const recPath = `recordings/${rec.name.replace(/[^\w.-]+/g, "_")}`;
+      files.set(recPath, new Uint8Array(rec.data));
+      recordings.push({
+        id: "take1",
+        name: rec.name,
+        path: recPath,
+        ...(syncPoints?.length ? { syncPoints } : {}),
+      });
+    }
+    const bytes = createBundle({
+      manifest: {
+        format: BUNDLE_FORMAT,
+        formatVersion: BUNDLE_FORMAT_VERSION,
+        title: scoreTitle || "Untitled",
+        score: { path: scorePath, type: source.type },
+        recordings,
+      },
+      files,
+    });
+    const blob = new Blob([bytes as BlobPart], { type: "application/zip" });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = `${(scoreTitle || "score").replace(/[^\w-]+/g, "-").toLowerCase() || "score"}.ovb`;
+    link.click();
+    URL.revokeObjectURL(link.href);
+  }
+
+  async function openBundle(e: ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    try {
+      const bundle = readBundle(new Uint8Array(await file.arrayBuffer()));
+      const { manifest } = bundle;
+      const player = playerRef.current;
+
+      const scoreBytes = bundle.files.get(manifest.score.path)!;
+      const scoreData = scoreBytes.slice().buffer as ArrayBuffer;
+      const source: ScoreSource = {
+        name: `score.${scoreFileExtension(manifest.score.type)}`,
+        type: manifest.score.type,
+        data: scoreData,
+      };
+      scoreSourceRef.current = source;
+      if (player) loadScoreIntoPlayer(player, source);
+      void storage.set("score", { name: source.name, type: source.type, data: scoreData });
+
+      const recEntry = manifest.recordings[0];
+      if (recEntry) {
+        const recBytes = bundle.files.get(recEntry.path)!;
+        const stored = recBytes.slice().buffer as ArrayBuffer;
+        await recording.load(recBytes.slice().buffer as ArrayBuffer);
+        setRecordingFileName(recEntry.name);
+        void storage.set("recording", { name: recEntry.name, data: stored } satisfies StoredFile);
+        if (recEntry.syncPoints?.length) {
+          setSyncPoints(recEntry.syncPoints);
+          setFollow(true);
+        }
+      } else {
+        setSyncPoints(null);
+        setFollow(false);
+      }
+    } catch (error) {
+      console.error("[openvoicing] failed to open bundle", error);
+      window.alert(error instanceof Error ? error.message : "Failed to open bundle");
+    }
+  }
+
   return (
     <div className="app">
       <header className="header">
         <h1>OpenVoicing</h1>
         <span className="tagline">open source living sheet music</span>
+        <span className="header-actions">
+          <label className="header-button">
+            Open bundle…
+            <input type="file" accept=".ovb" onChange={openBundle} />
+          </label>
+          <button className="header-button" onClick={() => void exportBundle()}>
+            Export bundle
+          </button>
+        </span>
       </header>
 
       <div className="toolbar">
