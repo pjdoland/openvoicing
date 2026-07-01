@@ -142,6 +142,12 @@ export class Player {
     this.api.isLooping = enabled;
   }
 
+  /** Restrict synth playback to a tick range (and loop it), or clear with null. */
+  setPlaybackRange(range: { startTick: number; endTick: number } | null): void {
+    this.api.playbackRange = range;
+    if (range) this.api.isLooping = true;
+  }
+
   setMetronome(enabled: boolean): void {
     this.api.metronomeVolume = enabled ? 1 : 0;
   }

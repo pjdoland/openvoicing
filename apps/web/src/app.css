@@ -258,3 +258,16 @@ body {
   font-size: 12px;
   color: #7a8494;
 }
+.bars-input {
+  padding: 4px 8px;
+  border: 1px solid #c8ceda;
+  border-radius: 6px;
+  font-size: 13px;
+  width: 84px;
+}
+
+.speed-value {
+  min-width: 42px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}

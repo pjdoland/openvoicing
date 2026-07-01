@@ -10,6 +10,10 @@ export interface RecordingPlayerEvents {
   loaded: (info: { duration: number; channels: Float32Array[]; sampleRate: number }) => void;
   stateChanged: (playing: boolean) => void;
   positionChanged: (seconds: number, duration: number) => void;
+  speedChanged: (speed: number) => void;
+  loopChanged: (region: LoopRegion | null) => void;
+  /** Fired each time playback wraps from the end of the loop back to the start. */
+  looped: () => void;
 }
 
 const POSITION_INTERVAL_MS = 50;
@@ -34,6 +38,9 @@ export class RecordingPlayer {
     loaded: new Set(),
     stateChanged: new Set(),
     positionChanged: new Set(),
+    speedChanged: new Set(),
+    loopChanged: new Set(),
+    looped: new Set(),
   };
 
   on<K extends keyof RecordingPlayerEvents>(
@@ -103,6 +110,7 @@ export class RecordingPlayer {
   set speed(value: number) {
     this._speed = value;
     if (this._playing) this.applySchedule();
+    this.emit("speedChanged", value);
   }
 
   get loopRegion(): LoopRegion | null {
@@ -117,6 +125,7 @@ export class RecordingPlayer {
       }
       this.applySchedule();
     }
+    this.emit("loopChanged", region);
   }
 
   /**
@@ -150,7 +159,15 @@ export class RecordingPlayer {
 
   private tick(): void {
     if (!this.node) return;
+    const previous = this._position;
     this._position = this.node.inputTime;
+    if (
+      this._loop &&
+      previous > this._position &&
+      previous - this._position > (this._loop.end - this._loop.start) / 2
+    ) {
+      this.emit("looped");
+    }
     if (!this._loop && this._position >= this._duration) {
       this._position = this._duration;
       this.pause();

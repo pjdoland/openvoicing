@@ -7,8 +7,8 @@ import {
 } from "@openvoicing/audio-engine";
 import type { SyncPoint } from "@openvoicing/score-model";
 import type { RecordingMeta } from "./storage";
+import { SpeedControl } from "./SpeedControl";
 
-const SPEEDS = [0.5, 0.6, 0.7, 0.8, 0.9, 1, 1.1, 1.25];
 const WAVE_WIDTH = 1200;
 const WAVE_HEIGHT = 96;
 const MAX_ZOOM = 16;
@@ -34,6 +34,8 @@ interface RecordingPanelProps {
   /** Sync anchors to render as draggable markers, or null when unsynced. */
   syncPoints: SyncPoint[] | null;
   onMoveSyncPoint: (index: number, timeSeconds: number) => void;
+  /** Bar boundary times (seconds) when synced; drag loops snap to these. */
+  barTimes: number[] | null;
 }
 
 export function RecordingPanel({
@@ -45,6 +47,7 @@ export function RecordingPanel({
   onRemove,
   syncPoints,
   onMoveSyncPoint,
+  barTimes,
 }: RecordingPanelProps) {
   const hasActive = activeId !== null;
   const playerRef = useRef<RecordingPlayer | null>(player);
@@ -62,6 +65,7 @@ export function RecordingPanel({
   const [speed, setSpeed] = useState(1);
   const [zoom, setZoom] = useState(1);
   const [loop, setLoop] = useState<LoopRegion | null>(null);
+  const [repeats, setRepeats] = useState(0);
   const [position, setPosition] = useState(0);
   const [duration, setDuration] = useState(0);
 
@@ -81,6 +85,12 @@ export function RecordingPanel({
         setZoom(1);
         setLoop(null);
       }),
+      player.on("speedChanged", setSpeed),
+      player.on("loopChanged", (region) => {
+        setLoop(region);
+        setRepeats(0);
+      }),
+      player.on("looped", () => setRepeats((n) => n + 1)),
     ];
     return () => {
       for (const unsub of unsubs) unsub();
@@ -184,19 +194,35 @@ export function RecordingPanel({
     setDrag({ ...drag, currentX: canvasX(e) });
   }
 
-  function onPointerUp() {
+  function snapToBar(seconds: number): number {
+    if (!barTimes || barTimes.length === 0) return seconds;
+    let best = barTimes[0]!;
+    for (const t of barTimes) {
+      if (Math.abs(t - seconds) < Math.abs(best - seconds)) best = t;
+    }
+    return best;
+  }
+
+  function onPointerUp(e: PointerEvent<HTMLCanvasElement>) {
     const player = playerRef.current;
     setDrag(null);
     if (!drag || !player || duration === 0) return;
-    const from = (Math.min(drag.startX, drag.currentX) / contentWidth) * duration;
-    const to = (Math.max(drag.startX, drag.currentX) / contentWidth) * duration;
+    let from = (Math.min(drag.startX, drag.currentX) / contentWidth) * duration;
+    let to = (Math.max(drag.startX, drag.currentX) / contentWidth) * duration;
     if (Math.abs(drag.currentX - drag.startX) < 4) {
       player.seek(from);
       return;
     }
-    const region = { start: from, end: to };
-    setLoop(region);
-    player.setLoopRegion(region);
+    // Synced loops snap to bar boundaries; hold Alt for exact placement.
+    if (!e.altKey) {
+      const snappedFrom = snapToBar(from);
+      const snappedTo = snapToBar(to);
+      if (snappedTo > snappedFrom) {
+        from = snappedFrom;
+        to = snappedTo;
+      }
+    }
+    player.setLoopRegion({ start: from, end: to });
   }
 
   function onMarkerPointerDown(e: PointerEvent<HTMLDivElement>, index: number) {
@@ -220,7 +246,6 @@ export function RecordingPanel({
   }
 
   function clearLoop() {
-    setLoop(null);
     playerRef.current?.setLoopRegion(null);
   }
 
@@ -231,9 +256,7 @@ export function RecordingPanel({
     e.target.value = "";
   }
 
-  function changeSpeed(e: ChangeEvent<HTMLSelectElement>) {
-    const value = Number(e.target.value);
-    setSpeed(value);
+  function changeSpeed(value: number) {
     if (playerRef.current) playerRef.current.speed = value;
   }
 
@@ -271,16 +294,7 @@ export function RecordingPanel({
             <button onClick={() => (playing ? playerRef.current?.pause() : playerRef.current?.play())}>
               {playing ? "Pause" : "Play"}
             </button>
-            <label className="control">
-              Speed
-              <select value={speed} onChange={changeSpeed}>
-                {SPEEDS.map((s) => (
-                  <option key={s} value={s}>
-                    {Math.round(s * 100)}%
-                  </option>
-                ))}
-              </select>
-            </label>
+            <SpeedControl value={speed} onChange={changeSpeed} />
             <span className="control zoom-controls">
               <button onClick={() => changeZoom(Math.max(1, zoom / 2))} disabled={zoom <= 1}>
                 −
@@ -294,9 +308,14 @@ export function RecordingPanel({
               </button>
             </span>
             {loop && (
-              <button onClick={clearLoop}>
-                Clear loop ({formatTime(loop.start)} to {formatTime(loop.end)})
-              </button>
+              <>
+                <button onClick={clearLoop}>
+                  Clear loop ({formatTime(loop.start)} to {formatTime(loop.end)})
+                </button>
+                <span className="position" title="Loop repetitions">
+                  ×{repeats}
+                </span>
+              </>
             )}
             <span className="position">
               {formatTime(position)} / {formatTime(duration)}

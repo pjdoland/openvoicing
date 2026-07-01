@@ -1,0 +1,1562 @@
+[
+ {
+  "id": "F1",
+  "title": "Saved, named practice loops",
+  "description": "Let users save a dragged loop region as a named item (e.g. \"m. 12-16 shift\", \"solo bars 33-40\", \"tricky entrance at m. 25\") that persists per piece and per recording in the .ovb bundle and IndexedDB, with a picker list and quick recall (e.g. number keys 1-9), so teachers and players stop re-dragging the same trouble spots every session.",
+  "proposedBy": [
+   "pm-edu",
+   "ux-creative",
+   "user-guitarist",
+   "user-teacher",
+   "user-transcriber"
+  ],
+  "yesVotes": 7,
+  "yesFrom": [
+   "pm-edu",
+   "pm-platform",
+   "ux-creative",
+   "ux-a11y",
+   "user-guitarist",
+   "user-teacher",
+   "user-transcriber"
+  ]
+ },
+ {
+  "id": "F2",
+  "title": "Set loop points live from the keyboard",
+  "description": "Add A/B-style loop marker keys (e.g. tap [ at the start and ] at the end of a lick) that set the loop region during playback, instead of stopping to drag across notes with the mouse.",
+  "proposedBy": [
+   "user-guitarist",
+   "ux-creative"
+  ],
+  "yesVotes": 7,
+  "yesFrom": [
+   "pm-edu",
+   "pm-platform",
+   "ux-creative",
+   "ux-a11y",
+   "user-guitarist",
+   "user-teacher",
+   "user-transcriber"
+  ]
+ },
+ {
+  "id": "F3",
+  "title": "Speed trainer / tempo ladder for loops",
+  "description": "Add an optional loop mode that starts at a chosen speed (e.g. 60%) and raises playback by a configurable percent every N clean repetitions until it hits the target, automating the classic slow-practice ladder every teacher teaches manually.",
+  "proposedBy": [
+   "pm-edu",
+   "ux-creative",
+   "user-guitarist",
+   "user-transcriber"
+  ],
+  "yesVotes": 7,
+  "yesFrom": [
+   "pm-edu",
+   "pm-platform",
+   "ux-creative",
+   "ux-a11y",
+   "user-guitarist",
+   "user-teacher",
+   "user-transcriber"
+  ]
+ },
+ {
+  "id": "F4",
+  "title": "Extend time-stretch below 50%, down to 25%",
+  "description": "Lower the playback speed floor from 50% to 25% for both synth and recordings (degrading audio quality gracefully), since beginners, string students, and transcribers picking apart fast runs routinely need 25-40%.",
+  "proposedBy": [
+   "pm-edu",
+   "user-guitarist",
+   "user-teacher",
+   "user-transcriber"
+  ],
+  "yesVotes": 7,
+  "yesFrom": [
+   "pm-edu",
+   "pm-platform",
+   "ux-creative",
+   "ux-a11y",
+   "user-guitarist",
+   "user-teacher",
+   "user-transcriber"
+  ]
+ },
+ {
+  "id": "F5",
+  "title": "Count-in, pre-roll, and configurable gap for loops",
+  "description": "Make the count-in fire before the loop region (not just from bar 1) and honor the current speed; optionally play one bar of the recording or a sync-map-derived click as pre-roll, and allow a 1-3 second silence plus count-in between loop repeats so players can reset instead of getting dumped in cold.",
+  "proposedBy": [
+   "pm-edu",
+   "user-guitarist",
+   "user-transcriber"
+  ],
+  "yesVotes": 7,
+  "yesFrom": [
+   "pm-edu",
+   "pm-platform",
+   "ux-creative",
+   "ux-a11y",
+   "user-guitarist",
+   "user-teacher",
+   "user-transcriber"
+  ]
+ },
+ {
+  "id": "F6",
+  "title": "One-key A/B toggle between synth and recording",
+  "description": "Add a single hotkey and button that instantly swaps playback between the synced recording and the synth at the same musical position, both a core listening exercise in lessons and the fastest way to proof a transcription against the source.",
+  "proposedBy": [
+   "pm-edu",
+   "user-transcriber"
+  ],
+  "yesVotes": 7,
+  "yesFrom": [
+   "pm-edu",
+   "pm-platform",
+   "ux-creative",
+   "ux-a11y",
+   "user-guitarist",
+   "user-teacher",
+   "user-transcriber"
+  ]
+ },
+ {
+  "id": "F8",
+  "title": "Loop by bar numbers",
+  "description": "Add a small input where users can type a range like \"33-40\" and hit enter to set the loop, because tab books and forum posts always reference bar numbers.",
+  "proposedBy": [
+   "user-guitarist"
+  ],
+  "yesVotes": 7,
+  "yesFrom": [
+   "pm-edu",
+   "pm-platform",
+   "ux-creative",
+   "ux-a11y",
+   "user-guitarist",
+   "user-teacher",
+   "user-transcriber"
+  ]
+ },
+ {
+  "id": "F9",
+  "title": "Snap waveform loops to synced bar boundaries",
+  "description": "When a recording has a sync map, snap drag-to-loop endpoints on the waveform to bar boundaries (with a modifier key to override) so loops stop starting mid-beat.",
+  "proposedBy": [
+   "user-guitarist"
+  ],
+  "yesVotes": 7,
+  "yesFrom": [
+   "pm-edu",
+   "pm-platform",
+   "ux-creative",
+   "ux-a11y",
+   "user-guitarist",
+   "user-teacher",
+   "user-transcriber"
+  ]
+ },
+ {
+  "id": "F11",
+  "title": "Keyboard speed nudges",
+  "description": "Bind minus/plus (or comma/period) to step playback speed down/up in 5% increments so users can creep a passage up to tempo without reaching for a slider.",
+  "proposedBy": [
+   "user-guitarist"
+  ],
+  "yesVotes": 7,
+  "yesFrom": [
+   "pm-edu",
+   "pm-platform",
+   "ux-creative",
+   "ux-a11y",
+   "user-guitarist",
+   "user-teacher",
+   "user-transcriber"
+  ]
+ },
+ {
+  "id": "F13",
+  "title": "One-click part balance presets (backing-track and hear-my-part modes)",
+  "description": "Layer simple presets over the mute/solo matrix: a backing-track mode that mutes or ducks the user's own part while keeping loop and metronome, and a dropdown balance preset for SATB pieces (my part loud, others soft, or my part silent for testing).",
+  "proposedBy": [
+   "user-guitarist",
+   "user-teacher"
+  ],
+  "yesVotes": 7,
+  "yesFrom": [
+   "pm-edu",
+   "pm-platform",
+   "ux-creative",
+   "ux-a11y",
+   "user-guitarist",
+   "user-teacher",
+   "user-transcriber"
+  ]
+ },
+ {
+  "id": "F17",
+  "title": "Sync-map-driven metronome over the recording",
+  "description": "Use the sync map to run the click along with the real recording, including through tempo drift, which also instantly exposes bars where sync points are off.",
+  "proposedBy": [
+   "user-transcriber"
+  ],
+  "yesVotes": 7,
+  "yesFrom": [
+   "pm-edu",
+   "pm-platform",
+   "ux-creative",
+   "ux-a11y",
+   "user-guitarist",
+   "user-teacher",
+   "user-transcriber"
+  ]
+ },
+ {
+  "id": "F18",
+  "title": "Record yourself with the microphone",
+  "description": "Add a record button that captures the user via getUserMedia (over a loop, or while the score/accompaniment plays) into the recordings panel as just another recording on the piece, so self-review and teacher review use the exact same waveform and sync tools that already exist.",
+  "proposedBy": [
+   "pm-edu",
+   "user-teacher",
+   "user-guitarist"
+  ],
+  "yesVotes": 7,
+  "yesFrom": [
+   "pm-edu",
+   "pm-platform",
+   "ux-creative",
+   "ux-a11y",
+   "user-guitarist",
+   "user-teacher",
+   "user-transcriber"
+  ]
+ },
+ {
+  "id": "F19",
+  "title": "Side-by-side comparison of two recordings",
+  "description": "Once two recordings exist on a piece (reference and student/self take), allow playing them in alternation or overlaid with a balance slider at matched speed, which is how teachers and players actually diagnose timing, tone, and phrasing drift.",
+  "proposedBy": [
+   "pm-edu",
+   "user-guitarist"
+  ],
+  "yesVotes": 7,
+  "yesFrom": [
+   "pm-edu",
+   "pm-platform",
+   "ux-creative",
+   "ux-a11y",
+   "user-guitarist",
+   "user-teacher",
+   "user-transcriber"
+  ]
+ },
+ {
+  "id": "F20",
+  "title": "Pitch-shift recordings by semitones and cents",
+  "description": "Add a transpose control on recording playback (plus/minus semitones with fine cents) so Eb-tuned records, A=442 orchestras, capo'd guitars, and out-of-tune sources line up with the notation without retuning.",
+  "proposedBy": [
+   "user-guitarist",
+   "user-transcriber"
+  ],
+  "yesVotes": 7,
+  "yesFrom": [
+   "pm-edu",
+   "pm-platform",
+   "ux-creative",
+   "ux-a11y",
+   "user-guitarist",
+   "user-teacher",
+   "user-transcriber"
+  ]
+ },
+ {
+  "id": "F23",
+  "title": "Streaming decode for long recordings",
+  "description": "Decode and compute waveform peaks incrementally so a 90-minute rehearsal WAV opens without freezing the tab or exhausting memory.",
+  "proposedBy": [
+   "user-transcriber"
+  ],
+  "yesVotes": 7,
+  "yesFrom": [
+   "pm-edu",
+   "pm-platform",
+   "ux-creative",
+   "ux-a11y",
+   "user-guitarist",
+   "user-teacher",
+   "user-transcriber"
+  ]
+ },
+ {
+  "id": "F24",
+  "title": "Keyboard-nudgeable sync markers with precise timestamps",
+  "description": "Give each per-bar sync marker focus and arrow-key nudging (e.g. 10ms with arrows, coarser/finer with modifiers), an announced and editable numeric timestamp, and optional looping playback around the marker while tuning, replacing the current drag-only interaction that is too coarse on a zoomed-out waveform and unusable without a pointer.",
+  "proposedBy": [
+   "ux-creative",
+   "ux-a11y",
+   "user-transcriber"
+  ],
+  "yesVotes": 7,
+  "yesFrom": [
+   "pm-edu",
+   "pm-platform",
+   "ux-creative",
+   "ux-a11y",
+   "user-guitarist",
+   "user-teacher",
+   "user-transcriber"
+  ]
+ },
+ {
+  "id": "F25",
+  "title": "Drop-a-sync-point hotkey during playback",
+  "description": "Add a key that plants a sync marker at the current bar while the recording plays, so users can refine auto-sync in one real-time pass instead of dragging markers afterward.",
+  "proposedBy": [
+   "user-transcriber"
+  ],
+  "yesVotes": 7,
+  "yesFrom": [
+   "pm-edu",
+   "pm-platform",
+   "ux-creative",
+   "ux-a11y",
+   "user-guitarist",
+   "user-teacher",
+   "user-transcriber"
+  ]
+ },
+ {
+  "id": "F26",
+  "title": "Per-bar sync confidence coloring",
+  "description": "Tint auto-sync bar markers by onset-detection confidence (green/amber/red) so users know which bars to verify by ear instead of auditing the whole piece.",
+  "proposedBy": [
+   "ux-creative"
+  ],
+  "yesVotes": 7,
+  "yesFrom": [
+   "pm-edu",
+   "pm-platform",
+   "ux-creative",
+   "ux-a11y",
+   "user-guitarist",
+   "user-teacher",
+   "user-transcriber"
+  ]
+ },
+ {
+  "id": "F27",
+  "title": "Undo history covering sync-map edits",
+  "description": "Extend Cmd+Z to cover dragging sync markers, tap-along sync, and auto-sync runs, because destroying a hand-tuned sync map with one accidental drag is the scariest unrecoverable action in the app today.",
+  "proposedBy": [
+   "ux-creative"
+  ],
+  "yesVotes": 7,
+  "yesFrom": [
+   "pm-edu",
+   "pm-platform",
+   "ux-creative",
+   "ux-a11y",
+   "user-guitarist",
+   "user-teacher",
+   "user-transcriber"
+  ]
+ },
+ {
+  "id": "F28",
+  "title": "Confirm-or-undo toast after auto-sync",
+  "description": "After one-click auto-sync replaces an existing sync map, show a toast with an Undo button and a before/after marker count instead of silently overwriting the previous map.",
+  "proposedBy": [
+   "ux-creative"
+  ],
+  "yesVotes": 7,
+  "yesFrom": [
+   "pm-edu",
+   "pm-platform",
+   "ux-creative",
+   "ux-a11y",
+   "user-guitarist",
+   "user-teacher",
+   "user-transcriber"
+  ]
+ },
+ {
+  "id": "F29",
+  "title": "Dotted notes and tuplets in the editor",
+  "description": "Add a '.' key for augmentation dots and a tuplet mode (e.g. Ctrl+3 for triplets) to the duration vocabulary, since real repertoire (jigs, swing tunes) is unenterable without them and they slot cleanly into the existing 1/2/4/8/6/3 scheme.",
+  "proposedBy": [
+   "ux-creative",
+   "user-transcriber"
+  ],
+  "yesVotes": 7,
+  "yesFrom": [
+   "pm-edu",
+   "pm-platform",
+   "ux-creative",
+   "ux-a11y",
+   "user-guitarist",
+   "user-teacher",
+   "user-transcriber"
+  ]
+ },
+ {
+  "id": "F30",
+  "title": "Direct accidental entry keys",
+  "description": "Add '+'/'-' (or similar) keys to sharpen and flatten the selected note chromatically with correct respelling, complementing the existing 'j' enharmonic toggle, since transpose-plus-respell is slow for chromatic passages.",
+  "proposedBy": [
+   "ux-creative",
+   "user-transcriber"
+  ],
+  "yesVotes": 7,
+  "yesFrom": [
+   "pm-edu",
+   "pm-platform",
+   "ux-creative",
+   "ux-a11y",
+   "user-guitarist",
+   "user-teacher",
+   "user-transcriber"
+  ]
+ },
+ {
+  "id": "F31",
+  "title": "Chord and multi-voice entry",
+  "description": "Support adding an interval to the selected note (e.g. Shift+a-g) and a voice-2 layer per staff, since almost nothing arrangers work on is strictly monophonic.",
+  "proposedBy": [
+   "user-transcriber"
+  ],
+  "yesVotes": 7,
+  "yesFrom": [
+   "pm-edu",
+   "pm-platform",
+   "ux-creative",
+   "ux-a11y",
+   "user-guitarist",
+   "user-teacher",
+   "user-transcriber"
+  ]
+ },
+ {
+  "id": "F33",
+  "title": "Repeat-previous-bar key",
+  "description": "Add a single keystroke that copies the previous measure into the current one, a huge time saver for vamps, riffs, and drum-adjacent parts.",
+  "proposedBy": [
+   "user-transcriber"
+  ],
+  "yesVotes": 7,
+  "yesFrom": [
+   "pm-edu",
+   "pm-platform",
+   "ux-creative",
+   "ux-a11y",
+   "user-guitarist",
+   "user-teacher",
+   "user-transcriber"
+  ]
+ },
+ {
+  "id": "F34",
+  "title": "Time and key signature changes mid-score, plus pickup bars",
+  "description": "Let users insert meter and key changes at any barline in the editor, plus a pickup (anacrusis) bar option when creating a new score, because real tunes have them.",
+  "proposedBy": [
+   "user-transcriber"
+  ],
+  "yesVotes": 7,
+  "yesFrom": [
+   "pm-edu",
+   "pm-platform",
+   "ux-creative",
+   "ux-a11y",
+   "user-guitarist",
+   "user-teacher",
+   "user-transcriber"
+  ]
+ },
+ {
+  "id": "F35",
+  "title": "Click-drag range selection in the editor",
+  "description": "Support shift-click and click-drag to select a run of notes so that delete, transpose, and copy/paste operate on ranges instead of forcing one-note-at-a-time editing.",
+  "proposedBy": [
+   "ux-creative"
+  ],
+  "yesVotes": 7,
+  "yesFrom": [
+   "pm-edu",
+   "pm-platform",
+   "ux-creative",
+   "ux-a11y",
+   "user-guitarist",
+   "user-teacher",
+   "user-transcriber"
+  ]
+ },
+ {
+  "id": "F36",
+  "title": "Copy, cut, and paste for note ranges",
+  "description": "Implement Cmd+C/X/V on range selections with paste-at-cursor semantics and a paste-preview ghost, the single biggest editing-speed multiplier missing from the editor.",
+  "proposedBy": [
+   "ux-creative"
+  ],
+  "yesVotes": 7,
+  "yesFrom": [
+   "pm-edu",
+   "pm-platform",
+   "ux-creative",
+   "ux-a11y",
+   "user-guitarist",
+   "user-teacher",
+   "user-transcriber"
+  ]
+ },
+ {
+  "id": "F37",
+  "title": "Note entry audio feedback",
+  "description": "Play the note through the existing synth whenever a pitch key or arrow transpose changes a note, with a mute toggle, so users can edit by ear the way every score editor allows.",
+  "proposedBy": [
+   "ux-creative"
+  ],
+  "yesVotes": 7,
+  "yesFrom": [
+   "pm-edu",
+   "pm-platform",
+   "ux-creative",
+   "ux-a11y",
+   "user-guitarist",
+   "user-teacher",
+   "user-transcriber"
+  ]
+ },
+ {
+  "id": "F38",
+  "title": "Fingering and annotation layer in the editor",
+  "description": "Support adding fingering numbers, circled string numbers, and free-text markings above notes (stored in the score and exported in MusicXML), because a score without the teacher's markings is only half the lesson.",
+  "proposedBy": [
+   "pm-edu"
+  ],
+  "yesVotes": 7,
+  "yesFrom": [
+   "pm-edu",
+   "pm-platform",
+   "ux-creative",
+   "ux-a11y",
+   "user-guitarist",
+   "user-teacher",
+   "user-transcriber"
+  ]
+ },
+ {
+  "id": "F39",
+  "title": "Insert-mode caret indicator",
+  "description": "When 'i' toggles insert mode, render a blinking caret between notes and a visible mode badge, because moded editing without a mode indicator is where users type garbage into their score.",
+  "proposedBy": [
+   "ux-creative"
+  ],
+  "yesVotes": 7,
+  "yesFrom": [
+   "pm-edu",
+   "pm-platform",
+   "ux-creative",
+   "ux-a11y",
+   "user-guitarist",
+   "user-teacher",
+   "user-transcriber"
+  ]
+ },
+ {
+  "id": "F40",
+  "title": "Contextual hint bar in edit mode",
+  "description": "Show a slim status strip under the score while editing that displays the current selection (pitch, duration, voice, bar) and the most relevant next-key hints, like a DAW's context-sensitive help line.",
+  "proposedBy": [
+   "ux-creative"
+  ],
+  "yesVotes": 7,
+  "yesFrom": [
+   "pm-edu",
+   "pm-platform",
+   "ux-creative",
+   "ux-a11y",
+   "user-guitarist",
+   "user-teacher",
+   "user-transcriber"
+  ]
+ },
+ {
+  "id": "F41",
+  "title": "Visible undo/redo buttons with action labels",
+  "description": "Add undo/redo toolbar buttons whose tooltips name the action being undone (e.g. \"Undo: change D4 to eighth note\"), backed by labeled entries in the existing undo stack.",
+  "proposedBy": [
+   "ux-creative"
+  ],
+  "yesVotes": 7,
+  "yesFrom": [
+   "pm-edu",
+   "pm-platform",
+   "ux-creative",
+   "ux-a11y",
+   "user-guitarist",
+   "user-teacher",
+   "user-transcriber"
+  ]
+ },
+ {
+  "id": "F42",
+  "title": "Scope editor key handling off the global window",
+  "description": "Move the window keydown listeners onto a focused score container with role and tabIndex, so typing 'a' in a text field or filename input doesn't rewrite the score.",
+  "proposedBy": [
+   "ux-a11y"
+  ],
+  "yesVotes": 7,
+  "yesFrom": [
+   "pm-edu",
+   "pm-platform",
+   "ux-creative",
+   "ux-a11y",
+   "user-guitarist",
+   "user-teacher",
+   "user-transcriber"
+  ]
+ },
+ {
+  "id": "F43",
+  "title": "Escape key consistently exits states",
+  "description": "Make Esc uniformly clear the note selection, cancel an in-progress drag-loop, close overlays, and exit edit mode (with a confirm if there are unsaved structural edits), in that priority order.",
+  "proposedBy": [
+   "ux-creative"
+  ],
+  "yesVotes": 7,
+  "yesFrom": [
+   "pm-edu",
+   "pm-platform",
+   "ux-creative",
+   "ux-a11y",
+   "user-guitarist",
+   "user-teacher",
+   "user-transcriber"
+  ]
+ },
+ {
+  "id": "F44",
+  "title": "Whole-score transposition",
+  "description": "Add a transpose control (up/down by semitone or pick a key, with common instrument presets like Bb and Eb) that changes notation, playback, and export, for singers who need a different key and ensemble teachers accommodating transposing instruments.",
+  "proposedBy": [
+   "pm-edu",
+   "user-teacher"
+  ],
+  "yesVotes": 7,
+  "yesFrom": [
+   "pm-edu",
+   "pm-platform",
+   "ux-creative",
+   "ux-a11y",
+   "user-guitarist",
+   "user-teacher",
+   "user-transcriber"
+  ]
+ },
+ {
+  "id": "F45",
+  "title": "Lyrics rendered under the notes and highlighted during playback",
+  "description": "Display MusicXML lyrics, including multiple verses, and highlight the current syllable as the piece plays so singers can follow words, not just noteheads.",
+  "proposedBy": [
+   "user-teacher"
+  ],
+  "yesVotes": 7,
+  "yesFrom": [
+   "pm-edu",
+   "pm-platform",
+   "ux-creative",
+   "ux-a11y",
+   "user-guitarist",
+   "user-teacher",
+   "user-transcriber"
+  ]
+ },
+ {
+  "id": "F46",
+  "title": "Section labels and jump navigation",
+  "description": "Build a section list from rehearsal marks, double bars, and repeats (and let users mark their own: Intro, A, B, Bridge), shown as clickable chips or a sidebar with keyboard jumping, so \"go to the bridge\" takes one action instead of scrolling and hunting.",
+  "proposedBy": [
+   "pm-edu",
+   "user-guitarist"
+  ],
+  "yesVotes": 7,
+  "yesFrom": [
+   "pm-edu",
+   "pm-platform",
+   "ux-creative",
+   "ux-a11y",
+   "user-guitarist",
+   "user-teacher",
+   "user-transcriber"
+  ]
+ },
+ {
+  "id": "F47",
+  "title": "Jump to measure or rehearsal mark",
+  "description": "Add a small go-to box that accepts a bar number or rehearsal letter and moves the cursor there, since rehearsals start \"at letter B\", not by scrolling.",
+  "proposedBy": [
+   "user-teacher"
+  ],
+  "yesVotes": 7,
+  "yesFrom": [
+   "pm-edu",
+   "pm-platform",
+   "ux-creative",
+   "ux-a11y",
+   "user-guitarist",
+   "user-teacher",
+   "user-transcriber"
+  ]
+ },
+ {
+  "id": "F48",
+  "title": "Remember per-piece practice state",
+  "description": "On reopening a piece, restore the last speed, active loop, selected part/recording, and playhead position from IndexedDB, so tonight's session (or a student reopening a link) picks up exactly where the last one ended.",
+  "proposedBy": [
+   "user-guitarist",
+   "user-teacher"
+  ],
+  "yesVotes": 7,
+  "yesFrom": [
+   "pm-edu",
+   "pm-platform",
+   "ux-creative",
+   "ux-a11y",
+   "user-guitarist",
+   "user-teacher",
+   "user-transcriber"
+  ]
+ },
+ {
+  "id": "F49",
+  "title": "Setlist / folder organization for pieces",
+  "description": "Replace the flat session-persistence model with named collections (e.g. \"Tuesday 4pm - Maya\", \"Spring recital\") in IndexedDB, since a private teacher juggling 30 students needs per-student piece lists on day one.",
+  "proposedBy": [
+   "pm-edu"
+  ],
+  "yesVotes": 7,
+  "yesFrom": [
+   "pm-edu",
+   "pm-platform",
+   "ux-creative",
+   "ux-a11y",
+   "user-guitarist",
+   "user-teacher",
+   "user-transcriber"
+  ]
+ },
+ {
+  "id": "F52",
+  "title": "Assignment notes attached to the score",
+  "description": "Add a simple per-piece text panel (stored in the .ovb) where a teacher can write \"this week: loop B section at 70%, hands together Friday\" so the bundle itself carries the lesson plan, not a separate email.",
+  "proposedBy": [
+   "pm-edu"
+  ],
+  "yesVotes": 7,
+  "yesFrom": [
+   "pm-edu",
+   "pm-platform",
+   "ux-creative",
+   "ux-a11y",
+   "user-guitarist",
+   "user-teacher",
+   "user-transcriber"
+  ]
+ },
+ {
+  "id": "F53",
+  "title": "First-run guided tour with a bundled demo piece",
+  "description": "Ship a public-domain demo score plus a short dismissible coach-marks tour (drag to loop, slow it down, open the recording panel, enter edit mode) written in plain language for non-technical users, because features nobody discovers might as well not exist.",
+  "proposedBy": [
+   "pm-edu",
+   "ux-creative",
+   "user-teacher"
+  ],
+  "yesVotes": 7,
+  "yesFrom": [
+   "pm-edu",
+   "pm-platform",
+   "ux-creative",
+   "ux-a11y",
+   "user-guitarist",
+   "user-teacher",
+   "user-transcriber"
+  ]
+ },
+ {
+  "id": "F54",
+  "title": "Keyboard shortcut cheat sheet overlay",
+  "description": "Add a '?' key overlay (plus a toolbar help button) listing all playback and editor shortcuts grouped by task, since the a-g/1-8/i/x/t/j vocabulary is powerful but currently only documented in the README.",
+  "proposedBy": [
+   "pm-edu",
+   "pm-platform",
+   "ux-creative"
+  ],
+  "yesVotes": 7,
+  "yesFrom": [
+   "pm-edu",
+   "pm-platform",
+   "ux-creative",
+   "ux-a11y",
+   "user-guitarist",
+   "user-teacher",
+   "user-transcriber"
+  ]
+ },
+ {
+  "id": "F55",
+  "title": "Autosave indicator and session-restore banner",
+  "description": "Show a subtle \"saved to this device\" status with timestamp when IndexedDB persistence fires, a dismissible \"Restored your last session\" banner on load, and a warning before closing with unexported edits, so users trust the app with real work.",
+  "proposedBy": [
+   "pm-edu",
+   "ux-creative"
+  ],
+  "yesVotes": 7,
+  "yesFrom": [
+   "pm-edu",
+   "pm-platform",
+   "ux-creative",
+   "ux-a11y",
+   "user-guitarist",
+   "user-teacher",
+   "user-transcriber"
+  ]
+ },
+ {
+  "id": "F56",
+  "title": "Selection and loop region visual polish",
+  "description": "Give the selected note a high-contrast halo and the loop region a tinted band across the staff with draggable end handles, so state is readable at a glance instead of relying on alphaTab's default subtle highlight.",
+  "proposedBy": [
+   "ux-creative"
+  ],
+  "yesVotes": 7,
+  "yesFrom": [
+   "pm-edu",
+   "pm-platform",
+   "ux-creative",
+   "ux-a11y",
+   "user-guitarist",
+   "user-teacher",
+   "user-transcriber"
+  ]
+ },
+ {
+  "id": "F57",
+  "title": "Responsive, touch-friendly layout for phones and tablets",
+  "description": "Make the app and the embedded player reflow below 768px (collapsible toolbar, single column, notation reflow) with touch-sized transport, loop handles, and drag-to-loop, because students practice from links on phones and music stands hold tablets, and the PWA already works offline.",
+  "proposedBy": [
+   "pm-edu",
+   "pm-platform",
+   "ux-a11y",
+   "user-teacher"
+  ],
+  "yesVotes": 7,
+  "yesFrom": [
+   "pm-edu",
+   "pm-platform",
+   "ux-creative",
+   "ux-a11y",
+   "user-guitarist",
+   "user-teacher",
+   "user-transcriber"
+  ]
+ },
+ {
+  "id": "F58",
+  "title": "44px minimum touch targets",
+  "description": "Raise the 16-26px-wide track and sync-marker controls to at least 44x44px hit areas (padding can do it without changing visuals) per Apple HIG and WCAG 2.5.8.",
+  "proposedBy": [
+   "ux-a11y"
+  ],
+  "yesVotes": 7,
+  "yesFrom": [
+   "pm-edu",
+   "pm-platform",
+   "ux-creative",
+   "ux-a11y",
+   "user-guitarist",
+   "user-teacher",
+   "user-transcriber"
+  ]
+ },
+ {
+  "id": "F59",
+  "title": "Fix 100vh on mobile browsers",
+  "description": "Replace min-height: 100vh with 100dvh (with fallback) so the transport bar isn't hidden behind Safari and Chrome mobile browser chrome.",
+  "proposedBy": [
+   "ux-a11y"
+  ],
+  "yesVotes": 7,
+  "yesFrom": [
+   "pm-edu",
+   "pm-platform",
+   "ux-creative",
+   "ux-a11y",
+   "user-guitarist",
+   "user-teacher",
+   "user-transcriber"
+  ]
+ },
+ {
+  "id": "F60",
+  "title": "Pinch and double-tap zoom on the waveform",
+  "description": "Add pinch-to-zoom and double-tap-to-zoom gesture handling on the recording canvas, since the current +/- buttons are the only zoom path and are tiny on touch.",
+  "proposedBy": [
+   "ux-a11y"
+  ],
+  "yesVotes": 7,
+  "yesFrom": [
+   "pm-edu",
+   "pm-platform",
+   "ux-creative",
+   "ux-a11y",
+   "user-guitarist",
+   "user-teacher",
+   "user-transcriber"
+  ]
+ },
+ {
+  "id": "F62",
+  "title": "Distraction-free music-stand mode with wake lock",
+  "description": "Add a fullscreen layout toggle that hides the editor and panels, enlarges transport/loop/tempo into big hit targets readable from music-stand distance, and uses the Screen Wake Lock API so a device on a stand doesn't sleep mid-practice.",
+  "proposedBy": [
+   "ux-a11y",
+   "user-guitarist"
+  ],
+  "yesVotes": 7,
+  "yesFrom": [
+   "pm-edu",
+   "pm-platform",
+   "ux-creative",
+   "ux-a11y",
+   "user-guitarist",
+   "user-teacher",
+   "user-transcriber"
+  ]
+ },
+ {
+  "id": "F63",
+  "title": "Dark and high-contrast themes",
+  "description": "Add a proper dark theme for the whole app (score background included) and honor prefers-color-scheme and prefers-contrast, verifying the 11-13px gray-on-gray labels reach 4.5:1, for night practice, low-vision users, and glare on outdoor gigs.",
+  "proposedBy": [
+   "ux-a11y",
+   "user-guitarist"
+  ],
+  "yesVotes": 7,
+  "yesFrom": [
+   "pm-edu",
+   "pm-platform",
+   "ux-creative",
+   "ux-a11y",
+   "user-guitarist",
+   "user-teacher",
+   "user-transcriber"
+  ]
+ },
+ {
+  "id": "F64",
+  "title": "Larger type and user font scaling",
+  "description": "Convert the hardcoded 11-13px font sizes to rem so browser text-size settings and iOS Dynamic Type actually enlarge labels, and bump the floor to a 14px equivalent.",
+  "proposedBy": [
+   "ux-a11y"
+  ],
+  "yesVotes": 7,
+  "yesFrom": [
+   "pm-edu",
+   "pm-platform",
+   "ux-creative",
+   "ux-a11y",
+   "user-guitarist",
+   "user-teacher",
+   "user-transcriber"
+  ]
+ },
+ {
+  "id": "F65",
+  "title": "Respect prefers-reduced-motion",
+  "description": "Gate the follow-recording cursor's smooth scrolling and any animated transitions behind a prefers-reduced-motion media query, offering discrete page-style jumps instead.",
+  "proposedBy": [
+   "ux-a11y"
+  ],
+  "yesVotes": 7,
+  "yesFrom": [
+   "pm-edu",
+   "pm-platform",
+   "ux-creative",
+   "ux-a11y",
+   "user-guitarist",
+   "user-teacher",
+   "user-transcriber"
+  ]
+ },
+ {
+  "id": "F66",
+  "title": "Accessible names and tooltips on every control",
+  "description": "Do a pass over App.tsx and RecordingPanel.tsx adding aria-labels, visible text, and title tooltips (including the keyboard shortcut in the tooltip) to all buttons, sliders, and toggles (zoom, clear loop, per-track mute/solo, sync marker handles), so a screen reader announces more than \"button\" and sighted users can learn the controls.",
+  "proposedBy": [
+   "ux-creative",
+   "ux-a11y"
+  ],
+  "yesVotes": 7,
+  "yesFrom": [
+   "pm-edu",
+   "pm-platform",
+   "ux-creative",
+   "ux-a11y",
+   "user-guitarist",
+   "user-teacher",
+   "user-transcriber"
+  ]
+ },
+ {
+  "id": "F67",
+  "title": "Visible focus indicators",
+  "description": "Add a high-contrast :focus-visible outline style for buttons, checkboxes, sliders, and the score surface, since right now keyboard users have no idea where they are.",
+  "proposedBy": [
+   "ux-a11y"
+  ],
+  "yesVotes": 7,
+  "yesFrom": [
+   "pm-edu",
+   "pm-platform",
+   "ux-creative",
+   "ux-a11y",
+   "user-guitarist",
+   "user-teacher",
+   "user-transcriber"
+  ]
+ },
+ {
+  "id": "F68",
+  "title": "ARIA live region for playback and mode state",
+  "description": "Announce play/pause, loop set/cleared, speed changes, edit-mode entry, and tap-sync progress via a polite live region so non-visual users get feedback for every action.",
+  "proposedBy": [
+   "ux-a11y"
+  ],
+  "yesVotes": 7,
+  "yesFrom": [
+   "pm-edu",
+   "pm-platform",
+   "ux-creative",
+   "ux-a11y",
+   "user-guitarist",
+   "user-teacher",
+   "user-transcriber"
+  ]
+ },
+ {
+  "id": "F70",
+  "title": "Slider semantics on the tempo control",
+  "description": "Ensure the speed control is a real input[type=range] with aria-valuetext like \"75 percent speed\" and Home/End/PageUp support, not just a percentage number nearby.",
+  "proposedBy": [
+   "ux-a11y"
+  ],
+  "yesVotes": 7,
+  "yesFrom": [
+   "pm-edu",
+   "pm-platform",
+   "ux-creative",
+   "ux-a11y",
+   "user-guitarist",
+   "user-teacher",
+   "user-transcriber"
+  ]
+ },
+ {
+  "id": "F71",
+  "title": "Keyboard alternative for waveform loop and seek",
+  "description": "Make the recording waveform canvas focusable with arrow-key seeking and Shift+arrows to set loop in/out points, since drag-to-loop on a canvas is unusable without a pointer.",
+  "proposedBy": [
+   "ux-a11y"
+  ],
+  "yesVotes": 7,
+  "yesFrom": [
+   "pm-edu",
+   "pm-platform",
+   "ux-creative",
+   "ux-a11y",
+   "user-guitarist",
+   "user-teacher",
+   "user-transcriber"
+  ]
+ },
+ {
+  "id": "F72",
+  "title": "Foot-pedal, media-key, and Web MIDI transport control",
+  "description": "Map Space/Enter, Media Session API actions, Bluetooth page-turner PageUp/PageDown, and Web MIDI footswitches to configurable actions (play/pause, loop restart, speed up/down) so hands-on-instrument players never take hands off the guitar.",
+  "proposedBy": [
+   "ux-a11y",
+   "user-guitarist"
+  ],
+  "yesVotes": 7,
+  "yesFrom": [
+   "pm-edu",
+   "pm-platform",
+   "ux-creative",
+   "ux-a11y",
+   "user-guitarist",
+   "user-teacher",
+   "user-transcriber"
+  ]
+ },
+ {
+  "id": "F73",
+  "title": "Automated a11y regression testing",
+  "description": "Add axe-core checks and a keyboard-only Playwright smoke test (tab through transport, set a loop, change speed) to CI so accessibility fixes don't quietly rot.",
+  "proposedBy": [
+   "ux-a11y"
+  ],
+  "yesVotes": 7,
+  "yesFrom": [
+   "pm-edu",
+   "pm-platform",
+   "ux-creative",
+   "ux-a11y",
+   "user-guitarist",
+   "user-teacher",
+   "user-transcriber"
+  ]
+ },
+ {
+  "id": "F74",
+  "title": "Deep practice links with preset loop, speed, and part",
+  "description": "Support URL params and fragments (e.g. ?bar=12&loop=12-16&speed=0.75 plus active recording and part balance) on both the app and the embedded player, so a teacher can paste a link into any LMS or text message and the student lands directly in the assigned drill with zero setup.",
+  "proposedBy": [
+   "pm-edu",
+   "pm-platform",
+   "user-teacher"
+  ],
+  "yesVotes": 7,
+  "yesFrom": [
+   "pm-edu",
+   "pm-platform",
+   "ux-creative",
+   "ux-a11y",
+   "user-guitarist",
+   "user-teacher",
+   "user-transcriber"
+  ]
+ },
+ {
+  "id": "F78",
+  "title": "Copy-embed-code button in the export flow",
+  "description": "After exporting a .ovb, show a ready-to-paste script-plus-div snippet with the bundle URL slot highlighted, closing the loop from authoring to publishing.",
+  "proposedBy": [
+   "pm-platform"
+  ],
+  "yesVotes": 7,
+  "yesFrom": [
+   "pm-edu",
+   "pm-platform",
+   "ux-creative",
+   "ux-a11y",
+   "user-guitarist",
+   "user-teacher",
+   "user-transcriber"
+  ]
+ },
+ {
+  "id": "F82",
+  "title": "Graceful embed error states",
+  "description": "Replace silent failures with clear in-player messages for 404 bundles, CORS blocks, and unsupported audio codecs, since broken first embeds kill publisher adoption.",
+  "proposedBy": [
+   "pm-platform"
+  ],
+  "yesVotes": 7,
+  "yesFrom": [
+   "pm-edu",
+   "pm-platform",
+   "ux-creative",
+   "ux-a11y",
+   "user-guitarist",
+   "user-teacher",
+   "user-transcriber"
+  ]
+ },
+ {
+  "id": "F83",
+  "title": "Embed player lazy-loading and size budget",
+  "description": "Split the embed bundle so notation, synth, and time-stretch code load on demand, publishing a documented kB budget in CI, because page-weight-sensitive publishers will benchmark against a YouTube iframe.",
+  "proposedBy": [
+   "pm-platform"
+  ],
+  "yesVotes": 7,
+  "yesFrom": [
+   "pm-edu",
+   "pm-platform",
+   "ux-creative",
+   "ux-a11y",
+   "user-guitarist",
+   "user-teacher",
+   "user-transcriber"
+  ]
+ },
+ {
+  "id": "F84",
+  "title": "Accessible embed defaults",
+  "description": "Give the embedded player an iframe title, a documented aria-label option, keyboard operability out of the box, and a JS API event for state changes so host pages can build accessible wrappers.",
+  "proposedBy": [
+   "ux-a11y"
+  ],
+  "yesVotes": 7,
+  "yesFrom": [
+   "pm-edu",
+   "pm-platform",
+   "ux-creative",
+   "ux-a11y",
+   "user-guitarist",
+   "user-teacher",
+   "user-transcriber"
+  ]
+ },
+ {
+  "id": "F86",
+  "title": "Hosted demo site with one-click 'Try it' bundles",
+  "description": "Deploy the web app to a public URL with three preloaded example pieces so evaluators can experience score-plus-recording sync in under 30 seconds without cloning the repo.",
+  "proposedBy": [
+   "pm-platform"
+  ],
+  "yesVotes": 7,
+  "yesFrom": [
+   "pm-edu",
+   "pm-platform",
+   "ux-creative",
+   "ux-a11y",
+   "user-guitarist",
+   "user-teacher",
+   "user-transcriber"
+  ]
+ },
+ {
+  "id": "F87",
+  "title": "Static-hosting cookbook in docs",
+  "description": "Write step-by-step guides for hosting .ovb bundles on GitHub Pages, Netlify, and S3, including the CORS and content-type headers that will otherwise be everyone's first support issue.",
+  "proposedBy": [
+   "pm-platform"
+  ],
+  "yesVotes": 7,
+  "yesFrom": [
+   "pm-edu",
+   "pm-platform",
+   "ux-creative",
+   "ux-a11y",
+   "user-guitarist",
+   "user-teacher",
+   "user-transcriber"
+  ]
+ },
+ {
+  "id": "F90",
+  "title": "Import from a URL, not just file picker",
+  "description": "Let the web app open MusicXML, Guitar Pro, and .ovb files directly from a pasted URL so tutorials and issue reports can reference reproducible remote files, and evaluation requires zero downloads.",
+  "proposedBy": [
+   "pm-platform"
+  ],
+  "yesVotes": 7,
+  "yesFrom": [
+   "pm-edu",
+   "pm-platform",
+   "ux-creative",
+   "ux-a11y",
+   "user-guitarist",
+   "user-teacher",
+   "user-transcriber"
+  ]
+ },
+ {
+  "id": "F91",
+  "title": "MusicXML round-trip fidelity and import compatibility test suite",
+  "description": "Preserve dynamics, articulations, slurs, cross-voice ties, and directions on import and re-export, backed by an import compatibility matrix and automated round-trip tests against real-world MusicXML from MuseScore, Guitar Pro, and Dorico, with published results, since losing markings makes exports unusable for paid arranging work and publishers need to know their catalogs import cleanly.",
+  "proposedBy": [
+   "pm-platform",
+   "user-transcriber"
+  ],
+  "yesVotes": 7,
+  "yesFrom": [
+   "pm-edu",
+   "pm-platform",
+   "ux-creative",
+   "ux-a11y",
+   "user-guitarist",
+   "user-teacher",
+   "user-transcriber"
+  ]
+ },
+ {
+  "id": "F93",
+  "title": "Print and PDF export with real page layout",
+  "description": "Add a print stylesheet and PDF export of the rendered notation with proper page breaks, measure numbers, title/composer headers, part names, and annotations, because lessons, choirs, and paying clients still need paper and the score is currently trapped in the browser.",
+  "proposedBy": [
+   "pm-edu",
+   "user-teacher",
+   "user-transcriber"
+  ],
+  "yesVotes": 7,
+  "yesFrom": [
+   "pm-edu",
+   "pm-platform",
+   "ux-creative",
+   "ux-a11y",
+   "user-guitarist",
+   "user-teacher",
+   "user-transcriber"
+  ]
+ },
+ {
+  "id": "F96",
+  "title": "Shareable .ovb gallery repo with submission workflow",
+  "description": "Create an openvoicing-examples GitHub repo with a PR-based submission process for public-domain pieces, seeding both content for demos and a first contribution ritual for the community.",
+  "proposedBy": [
+   "pm-platform"
+  ],
+  "yesVotes": 7,
+  "yesFrom": [
+   "pm-edu",
+   "pm-platform",
+   "ux-creative",
+   "ux-a11y",
+   "user-guitarist",
+   "user-teacher",
+   "user-transcriber"
+  ]
+ },
+ {
+  "id": "F7",
+  "title": "On-screen loop repeat counter",
+  "description": "Show a small counter of how many times the current loop has repeated, with a reset button, so players can honestly track their \"ten clean passes\" rule.",
+  "proposedBy": [
+   "user-guitarist"
+  ],
+  "yesVotes": 6,
+  "yesFrom": [
+   "pm-edu",
+   "ux-creative",
+   "ux-a11y",
+   "user-guitarist",
+   "user-teacher",
+   "user-transcriber"
+  ]
+ },
+ {
+  "id": "F10",
+  "title": "Global spacebar play/pause",
+  "description": "Make spacebar toggle playback no matter what has focus (and stop it from scrolling the page), so a player taking hands off the instrument can slap one key.",
+  "proposedBy": [
+   "user-guitarist"
+  ],
+  "yesVotes": 6,
+  "yesFrom": [
+   "pm-edu",
+   "pm-platform",
+   "ux-creative",
+   "user-guitarist",
+   "user-teacher",
+   "user-transcriber"
+  ]
+ },
+ {
+  "id": "F12",
+  "title": "One-key half-speed toggle",
+  "description": "A single hotkey that flips between 100% and the last-used slow speed, like stomping a pedal, for quickly re-checking a passage at tempo.",
+  "proposedBy": [
+   "user-guitarist"
+  ],
+  "yesVotes": 6,
+  "yesFrom": [
+   "pm-edu",
+   "ux-creative",
+   "ux-a11y",
+   "user-guitarist",
+   "user-teacher",
+   "user-transcriber"
+  ]
+ },
+ {
+  "id": "F15",
+  "title": "Big visual count-in",
+  "description": "Show large countdown numbers (4, 3, 2, 1) on screen during the count-in with a distinct click sound, so young students know exactly when to come in.",
+  "proposedBy": [
+   "user-teacher"
+  ],
+  "yesVotes": 6,
+  "yesFrom": [
+   "pm-edu",
+   "pm-platform",
+   "ux-creative",
+   "ux-a11y",
+   "user-teacher",
+   "user-transcriber"
+  ]
+ },
+ {
+  "id": "F16",
+  "title": "Voice-appropriate playback sounds",
+  "description": "Add a choir \"ah\" and a decent piano sound as playback options, because the default synth tone confuses young singers trying to match pitch.",
+  "proposedBy": [
+   "user-teacher"
+  ],
+  "yesVotes": 6,
+  "yesFrom": [
+   "pm-edu",
+   "pm-platform",
+   "ux-creative",
+   "ux-a11y",
+   "user-teacher",
+   "user-transcriber"
+  ]
+ },
+ {
+  "id": "F32",
+  "title": "MIDI keyboard step entry",
+  "description": "Accept Web MIDI input so users can set the duration with number keys and play pitches (including chords) on a keyboard, the fastest entry method in every other notation app.",
+  "proposedBy": [
+   "user-transcriber"
+  ],
+  "yesVotes": 6,
+  "yesFrom": [
+   "pm-edu",
+   "pm-platform",
+   "ux-creative",
+   "ux-a11y",
+   "user-teacher",
+   "user-transcriber"
+  ]
+ },
+ {
+  "id": "F69",
+  "title": "Screen-reader access to the score itself",
+  "description": "Expose the alphaTab rendering with a parallel accessible layer (per-measure list with note names and durations, current selection announced), since a canvas score is a black box to VoiceOver.",
+  "proposedBy": [
+   "ux-a11y"
+  ],
+  "yesVotes": 6,
+  "yesFrom": [
+   "pm-edu",
+   "pm-platform",
+   "ux-creative",
+   "ux-a11y",
+   "user-teacher",
+   "user-transcriber"
+  ]
+ },
+ {
+  "id": "F75",
+  "title": "Locked student/assignment mode",
+  "description": "Add a read-only practice preset for share links and the embed JS API (locked loop region, capped speed, hidden editor/track-matrix/sync tools, showing only play, slow down, loop, and my-part volume) so a nine year old, or a school's LMS embed, is constrained to exactly the drill the teacher intended.",
+  "proposedBy": [
+   "pm-edu",
+   "user-teacher"
+  ],
+  "yesVotes": 6,
+  "yesFrom": [
+   "pm-edu",
+   "pm-platform",
+   "ux-creative",
+   "ux-a11y",
+   "user-teacher",
+   "user-transcriber"
+  ]
+ },
+ {
+  "id": "F76",
+  "title": "One-click publish to a free static host",
+  "description": "Add a publish button that uploads the .ovb and returns a shareable player URL (GitHub Pages, Netlify drop, or similar), since teachers cannot run servers and hosting a file is the hardest step today.",
+  "proposedBy": [
+   "user-teacher"
+  ],
+  "yesVotes": 6,
+  "yesFrom": [
+   "pm-edu",
+   "pm-platform",
+   "ux-creative",
+   "ux-a11y",
+   "user-guitarist",
+   "user-teacher"
+  ]
+ },
+ {
+  "id": "F77",
+  "title": "Publish @openvoicing/embed to npm and a CDN",
+  "description": "Ship the embed script as a versioned npm package with unpkg/jsDelivr URLs so bloggers can copy-paste a pinned script tag instead of hosting openvoicing-embed.js themselves.",
+  "proposedBy": [
+   "pm-platform"
+  ],
+  "yesVotes": 6,
+  "yesFrom": [
+   "pm-edu",
+   "pm-platform",
+   "ux-creative",
+   "ux-a11y",
+   "user-guitarist",
+   "user-transcriber"
+  ]
+ },
+ {
+  "id": "F80",
+  "title": "TypeScript typings and typed event docs for the JS API",
+  "description": "Ship .d.ts files and a generated API reference page covering create(), events, seek, setSpeed, and loop so tool builders can integrate without reading source.",
+  "proposedBy": [
+   "pm-platform"
+  ],
+  "yesVotes": 6,
+  "yesFrom": [
+   "pm-edu",
+   "pm-platform",
+   "ux-creative",
+   "ux-a11y",
+   "user-guitarist",
+   "user-transcriber"
+  ]
+ },
+ {
+  "id": "F88",
+  "title": "Bundle format spec versioning and conformance fixtures",
+  "description": "Version docs/bundle-format.md formally and publish a directory of valid and invalid .ovb fixtures so third-party implementers can test against the spec, which is the whole open-format bet.",
+  "proposedBy": [
+   "pm-platform"
+  ],
+  "yesVotes": 6,
+  "yesFrom": [
+   "pm-edu",
+   "pm-platform",
+   "ux-creative",
+   "ux-a11y",
+   "user-guitarist",
+   "user-transcriber"
+  ]
+ },
+ {
+  "id": "F89",
+  "title": "CLI for creating and validating bundles",
+  "description": "Ship an npx openvoicing CLI that packs a MusicXML file plus audio into a .ovb and validates existing bundles, enabling CI pipelines and batch conversion of existing tab libraries.",
+  "proposedBy": [
+   "pm-platform"
+  ],
+  "yesVotes": 6,
+  "yesFrom": [
+   "pm-edu",
+   "pm-platform",
+   "ux-creative",
+   "ux-a11y",
+   "user-guitarist",
+   "user-transcriber"
+  ]
+ },
+ {
+  "id": "F94",
+  "title": "CONTRIBUTING.md with a 15-minute first-PR path",
+  "description": "Document dev setup, an architecture map, and a curated 'good first issue' list per package so drive-by contributors convert instead of bouncing off the monorepo.",
+  "proposedBy": [
+   "pm-platform"
+  ],
+  "yesVotes": 6,
+  "yesFrom": [
+   "pm-edu",
+   "pm-platform",
+   "ux-creative",
+   "ux-a11y",
+   "user-guitarist",
+   "user-transcriber"
+  ]
+ }
+]

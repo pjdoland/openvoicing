@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ChangeEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type ChangeEvent } from "react";
 import { Player, type TrackInfo } from "@openvoicing/player";
 import { alignBarsToOnsets, detectOnsets, RecordingPlayer } from "@openvoicing/audio-engine";
 import {
@@ -27,6 +27,7 @@ import {
 import soundFontUrl from "@coderline/alphatab/soundfont/sonivox.sf3?url";
 import { DEMO_TEX } from "./demo";
 import { RecordingPanel } from "./RecordingPanel";
+import { SpeedControl, clampSpeed } from "./SpeedControl";
 import { storage, type RecordingMeta, type StoredFile } from "./storage";
 
 interface ScoreSource {
@@ -66,8 +67,6 @@ function newRecordingId(): string {
 function sanitizeName(name: string): string {
   return name.replace(/[^\w.-]+/g, "_");
 }
-
-const SPEEDS = [0.5, 0.6, 0.7, 0.8, 0.9, 1, 1.1, 1.25];
 
 function formatTime(seconds: number): string {
   const m = Math.floor(seconds / 60);
@@ -509,7 +508,15 @@ export function App() {
     if (!editMode) return;
     const onKey = (e: KeyboardEvent) => {
       const target = e.target as HTMLElement | null;
-      if (target && (target.tagName === "INPUT" || target.tagName === "SELECT")) return;
+      if (
+        target &&
+        (target.tagName === "INPUT" ||
+          target.tagName === "SELECT" ||
+          target.tagName === "TEXTAREA" ||
+          target.isContentEditable)
+      ) {
+        return;
+      }
       const editor = editorRef.current;
       if (!editor) return;
       if ((e.metaKey || e.ctrlKey) && e.code === "KeyZ") {
@@ -612,17 +619,151 @@ export function App() {
     return () => window.removeEventListener("keydown", onKey);
   }, [editMode]);
 
-  function changeSpeed(e: ChangeEvent<HTMLSelectElement>) {
-    const value = Number(e.target.value);
+  const speedRef = useRef(1);
+  function setSynthSpeed(value: number) {
+    speedRef.current = value;
     setSpeed(value);
     if (playerRef.current) playerRef.current.speed = value;
   }
+
+  const activeRecIdRef = useRef<string | null>(null);
+  useEffect(() => {
+    activeRecIdRef.current = activeRecId;
+  }, [activeRecId]);
+  const tapCountRef = useRef<number | null>(null);
+  useEffect(() => {
+    tapCountRef.current = tapCount;
+  }, [tapCount]);
+  const pendingLoopStartRef = useRef<number | null>(null);
+  const halfSpeedReturnRef = useRef<{ transport: string; speed: number } | null>(null);
+
+  // Global transport keys: work anywhere except form fields and tap-sync mode.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement | null;
+      if (
+        target &&
+        (target.tagName === "INPUT" ||
+          target.tagName === "SELECT" ||
+          target.tagName === "TEXTAREA" ||
+          target.isContentEditable)
+      ) {
+        return;
+      }
+      if (tapCountRef.current !== null) return;
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      const onRecording = activeRecIdRef.current !== null;
+
+      switch (e.code) {
+        case "Space": {
+          e.preventDefault();
+          if (onRecording) {
+            if (recording.playing) recording.pause();
+            else void recording.play();
+          } else {
+            playerRef.current?.playPause();
+          }
+          return;
+        }
+        case "Minus":
+        case "Equal": {
+          e.preventDefault();
+          const delta = e.code === "Minus" ? -0.05 : 0.05;
+          if (onRecording) recording.speed = clampSpeed(recording.speed + delta);
+          else setSynthSpeed(clampSpeed(speedRef.current + delta));
+          return;
+        }
+        case "KeyH": {
+          if (editModeRef.current) return;
+          e.preventDefault();
+          const transport = onRecording ? "recording" : "synth";
+          const current = onRecording ? recording.speed : speedRef.current;
+          const held = halfSpeedReturnRef.current;
+          if (current === 0.5 && held && held.transport === transport) {
+            if (onRecording) recording.speed = held.speed;
+            else setSynthSpeed(held.speed);
+            halfSpeedReturnRef.current = null;
+          } else {
+            halfSpeedReturnRef.current = { transport, speed: current };
+            if (onRecording) recording.speed = 0.5;
+            else setSynthSpeed(0.5);
+          }
+          return;
+        }
+        case "BracketLeft": {
+          if (!onRecording) return;
+          e.preventDefault();
+          pendingLoopStartRef.current = recording.position;
+          return;
+        }
+        case "BracketRight": {
+          if (!onRecording) return;
+          e.preventDefault();
+          const start = pendingLoopStartRef.current ?? 0;
+          const end = recording.position;
+          if (end > start + 0.1) {
+            recording.setLoopRegion({ start, end });
+            pendingLoopStartRef.current = null;
+          }
+          return;
+        }
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [recording]);
 
   function toggleLoop() {
     const value = !loop;
     setLoop(value);
     playerRef.current?.setLooping(value);
   }
+
+  const [barsInput, setBarsInput] = useState("");
+  const [barLoopActive, setBarLoopActive] = useState(false);
+
+  function applyBarLoop() {
+    const match = /^(\d+)\s*-\s*(\d+)$/.exec(barsInput.trim());
+    const player = playerRef.current;
+    if (!match || !player) return;
+    const bars = player.barTicks;
+    if (bars.length === 0) return;
+    const from = Math.max(1, Math.min(bars.length, parseInt(match[1]!, 10)));
+    const to = Math.max(from, Math.min(bars.length, parseInt(match[2]!, 10)));
+    const startTick = bars[from - 1]!.start;
+    const endTick = bars[to - 1]!.start + bars[to - 1]!.duration;
+    if (activeRecId && syncPoints?.length) {
+      recording.setLoopRegion({
+        start: mediaTimeAtTick(syncPoints, startTick),
+        end: mediaTimeAtTick(syncPoints, endTick),
+      });
+      recording.seek(mediaTimeAtTick(syncPoints, startTick));
+    } else {
+      player.setPlaybackRange({ startTick, endTick });
+      setLoop(true);
+    }
+    setBarLoopActive(true);
+  }
+
+  function clearBarLoop() {
+    setBarLoopActive(false);
+    setBarsInput("");
+    playerRef.current?.setPlaybackRange(null);
+    if (activeRecId) recording.setLoopRegion(null);
+  }
+
+  const barTimes = useMemo(() => {
+    const player = playerRef.current;
+    if (!player || !syncPoints?.length) return null;
+    const bars = player.barTicks;
+    if (bars.length === 0) return null;
+    const times = bars.map((b) => mediaTimeAtTick(syncPoints, b.start));
+    const last = bars[bars.length - 1]!;
+    times.push(mediaTimeAtTick(syncPoints, last.start + last.duration));
+    return times;
+    // barCount stands in for the loaded score changing.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [syncPoints, barCount]);
 
   function toggleMetronome() {
     const value = !metronome;
@@ -791,20 +932,30 @@ export function App() {
           Stop
         </button>
 
-        <label className="control">
-          Speed
-          <select value={speed} onChange={changeSpeed}>
-            {SPEEDS.map((s) => (
-              <option key={s} value={s}>
-                {Math.round(s * 100)}%
-              </option>
-            ))}
-          </select>
-        </label>
+        <SpeedControl value={speed} onChange={setSynthSpeed} />
 
         <label className="control">
           <input type="checkbox" checked={loop} onChange={toggleLoop} /> Loop
         </label>
+
+        <span className="control">
+          <input
+            className="bars-input"
+            placeholder="bars 3-6"
+            aria-label="Loop bar range"
+            value={barsInput}
+            size={7}
+            onChange={(e) => setBarsInput(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") applyBarLoop();
+            }}
+          />
+          {barLoopActive && (
+            <button onClick={clearBarLoop} title="Clear bar loop">
+              ×
+            </button>
+          )}
+        </span>
         <label className="control">
           <input type="checkbox" checked={metronome} onChange={toggleMetronome} /> Metronome
         </label>
@@ -889,6 +1040,7 @@ export function App() {
         onRemove={(id) => void removeRecording(id)}
         syncPoints={syncPoints}
         onMoveSyncPoint={moveSyncPoint}
+        barTimes={barTimes}
       />
 
       {activeRecId !== null && (
