@@ -1,0 +1,22 @@
+{
+  "name": "@openvoicing/audio-engine",
+  "version": "0.0.1",
+  "description": "OpenVoicing audio engine: time-stretched playback of real recordings, waveforms, mixing",
+  "license": "MPL-2.0",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json",
+    "build": "tsc -p tsconfig.json",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "signalsmith-stretch": "^1.3.2"
+  },
+  "devDependencies": {
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.9"
+  }
+}

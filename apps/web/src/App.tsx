@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type ChangeEvent } from "react";
 import { Player, type TrackInfo } from "@openvoicing/player";
 import soundFontUrl from "@coderline/alphatab/soundfont/sonivox.sf3?url";
 import { DEMO_TEX } from "./demo";
+import { RecordingPanel } from "./RecordingPanel";
 
 const SPEEDS = [0.5, 0.6, 0.7, 0.8, 0.9, 1, 1.1, 1.25];
 
@@ -168,6 +169,8 @@ export function App() {
           ))}
         </div>
       )}
+
+      <RecordingPanel />
 
       <main className="score" ref={containerRef} />
 

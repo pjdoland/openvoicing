@@ -1,0 +1,184 @@
+/// <reference path="./signalsmith-stretch.d.ts" />
+import SignalsmithStretch, { type SignalsmithStretchNode } from "signalsmith-stretch";
+
+export interface LoopRegion {
+  start: number;
+  end: number;
+}
+
+export interface RecordingPlayerEvents {
+  loaded: (info: { duration: number; channels: Float32Array[] }) => void;
+  stateChanged: (playing: boolean) => void;
+  positionChanged: (seconds: number, duration: number) => void;
+}
+
+const POSITION_INTERVAL_MS = 50;
+
+/**
+ * Plays a decoded recording through the Signalsmith Stretch AudioWorklet, so
+ * speed changes preserve pitch. The AudioContext is created lazily on first
+ * load/play, which must happen from a user gesture for audio to be audible.
+ */
+export class RecordingPlayer {
+  private context: AudioContext | null = null;
+  private node: SignalsmithStretchNode | null = null;
+  private _duration = 0;
+  private _speed = 1;
+  private _playing = false;
+  private _position = 0;
+  private _loop: LoopRegion | null = null;
+  private timer: ReturnType<typeof setInterval> | null = null;
+  private readonly listeners: {
+    [K in keyof RecordingPlayerEvents]: Set<RecordingPlayerEvents[K]>;
+  } = {
+    loaded: new Set(),
+    stateChanged: new Set(),
+    positionChanged: new Set(),
+  };
+
+  on<K extends keyof RecordingPlayerEvents>(
+    event: K,
+    handler: RecordingPlayerEvents[K],
+  ): () => void {
+    this.listeners[event].add(handler);
+    return () => this.listeners[event].delete(handler);
+  }
+
+  private emit<K extends keyof RecordingPlayerEvents>(
+    event: K,
+    ...args: Parameters<RecordingPlayerEvents[K]>
+  ): void {
+    for (const handler of this.listeners[event]) {
+      (handler as (...a: Parameters<RecordingPlayerEvents[K]>) => void)(...args);
+    }
+  }
+
+  private async ensureNode(): Promise<SignalsmithStretchNode> {
+    if (!this.context) this.context = new AudioContext();
+    if (!this.node) {
+      this.node = await SignalsmithStretch(this.context);
+      this.node.connect(this.context.destination);
+    }
+    return this.node;
+  }
+
+  async load(data: ArrayBuffer): Promise<void> {
+    const node = await this.ensureNode();
+    this.pause();
+    // decodeAudioData resamples to the context rate, so worklet input seconds
+    // line up with the context clock.
+    const buffer = await this.context!.decodeAudioData(data);
+    const channels: Float32Array[] = [];
+    for (let i = 0; i < buffer.numberOfChannels; i++) channels.push(buffer.getChannelData(i));
+    await node.dropBuffers();
+    await node.addBuffers(channels);
+    this._duration = buffer.duration;
+    this._position = 0;
+    this._loop = null;
+    this.emit("loaded", { duration: buffer.duration, channels });
+    this.emit("positionChanged", 0, this._duration);
+  }
+
+  get duration(): number {
+    return this._duration;
+  }
+
+  get playing(): boolean {
+    return this._playing;
+  }
+
+  get position(): number {
+    return this._position;
+  }
+
+  /** Playback rate factor, 1 is original speed. Pitch is preserved. */
+  get speed(): number {
+    return this._speed;
+  }
+
+  set speed(value: number) {
+    this._speed = value;
+    if (this._playing) this.applySchedule();
+  }
+
+  get loopRegion(): LoopRegion | null {
+    return this._loop;
+  }
+
+  setLoopRegion(region: LoopRegion | null): void {
+    this._loop = region;
+    if (this._playing) {
+      if (region && (this._position < region.start || this._position >= region.end)) {
+        this._position = region.start;
+      }
+      this.applySchedule();
+    }
+  }
+
+  /**
+   * Scheduled changes replace any later scheduled state in the worklet, so
+   * every change re-sends the complete playback state.
+   */
+  private applySchedule(): void {
+    this.node?.schedule({
+      active: this._playing,
+      input: this._position,
+      rate: this._speed,
+      ...(this._loop
+        ? { loopStart: this._loop.start, loopEnd: this._loop.end }
+        : { loopStart: 0, loopEnd: 0 }),
+    });
+  }
+
+  async play(): Promise<void> {
+    if (this._duration === 0 || this._playing) return;
+    const node = await this.ensureNode();
+    if (this.context!.state === "suspended") await this.context!.resume();
+    if (this._loop && (this._position < this._loop.start || this._position >= this._loop.end)) {
+      this._position = this._loop.start;
+    }
+    if (this._position >= this._duration) this._position = 0;
+    this._playing = true;
+    this.applySchedule();
+    this.emit("stateChanged", true);
+    this.timer = setInterval(() => this.tick(), POSITION_INTERVAL_MS);
+  }
+
+  private tick(): void {
+    if (!this.node) return;
+    this._position = this.node.inputTime;
+    if (!this._loop && this._position >= this._duration) {
+      this._position = this._duration;
+      this.pause();
+    }
+    this.emit("positionChanged", this._position, this._duration);
+  }
+
+  pause(): void {
+    if (!this._playing) return;
+    this._playing = false;
+    this.applySchedule();
+    if (this.timer) {
+      clearInterval(this.timer);
+      this.timer = null;
+    }
+    this.emit("stateChanged", false);
+  }
+
+  seek(seconds: number): void {
+    this._position = Math.min(Math.max(0, seconds), this._duration);
+    if (this._playing) {
+      this.applySchedule();
+    } else {
+      this.emit("positionChanged", this._position, this._duration);
+    }
+  }
+
+  destroy(): void {
+    this.pause();
+    this.node?.disconnect();
+    this.node = null;
+    void this.context?.close();
+    this.context = null;
+  }
+}

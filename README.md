@@ -14,8 +14,14 @@ alternative to Soundslice.
   JSON, stable entity IDs, first-class sync maps) with a starter MusicXML importer
 - `@openvoicing/player`: notation and tablature rendering with synth playback,
   built on [alphaTab](https://alphatab.net), behind a renderer-agnostic API
+- `@openvoicing/audio-engine`: time-stretched playback of real recordings
+  (speed changes preserve pitch) via the
+  [Signalsmith Stretch](https://signalsmith-audio.co.uk/code/stretch/)
+  AudioWorklet, with region looping and waveform peak computation
 - A demo web app with practice tools: play/pause, loop, tempo control without
-  pitch change, metronome, count-in, and opening MusicXML or Guitar Pro files
+  pitch change, metronome, count-in, and opening MusicXML or Guitar Pro files,
+  plus a recording panel: open an audio file, see its waveform, click to seek,
+  drag to loop a passage, and slow it down without changing pitch
 
 ## Quickstart
 
@@ -34,6 +40,7 @@ pnpm build
 ```
 packages/score-model   # document format, converters, sync maps (MPL-2.0)
 packages/player        # embeddable player (MPL-2.0)
+packages/audio-engine  # time-stretch playback, waveforms (MPL-2.0)
 apps/web               # demo web app
 ```
 

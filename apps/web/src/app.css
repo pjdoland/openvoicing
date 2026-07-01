@@ -107,6 +107,45 @@ body {
   align-items: center;
 }
 
+.recording {
+  border-bottom: 1px solid #dfe3e8;
+  background: #fafbfc;
+}
+
+.recording-toolbar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 14px;
+  padding: 8px 20px;
+  font-size: 13px;
+}
+
+.recording-toolbar button {
+  padding: 4px 12px;
+  border: 1px solid #c8ceda;
+  border-radius: 6px;
+  background: #fff;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.recording-toolbar .open-file {
+  margin-left: 0;
+}
+
+.hint {
+  color: #7a8494;
+}
+
+.waveform {
+  display: block;
+  width: 100%;
+  height: 96px;
+  cursor: crosshair;
+  touch-action: none;
+}
+
 .score {
   flex: 1;
   background: #fff;
