@@ -3,7 +3,7 @@ import { createRoot } from "react-dom/client";
 import { Player } from "@openvoicing/player";
 import { RecordingPlayer } from "@openvoicing/audio-engine";
 import { mediaTimeAtTick, tickAtMediaTime, type SyncPoint } from "@openvoicing/score-model";
-import { readBundle } from "@openvoicing/bundle";
+import { readBundle, type Bundle } from "@openvoicing/bundle";
 import soundFontUrl from "@coderline/alphatab/soundfont/sonivox.sf3?url";
 import "./embed.css";
 
@@ -21,10 +21,13 @@ function EmbedApp() {
   const recordingRef = useRef<RecordingPlayer | null>(null);
   const syncRef = useRef<SyncPoint[] | null>(null);
   const hasRecordingRef = useRef(false);
+  const bundleRef = useRef<Bundle | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [title, setTitle] = useState("");
   const [ready, setReady] = useState(false);
   const [hasRecording, setHasRecording] = useState(false);
+  const [recordingIds, setRecordingIds] = useState<Array<{ id: string; name: string }>>([]);
+  const [activeRecording, setActiveRecording] = useState<string | null>(null);
   const [playing, setPlaying] = useState(false);
   const [speed, setSpeed] = useState(1);
   const [position, setPosition] = useState({ current: 0, total: 0 });
@@ -81,13 +84,16 @@ function EmbedApp() {
           player.load(scoreBytes.slice());
         }
 
+        bundleRef.current = bundle;
+        setRecordingIds(manifest.recordings.map((r) => ({ id: r.id, name: r.name })));
         const rec = manifest.recordings[0];
         if (rec) {
           const bytes = bundle.files.get(rec.path)!;
           await recording.load(bytes.slice().buffer as ArrayBuffer);
           hasRecordingRef.current = true;
           setHasRecording(true);
-          if (rec.syncPoints?.length) syncRef.current = rec.syncPoints;
+          setActiveRecording(rec.id);
+          syncRef.current = rec.syncPoints?.length ? rec.syncPoints : null;
         }
       } catch (err) {
         setError(err instanceof Error ? err.message : String(err));
@@ -134,6 +140,18 @@ function EmbedApp() {
 
   function changeSpeed(e: ChangeEvent<HTMLSelectElement>) {
     applySpeed(Number(e.target.value));
+  }
+
+  async function selectRecording(id: string) {
+    const bundle = bundleRef.current;
+    const recorder = recordingRef.current;
+    if (!bundle || !recorder || id === activeRecording) return;
+    const entry = bundle.manifest.recordings.find((r) => r.id === id);
+    if (!entry) return;
+    const bytes = bundle.files.get(entry.path)!;
+    await recorder.load(bytes.slice().buffer as ArrayBuffer);
+    syncRef.current = entry.syncPoints?.length ? entry.syncPoints : null;
+    setActiveRecording(id);
   }
 
   // Cross-frame control protocol for the embed SDK. Messages are marked with
@@ -215,6 +233,19 @@ function EmbedApp() {
           {formatTime(position.current)} / {formatTime(position.total)}
         </span>
         <span className="embed-title">{title}</span>
+        {recordingIds.length > 1 && (
+          <select
+            value={activeRecording ?? ""}
+            onChange={(e) => void selectRecording(e.target.value)}
+            title="Switch recording"
+          >
+            {recordingIds.map((r) => (
+              <option key={r.id} value={r.id}>
+                {r.name}
+              </option>
+            ))}
+          </select>
+        )}
         {hasRecording && <span className="embed-badge">recording{syncRef.current ? " + sync" : ""}</span>}
         <a className="embed-brand" href="https://github.com/openvoicing" target="_blank" rel="noreferrer">
           OpenVoicing

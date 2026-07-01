@@ -6,6 +6,7 @@ import {
   type WaveformPeaks,
 } from "@openvoicing/audio-engine";
 import type { SyncPoint } from "@openvoicing/score-model";
+import type { RecordingMeta } from "./storage";
 
 const SPEEDS = [0.5, 0.6, 0.7, 0.8, 0.9, 1, 1.1, 1.25];
 const WAVE_WIDTH = 1200;
@@ -25,8 +26,11 @@ interface DragState {
 
 interface RecordingPanelProps {
   player: RecordingPlayer;
-  fileName: string | null;
-  onOpenFile: (file: File) => Promise<void>;
+  recordings: RecordingMeta[];
+  activeId: string | null;
+  onSelect: (id: string) => void;
+  onAddFile: (file: File) => Promise<void>;
+  onRemove: (id: string) => void;
   /** Sync anchors to render as draggable markers, or null when unsynced. */
   syncPoints: SyncPoint[] | null;
   onMoveSyncPoint: (index: number, timeSeconds: number) => void;
@@ -34,11 +38,15 @@ interface RecordingPanelProps {
 
 export function RecordingPanel({
   player,
-  fileName,
-  onOpenFile,
+  recordings,
+  activeId,
+  onSelect,
+  onAddFile,
+  onRemove,
   syncPoints,
   onMoveSyncPoint,
 }: RecordingPanelProps) {
+  const hasActive = activeId !== null;
   const playerRef = useRef<RecordingPlayer | null>(player);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -138,7 +146,7 @@ export function RecordingPanel({
       ctx.fillStyle = "#e53e3e";
       ctx.fillRect((position / duration) * contentWidth - 1, 0, 2, WAVE_HEIGHT);
     }
-  }, [position, duration, loop, drag, playing, fileName, syncPoints, zoom, contentWidth]);
+  }, [position, duration, loop, drag, playing, activeId, syncPoints, zoom, contentWidth]);
 
   // Keep the playhead in view while playing.
   useEffect(() => {
@@ -165,7 +173,7 @@ export function RecordingPanel({
   }
 
   function onPointerDown(e: PointerEvent<HTMLCanvasElement>) {
-    if (!fileName) return;
+    if (!hasActive) return;
     e.currentTarget.setPointerCapture(e.pointerId);
     const x = canvasX(e);
     setDrag({ startX: x, currentX: x });
@@ -219,7 +227,7 @@ export function RecordingPanel({
   async function openFile(e: ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
-    await onOpenFile(file);
+    await onAddFile(file);
     e.target.value = "";
   }
 
@@ -233,11 +241,32 @@ export function RecordingPanel({
     <section className="recording">
       <div className="recording-toolbar">
         <strong>Recording</strong>
+        {recordings.length > 0 && (
+          <select
+            value={activeId ?? ""}
+            onChange={(e) => onSelect(e.target.value)}
+            title="Switch recording"
+          >
+            {recordings.map((r) => (
+              <option key={r.id} value={r.id}>
+                {r.name}
+              </option>
+            ))}
+          </select>
+        )}
+        {hasActive && (
+          <button
+            title="Remove this recording"
+            onClick={() => activeId && onRemove(activeId)}
+          >
+            ✕
+          </button>
+        )}
         <label className="control open-file">
-          {fileName ?? "Open audio…"}
+          Add audio…
           <input type="file" accept="audio/*" onChange={openFile} />
         </label>
-        {fileName && (
+        {hasActive && (
           <>
             <button onClick={() => (playing ? playerRef.current?.pause() : playerRef.current?.play())}>
               {playing ? "Pause" : "Play"}
@@ -276,7 +305,7 @@ export function RecordingPanel({
           </>
         )}
       </div>
-      {fileName && (
+      {hasActive && (
         <div className="wave-scroll" ref={scrollRef}>
           <div className="wave-content" style={{ width: `${zoom * 100}%` }}>
             {syncPoints && duration > 0 && (

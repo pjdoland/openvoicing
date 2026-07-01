@@ -6,6 +6,11 @@ export interface StoredFile {
   data: ArrayBuffer;
 }
 
+export interface RecordingMeta {
+  id: string;
+  name: string;
+}
+
 function openDb(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
     const request = indexedDB.open(DB_NAME, 1);

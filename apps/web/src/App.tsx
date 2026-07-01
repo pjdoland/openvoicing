@@ -14,7 +14,7 @@ import {
 import soundFontUrl from "@coderline/alphatab/soundfont/sonivox.sf3?url";
 import { DEMO_TEX } from "./demo";
 import { RecordingPanel } from "./RecordingPanel";
-import { storage, type StoredFile } from "./storage";
+import { storage, type RecordingMeta, type StoredFile } from "./storage";
 
 interface ScoreSource {
   name: string;
@@ -28,6 +28,14 @@ function loadScoreIntoPlayer(player: Player, source: ScoreSource): void {
   } else {
     player.load(new Uint8Array(source.data));
   }
+}
+
+function newRecordingId(): string {
+  return globalThis.crypto.randomUUID().slice(0, 8);
+}
+
+function sanitizeName(name: string): string {
+  return name.replace(/[^\w.-]+/g, "_");
 }
 
 const SPEEDS = [0.5, 0.6, 0.7, 0.8, 0.9, 1, 1.1, 1.25];
@@ -54,8 +62,8 @@ export function App() {
   const scoreSourceRef = useRef<ScoreSource | null>(null);
   const [position, setPosition] = useState({ current: 0, total: 0 });
 
-  const [recordingLoaded, setRecordingLoaded] = useState(false);
-  const [recordingFileName, setRecordingFileName] = useState<string | null>(null);
+  const [recordings, setRecordings] = useState<RecordingMeta[]>([]);
+  const [activeRecId, setActiveRecId] = useState<string | null>(null);
   const [syncPoints, setSyncPoints] = useState<SyncPoint[] | null>(null);
   const syncPointsRef = useRef<SyncPoint[] | null>(null);
   const [follow, setFollow] = useState(false);
@@ -133,7 +141,6 @@ export function App() {
 
   useEffect(() => {
     return recording.on("loaded", () => {
-      setRecordingLoaded(true);
       setSyncPoints(null);
       setFollow(false);
       setTapCount(null);
@@ -144,12 +151,34 @@ export function App() {
     let cancelled = false;
     void (async () => {
       try {
-        const stored = await storage.get<StoredFile>("recording");
+        // Legacy single-recording sessions migrate to the per-id scheme.
+        if ((await storage.get<RecordingMeta[]>("recordings")) === undefined) {
+          const legacy = await storage.get<StoredFile>("recording");
+          if (legacy) {
+            const id = "take1";
+            await storage.set(`recording:${id}`, legacy);
+            const legacySync = await storage.get<SyncPoint[]>("sync");
+            if (legacySync?.length) await storage.set(`sync:${id}`, legacySync);
+            await storage.set("recordings", [{ id, name: legacy.name }]);
+            await storage.set("activeRecording", id);
+            await storage.delete("recording");
+            await storage.delete("sync");
+          }
+        }
+
+        const list = (await storage.get<RecordingMeta[]>("recordings")) ?? [];
+        if (cancelled) return;
+        setRecordings(list);
+        if (list.length === 0) return;
+
+        const storedActive = await storage.get<string>("activeRecording");
+        const meta = list.find((r) => r.id === storedActive) ?? list[0]!;
+        const stored = await storage.get<StoredFile>(`recording:${meta.id}`);
         if (cancelled || !stored) return;
         await recording.load(stored.data);
         if (cancelled) return;
-        setRecordingFileName(stored.name);
-        const sync = await storage.get<SyncPoint[]>("sync");
+        setActiveRecId(meta.id);
+        const sync = await storage.get<SyncPoint[]>(`sync:${meta.id}`);
         if (cancelled || !sync?.length) return;
         setSyncPoints(sync);
         setFollow((await storage.get<boolean>("follow")) ?? true);
@@ -165,27 +194,68 @@ export function App() {
   }, [recording]);
 
   useEffect(() => {
-    if (!hydratedRef.current) return;
+    if (!hydratedRef.current || !activeRecId) return;
     const timer = setTimeout(() => {
-      if (syncPoints?.length) void storage.set("sync", syncPoints);
-      else void storage.delete("sync");
+      if (syncPoints?.length) void storage.set(`sync:${activeRecId}`, syncPoints);
+      else void storage.delete(`sync:${activeRecId}`);
     }, 300);
     return () => clearTimeout(timer);
-  }, [syncPoints]);
+  }, [syncPoints, activeRecId]);
 
   useEffect(() => {
     if (!hydratedRef.current) return;
     void storage.set("follow", follow);
   }, [follow]);
 
-  async function openRecordingFile(file: File) {
+  useEffect(() => {
+    if (!hydratedRef.current || !activeRecId) return;
+    void storage.set("activeRecording", activeRecId);
+  }, [activeRecId]);
+
+  function saveRecordingsList(next: RecordingMeta[]): void {
+    setRecordings(next);
+    void storage.set("recordings", next);
+  }
+
+  async function addRecordingFile(file: File) {
     const buffer = await file.arrayBuffer();
     // decodeAudioData detaches the buffer, so persist a copy.
     const copy = buffer.slice(0);
+    const id = newRecordingId();
     await recording.load(buffer);
-    setRecordingFileName(file.name);
-    void storage.set("recording", { name: file.name, data: copy } satisfies StoredFile);
-    void storage.delete("sync");
+    void storage.set(`recording:${id}`, { name: file.name, data: copy } satisfies StoredFile);
+    saveRecordingsList([...recordings, { id, name: file.name }]);
+    setActiveRecId(id);
+  }
+
+  async function selectRecording(id: string) {
+    if (id === activeRecId) return;
+    const stored = await storage.get<StoredFile>(`recording:${id}`);
+    if (!stored) return;
+    await recording.load(stored.data);
+    setActiveRecId(id);
+    const sync = await storage.get<SyncPoint[]>(`sync:${id}`);
+    if (sync?.length) {
+      setSyncPoints(sync);
+      setFollow(true);
+    }
+  }
+
+  async function removeRecording(id: string) {
+    void storage.delete(`recording:${id}`);
+    void storage.delete(`sync:${id}`);
+    const next = recordings.filter((r) => r.id !== id);
+    saveRecordingsList(next);
+    if (id !== activeRecId) return;
+    if (next.length > 0) {
+      setActiveRecId(null);
+      await selectRecording(next[0]!.id);
+    } else {
+      recording.pause();
+      setActiveRecId(null);
+      setSyncPoints(null);
+      setFollow(false);
+    }
   }
 
   useEffect(() => {
@@ -312,7 +382,8 @@ export function App() {
       const type = scoreTypeFromFileName(file.name);
       scoreSourceRef.current = { name: file.name, type, data: buffer };
       void storage.set("score", { name: file.name, type, data: buffer });
-      void storage.delete("sync");
+      // Sync maps anchor to the old score's ticks; they do not carry over.
+      for (const meta of recordings) void storage.delete(`sync:${meta.id}`);
       setSyncPoints(null);
       setFollow(false);
     }
@@ -324,16 +395,21 @@ export function App() {
     if (!source) return;
     const scorePath = `score/score.${scoreFileExtension(source.type)}`;
     const files = new Map<string, Uint8Array>([[scorePath, new Uint8Array(source.data)]]);
-    const recordings = [];
-    const rec = await storage.get<StoredFile>("recording");
-    if (rec) {
-      const recPath = `recordings/${rec.name.replace(/[^\w.-]+/g, "_")}`;
+    const manifestRecordings = [];
+    for (const meta of recordings) {
+      const rec = await storage.get<StoredFile>(`recording:${meta.id}`);
+      if (!rec) continue;
+      const sync =
+        meta.id === activeRecId
+          ? syncPoints
+          : ((await storage.get<SyncPoint[]>(`sync:${meta.id}`)) ?? null);
+      const recPath = `recordings/${meta.id}/${sanitizeName(rec.name)}`;
       files.set(recPath, new Uint8Array(rec.data));
-      recordings.push({
-        id: "take1",
+      manifestRecordings.push({
+        id: meta.id,
         name: rec.name,
         path: recPath,
-        ...(syncPoints?.length ? { syncPoints } : {}),
+        ...(sync?.length ? { syncPoints: sync } : {}),
       });
     }
     const bytes = createBundle({
@@ -342,7 +418,7 @@ export function App() {
         formatVersion: BUNDLE_FORMAT_VERSION,
         title: scoreTitle || "Untitled",
         score: { path: scorePath, type: source.type },
-        recordings,
+        recordings: manifestRecordings,
       },
       files,
     });
@@ -374,18 +450,38 @@ export function App() {
       if (player) loadScoreIntoPlayer(player, source);
       void storage.set("score", { name: source.name, type: source.type, data: scoreData });
 
-      const recEntry = manifest.recordings[0];
-      if (recEntry) {
-        const recBytes = bundle.files.get(recEntry.path)!;
-        const stored = recBytes.slice().buffer as ArrayBuffer;
-        await recording.load(recBytes.slice().buffer as ArrayBuffer);
-        setRecordingFileName(recEntry.name);
-        void storage.set("recording", { name: recEntry.name, data: stored } satisfies StoredFile);
-        if (recEntry.syncPoints?.length) {
-          setSyncPoints(recEntry.syncPoints);
+      // Opening a bundle replaces the session's recordings.
+      for (const meta of recordings) {
+        void storage.delete(`recording:${meta.id}`);
+        void storage.delete(`sync:${meta.id}`);
+      }
+
+      const list: RecordingMeta[] = [];
+      for (const entry of manifest.recordings) {
+        const bytes = bundle.files.get(entry.path)!;
+        const id = list.some((r) => r.id === entry.id) ? newRecordingId() : entry.id;
+        void storage.set(`recording:${id}`, {
+          name: entry.name,
+          data: bytes.slice().buffer as ArrayBuffer,
+        } satisfies StoredFile);
+        if (entry.syncPoints?.length) void storage.set(`sync:${id}`, entry.syncPoints);
+        else void storage.delete(`sync:${id}`);
+        list.push({ id, name: entry.name });
+      }
+      saveRecordingsList(list);
+
+      const first = manifest.recordings[0];
+      if (first) {
+        const bytes = bundle.files.get(first.path)!;
+        await recording.load(bytes.slice().buffer as ArrayBuffer);
+        setActiveRecId(list[0]!.id);
+        if (first.syncPoints?.length) {
+          setSyncPoints(first.syncPoints);
           setFollow(true);
         }
       } else {
+        recording.pause();
+        setActiveRecId(null);
         setSyncPoints(null);
         setFollow(false);
       }
@@ -482,13 +578,16 @@ export function App() {
 
       <RecordingPanel
         player={recording}
-        fileName={recordingFileName}
-        onOpenFile={openRecordingFile}
+        recordings={recordings}
+        activeId={activeRecId}
+        onSelect={(id) => void selectRecording(id)}
+        onAddFile={addRecordingFile}
+        onRemove={(id) => void removeRecording(id)}
         syncPoints={syncPoints}
         onMoveSyncPoint={moveSyncPoint}
       />
 
-      {recordingLoaded && (
+      {activeRecId !== null && (
         <div className="sync-bar">
           <strong>Sync</strong>
           {tapCount === null ? (
