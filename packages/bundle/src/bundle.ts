@@ -2,6 +2,7 @@ import { strFromU8, strToU8, unzipSync, zipSync } from "fflate";
 import {
   BUNDLE_FORMAT,
   BUNDLE_FORMAT_VERSION,
+  MIN_BUNDLE_FORMAT_VERSION,
   type Bundle,
   type BundleManifest,
   type ScoreType,
@@ -16,13 +17,45 @@ function fail(message: string): never {
   throw new BundleError(message);
 }
 
+type RawManifest = Record<string, unknown>;
+
+/**
+ * Ordered manifest migrations, keyed by the version they upgrade *from*. Adding
+ * a bundle-schema field means bumping BUNDLE_FORMAT_VERSION and registering the
+ * v(n)->v(n+1) step here, so older bundles keep opening instead of being
+ * rejected outright.
+ */
+const MANIFEST_MIGRATIONS: Record<number, (m: RawManifest) => RawManifest> = {};
+
+function migrateManifest(m: RawManifest, fromVersion: number): RawManifest {
+  let current = m;
+  for (let v = fromVersion; v < BUNDLE_FORMAT_VERSION; v++) {
+    const step = MANIFEST_MIGRATIONS[v];
+    if (!step) fail(`no migration path from bundle version ${v}`);
+    current = { ...step(current), formatVersion: v + 1 };
+  }
+  return current;
+}
+
 export function validateManifest(value: unknown): BundleManifest {
   if (typeof value !== "object" || value === null) fail("manifest is not an object");
-  const m = value as Record<string, unknown>;
+  let m = value as RawManifest;
   if (m["format"] !== BUNDLE_FORMAT) fail(`unknown format ${JSON.stringify(m["format"])}`);
-  if (m["formatVersion"] !== BUNDLE_FORMAT_VERSION) {
-    fail(`unsupported bundle version ${JSON.stringify(m["formatVersion"])}`);
+  const version = m["formatVersion"];
+  if (typeof version !== "number" || !Number.isInteger(version)) {
+    fail(`invalid bundle version ${JSON.stringify(version)}`);
   }
+  if (version > BUNDLE_FORMAT_VERSION) {
+    fail(
+      `this bundle is version ${version}, newer than this app supports ` +
+        `(${BUNDLE_FORMAT_VERSION}). Update OpenVoicing to open it.`,
+    );
+  }
+  if (version < MIN_BUNDLE_FORMAT_VERSION) {
+    fail(`bundle version ${version} is too old to open (minimum ${MIN_BUNDLE_FORMAT_VERSION}).`);
+  }
+  // Bring older-but-supported manifests up to the current schema.
+  m = migrateManifest(m, version);
   if (typeof m["title"] !== "string") fail("missing title");
   if (m["attribution"] !== undefined) {
     const attribution = m["attribution"];

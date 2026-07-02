@@ -70,10 +70,21 @@ describe("bundle round-trip", () => {
     expect(() => readBundle(new Uint8Array([1, 2, 3, 4, 5]))).toThrow(/not a ZIP archive/);
   });
 
-  it("rejects unknown format versions", () => {
+  it("rejects bundles newer than the app supports", () => {
     const bundle = demoBundle();
     (bundle.manifest as { formatVersion: number }).formatVersion = 99;
-    expect(() => createBundle(bundle)).toThrow(/unsupported bundle version/);
+    expect(() => createBundle(bundle)).toThrow(/newer than this app supports/);
+  });
+
+  it("rejects a non-integer bundle version", () => {
+    const bundle = demoBundle();
+    (bundle.manifest as { formatVersion: unknown }).formatVersion = "1";
+    expect(() => createBundle(bundle)).toThrow(/invalid bundle version/);
+  });
+
+  it("accepts the current version (migration chain is a no-op at head)", () => {
+    const bundle = demoBundle();
+    expect(() => readBundle(createBundle(bundle))).not.toThrow();
   });
 
   it("round-trips saved loops", () => {
