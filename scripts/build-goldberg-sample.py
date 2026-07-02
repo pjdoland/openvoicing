@@ -60,6 +60,17 @@ manifest = {
     ],
 }
 
+# Bake the offline score-informed sync (build_sync.py) if present. alphaTab
+# lays the score out at 960 PPQ, so a 3/4 bar downbeat is at i * 2880 ticks.
+sync_path = os.path.join(SCRATCH, "sync.json")
+if os.path.exists(sync_path):
+    bar_times = json.load(open(sync_path))["barTimes"]
+    ALPHA_BAR = 3 * 960
+    manifest["recordings"][0]["syncPoints"] = [
+        {"tick": i * ALPHA_BAR, "timeSeconds": round(t, 3)} for i, t in enumerate(bar_times)
+    ]
+    print(f"embedded {len(bar_times)} sync points")
+
 with zipfile.ZipFile(OUT, "w", zipfile.ZIP_DEFLATED) as z:
     z.writestr("manifest.json", json.dumps(manifest, indent=2))
     z.writestr("score/aria.musicxml", xml_bytes)
