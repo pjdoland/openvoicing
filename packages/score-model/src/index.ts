@@ -11,3 +11,5 @@ export { toMusicXml } from "./musicxml-export";
 export { createEmptyScore } from "./create";
 export { toMidi } from "./midi";
 export type { CreateScoreOptions } from "./create";
+/** Full-fidelity semantic model (format v1), namespaced to avoid v0 collisions. */
+export * as v1 from "./v1";
