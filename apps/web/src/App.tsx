@@ -1874,14 +1874,14 @@ export function App() {
           type="file"
           accept=".musicxml,.xml,.mxl,.gp,.gp3,.gp4,.gp5,.gpx"
           onChange={openFile}
-          style={{ display: "none" }}
+          className="visually-hidden-input"
         />
         <input
           ref={bundleInputRef}
           type="file"
-          accept=".ovb"
+          accept=".ovb,application/zip,application/octet-stream"
           onChange={openBundle}
-          style={{ display: "none" }}
+          className="visually-hidden-input"
         />
         <input
           ref={audioInputRef}
@@ -1892,7 +1892,7 @@ export function App() {
             if (f) void addRecordingFile(f);
             e.target.value = "";
           }}
-          style={{ display: "none" }}
+          className="visually-hidden-input"
         />
         <nav className="menubar" aria-label="Main menu">
           {!locked && <Menu label="File" icon={<FileIcon />} items={fileMenu} />}
