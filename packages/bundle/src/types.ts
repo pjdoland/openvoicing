@@ -1,4 +1,8 @@
-import type { SyncPoint } from "@openvoicing/score-model";
+/** A (tick, media time) sync anchor. Mirrors score-model's SyncPoint. */
+export interface SyncPoint {
+  tick: number;
+  timeSeconds: number;
+}
 
 export const BUNDLE_FORMAT = "openvoicing-bundle";
 export const BUNDLE_FORMAT_VERSION = 0;
@@ -47,6 +51,8 @@ export interface BundleManifest {
   formatVersion: number;
   title: string;
   attribution?: BundleAttribution;
+  /** A practice/assignment note shown to students. */
+  assignment?: string;
   score: BundleScore;
   recordings: BundleRecording[];
 }

@@ -424,6 +424,23 @@ export class ScoreEditor {
     return true;
   }
 
+  /** Replace the beat's content with a single note of an exact spelling. */
+  setBeatPitchExact(
+    address: BeatAddress,
+    step: NoteStep,
+    alter: number,
+    octave: number,
+  ): boolean {
+    const beat = this.locateBeat(this.doc, address);
+    if (!beat) return false;
+    const next = structuredClone(this.doc);
+    const target = this.locateBeat(next, address)!;
+    target.rest = false;
+    target.notes = [{ id: target.notes[0]?.id ?? newId("note"), step, alter, octave }];
+    this.commit(next);
+    return true;
+  }
+
   /** Set a part's General MIDI program for playback. */
   setInstrument(partIndex: number, midiProgram: number): boolean {
     if (!this.doc.parts[partIndex]) return false;

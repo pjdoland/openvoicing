@@ -84,6 +84,26 @@ function structuredCloneBeat(beat: Beat): Beat {
   return structuredClone(beat);
 }
 
+const MIDI_STEPS: Array<{ step: "C" | "D" | "E" | "F" | "G" | "A" | "B"; alter: number }> = [
+  { step: "C", alter: 0 },
+  { step: "C", alter: 1 },
+  { step: "D", alter: 0 },
+  { step: "D", alter: 1 },
+  { step: "E", alter: 0 },
+  { step: "F", alter: 0 },
+  { step: "F", alter: 1 },
+  { step: "G", alter: 0 },
+  { step: "G", alter: 1 },
+  { step: "A", alter: 0 },
+  { step: "A", alter: 1 },
+  { step: "B", alter: 0 },
+];
+
+function midiToPitchLocal(midi: number) {
+  const p = MIDI_STEPS[((midi % 12) + 12) % 12]!;
+  return { step: p.step, alter: p.alter, octave: Math.floor(midi / 12) - 1 };
+}
+
 function sanitizeName(name: string): string {
   return name.replace(/[^\w.-]+/g, "_");
 }
@@ -103,6 +123,10 @@ export function App() {
   const [micRecording, setMicRecording] = useState(false);
   const [pitchSemitones, setPitchSemitones] = useState(0);
   const [standMode, setStandMode] = useState(false);
+  // Locked (student) mode via ?lock=1 hides editing and export.
+  const [locked] = useState(() => new URLSearchParams(window.location.search).get("lock") === "1");
+  const [assignment, setAssignment] = useState("");
+  const [showTour, setShowTour] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const playerRef = useRef<Player | null>(null);
   const [recording] = useState(() => new RecordingPlayer());
@@ -1074,11 +1098,74 @@ export function App() {
           if (isNoteOn || isPedalDown) togglePlayRef.current();
         };
       }
-    });
+    }).catch(() => {});
     return () => {
       cancelled = true;
     };
   }, []);
+
+  // First-run guided tour, shown once (persisted in localStorage).
+  useEffect(() => {
+    if (!localStorage.getItem("ov-toured")) setShowTour(true);
+  }, []);
+  function dismissTour() {
+    localStorage.setItem("ov-toured", "1");
+    setShowTour(false);
+  }
+
+  // Assignment note persists with the session.
+  useEffect(() => {
+    void storage.get<string>("assignment").then((a) => {
+      if (a) setAssignment(a);
+    });
+  }, []);
+  function saveAssignment(text: string) {
+    setAssignment(text);
+    if (text) void storage.set("assignment", text);
+    else void storage.delete("assignment");
+  }
+
+  // Web MIDI step entry: in edit mode, a played note sets the selected beat's
+  // pitch and advances (insert), so a MIDI keyboard drives note entry.
+  useEffect(() => {
+    const nav = navigator as Navigator & {
+      requestMIDIAccess?: () => Promise<{ inputs: Map<string, { onmidimessage: ((e: { data: Uint8Array | null }) => void) | null }> }>;
+    };
+    if (!nav.requestMIDIAccess) return;
+    let cancelled = false;
+    void nav.requestMIDIAccess().then((access) => {
+      if (cancelled) return;
+      for (const input of access.inputs.values()) {
+        const existing = input.onmidimessage;
+        input.onmidimessage = function (this: unknown, e) {
+          const data = e.data;
+          if (data && (data[0]! & 0xf0) === 0x90 && (data[2] ?? 0) > 0 && editModeRef.current) {
+            stepEnterMidiNote(data[1]!);
+            return;
+          }
+          (existing as ((ev: typeof e) => void) | null)?.(e);
+        };
+      }
+    }).catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  function stepEnterMidiNote(midi: number) {
+    const editor = editorRef.current;
+    const selected = selectedBeatRef.current;
+    if (!editor || !selected) return;
+    const pitch = midiToPitchLocal(midi);
+    if (editor.setBeatPitchExact(selected, pitch.step, pitch.alter, pitch.octave)) {
+      const inserted = editor.insertBeatAfter(selected);
+      if (inserted) {
+        selectedBeatRef.current = inserted;
+        setSelectedBeat(inserted);
+      }
+      rerenderScore();
+    }
+  }
 
   // Music-stand mode: full-screen score, wake lock to keep the screen on.
   useEffect(() => {
@@ -1388,6 +1475,7 @@ export function App() {
         formatVersion: BUNDLE_FORMAT_VERSION,
         title: scoreTitle || "Untitled",
         ...(scoreArtist ? { attribution: { artist: scoreArtist } } : {}),
+        ...(assignment ? { assignment } : {}),
         score: { path: scorePath, type: source.type },
         recordings: manifestRecordings,
       },
@@ -1463,6 +1551,7 @@ export function App() {
       scoreSourceRef.current = source;
       if (player) adoptEditor(loadScoreIntoPlayer(player, source));
       void storage.set("score", { name: source.name, type: source.type, data: scoreData });
+      saveAssignment(manifest.assignment ?? "");
 
       // Opening a bundle replaces the session's recordings.
       for (const meta of recordings) {
@@ -1556,6 +1645,23 @@ export function App() {
         {announcement}
       </div>
       {cheatSheetOpen && <CheatSheet onClose={() => setCheatSheetOpen(false)} />}
+      {showTour && (
+        <div className="cheatsheet-backdrop" role="dialog" aria-modal="true" aria-label="Welcome">
+          <div className="cheatsheet tour" onClick={(e) => e.stopPropagation()}>
+            <h2>Welcome to OpenVoicing</h2>
+            <p>This is living sheet music. A demo piece is loaded so you can try it now:</p>
+            <ul>
+              <li><strong>Play</strong> and drag across the waveform to <strong>loop</strong> a passage.</li>
+              <li>Use <strong>−/+</strong> to slow it down without changing pitch.</li>
+              <li>Open the <strong>Recording</strong> row to sync a real audio track.</li>
+              <li>Turn on <strong>Edit</strong> to change the notes; press <strong>?</strong> any time for shortcuts.</li>
+            </ul>
+            <button className="tour-dismiss" onClick={dismissTour}>
+              Got it
+            </button>
+          </div>
+        </div>
+      )}
       {countInNumber !== null && (
         <div className="countin-overlay" aria-hidden="true">
           <span className="countin-number">{countInNumber}</span>
@@ -1601,7 +1707,7 @@ export function App() {
           <input type="checkbox" checked={countIn} onChange={toggleCountIn} /> Count-in
         </label>
 
-        {hasEditor && (
+        {hasEditor && !locked && (
           <label className="control">
             <input
               type="checkbox"
@@ -1713,22 +1819,43 @@ export function App() {
           </button>
         )}
 
-        <button onClick={newScore}>New score</button>
-        {hasEditor && (
+        <button onClick={() => playerRef.current?.print()} disabled={!ready} title="Print or save as PDF">
+          Print
+        </button>
+        {!locked && <button onClick={newScore}>New score</button>}
+        {hasEditor && !locked && (
           <>
             <button onClick={exportMusicXml}>Export MusicXML</button>
             <button onClick={exportMidi}>Export MIDI</button>
           </>
         )}
-        <label className="control open-file">
-          Open file…
-          <input
-            type="file"
-            accept=".musicxml,.xml,.mxl,.gp,.gp3,.gp4,.gp5,.gpx"
-            onChange={openFile}
-          />
-        </label>
+        {!locked && (
+          <label className="control open-file">
+            Open file…
+            <input
+              type="file"
+              accept=".musicxml,.xml,.mxl,.gp,.gp3,.gp4,.gp5,.gpx"
+              onChange={openFile}
+            />
+          </label>
+        )}
       </div>
+
+      {(assignment || (hasEditor && !locked)) && (
+        <div className="assignment-bar">
+          <strong>Assignment</strong>
+          {locked ? (
+            <span>{assignment || "No assignment set."}</span>
+          ) : (
+            <input
+              className="assignment-input"
+              placeholder="Add a note for students (saved with the piece)…"
+              value={assignment}
+              onChange={(e) => saveAssignment(e.target.value)}
+            />
+          )}
+        </div>
+      )}
 
       {tracks.length > 1 && (
         <div className="tracks">
@@ -1853,7 +1980,20 @@ export function App() {
         </div>
       )}
 
-      <main className="score" ref={containerRef} />
+      <p className="sr-only" id="score-summary">
+        {scoreTitle}
+        {scoreArtist ? ` by ${scoreArtist}` : ""}. {barCount} bars.
+        {editorRef.current?.doc.bars[0]
+          ? ` Time signature ${editorRef.current.doc.bars[0].timeSignature.beats}/${editorRef.current.doc.bars[0].timeSignature.beatUnit}.`
+          : ""}
+      </p>
+      <main
+        className="score"
+        ref={containerRef}
+        role="img"
+        aria-label="Musical score"
+        aria-describedby="score-summary"
+      />
 
       <footer className="footer">
         Tip: click a note to jump there, drag across notes to loop a passage.

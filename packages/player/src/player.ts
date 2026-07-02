@@ -215,6 +215,11 @@ export class Player {
     if (track) this.api.changeTrackSolo([track], solo);
   }
 
+  /** Open the browser print dialog with a paginated copy of the score. */
+  print(): void {
+    this.api.print();
+  }
+
   destroy(): void {
     this.api.destroy();
   }

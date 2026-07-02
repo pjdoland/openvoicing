@@ -628,3 +628,45 @@ body {
     height: 120px;
   }
 }
+
+.assignment-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 20px;
+  background: var(--panel-alt);
+  border-bottom: 1px solid var(--border);
+  font-size: 0.8125rem;
+}
+
+.assignment-input {
+  flex: 1;
+  min-height: 30px;
+  padding: 4px 8px;
+  border: 1px solid var(--border-strong);
+  border-radius: 6px;
+  background: var(--panel);
+  color: var(--fg);
+  font-size: 0.8125rem;
+}
+
+.tour ul {
+  padding-left: 18px;
+  line-height: 1.7;
+}
+
+.tour-dismiss {
+  margin-top: 12px;
+  padding: 8px 20px;
+  border: 1px solid var(--accent);
+  border-radius: 8px;
+  background: var(--accent);
+  color: #fff;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+@media print {
+  .header, .toolbar, .tracks, .recording, .sync-bar, .assignment-bar, .footer,
+  .toast, .stand-controls { display: none !important; }
+}

@@ -64,6 +64,25 @@ player.seek(30);
 
 Try it locally: `pnpm dev`, then open http://localhost:5173/sdk-demo.html.
 
+## Command line
+
+The `ovb` CLI (from `@openvoicing/bundle`) creates and validates bundles:
+
+```sh
+pnpm --filter @openvoicing/bundle build
+node packages/bundle/bin/ovb.mjs create --score song.musicxml --recording take.mp3 --out song.ovb
+node packages/bundle/bin/ovb.mjs validate song.ovb
+node packages/bundle/bin/ovb.mjs inspect song.ovb
+```
+
+## More docs
+
+- [Bundle format spec](docs/bundle-format.md)
+- [Static-hosting cookbook](docs/hosting-cookbook.md)
+- [Gallery submissions](docs/gallery.md)
+- [Publishing packages](docs/publishing.md)
+- [Contributing](CONTRIBUTING.md)
+
 ## Layout
 
 ```

@@ -7,10 +7,13 @@
   "exports": {
     ".": "./src/index.ts"
   },
+  "bin": {
+    "ovb": "./bin/ovb.mjs"
+  },
   "scripts": {
     "test": "vitest run",
     "typecheck": "tsc -p tsconfig.json",
-    "build": "tsc -p tsconfig.json"
+    "build": "tsc -p tsconfig.build.json && node -e \"require('fs').writeFileSync('dist/package.json', JSON.stringify({type:'commonjs'}))\""
   },
   "dependencies": {
     "@openvoicing/score-model": "workspace:*",
