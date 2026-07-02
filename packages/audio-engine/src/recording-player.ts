@@ -31,6 +31,9 @@ export class RecordingPlayer {
   private _playing = false;
   private _position = 0;
   private _loop: LoopRegion | null = null;
+  /** Silence inserted between loop repeats, with count-in clicks. */
+  loopGapSeconds = 0;
+  private gapTimer: ReturnType<typeof setTimeout> | null = null;
   private timer: ReturnType<typeof setInterval> | null = null;
   private readonly listeners: {
     [K in keyof RecordingPlayerEvents]: Set<RecordingPlayerEvents[K]>;
@@ -130,17 +133,36 @@ export class RecordingPlayer {
 
   /**
    * Scheduled changes replace any later scheduled state in the worklet, so
-   * every change re-sends the complete playback state.
+   * every change re-sends the complete playback state. Gapped loops are
+   * driven manually from tick() instead of the worklet's auto-loop.
    */
   private applySchedule(): void {
+    const autoLoop = this._loop && this.loopGapSeconds <= 0 ? this._loop : null;
     this.node?.schedule({
       active: this._playing,
       input: this._position,
       rate: this._speed,
-      ...(this._loop
-        ? { loopStart: this._loop.start, loopEnd: this._loop.end }
+      ...(autoLoop
+        ? { loopStart: autoLoop.start, loopEnd: autoLoop.end }
         : { loopStart: 0, loopEnd: 0 }),
     });
+  }
+
+  private playGapClicks(gapSeconds: number): void {
+    const context = this.context;
+    if (!context) return;
+    const clicks = 4;
+    for (let i = 0; i < clicks; i++) {
+      const at = context.currentTime + (i * gapSeconds) / clicks;
+      const osc = context.createOscillator();
+      const gain = context.createGain();
+      osc.frequency.value = i === clicks - 1 ? 1320 : 880;
+      gain.gain.setValueAtTime(0.4, at);
+      gain.gain.exponentialRampToValueAtTime(0.001, at + 0.08);
+      osc.connect(gain).connect(context.destination);
+      osc.start(at);
+      osc.stop(at + 0.1);
+    }
   }
 
   async play(): Promise<void> {
@@ -168,6 +190,27 @@ export class RecordingPlayer {
     ) {
       this.emit("looped");
     }
+    if (this._loop && this.loopGapSeconds > 0 && this._position >= this._loop.end) {
+      // Manual loop with a breathing gap: stop, click a count-in, restart.
+      const loop = this._loop;
+      const gap = this.loopGapSeconds;
+      this._position = loop.end;
+      this.node.schedule({ active: false, input: loop.start, rate: this._speed, loopStart: 0, loopEnd: 0 });
+      if (this.timer) {
+        clearInterval(this.timer);
+        this.timer = null;
+      }
+      this.playGapClicks(gap);
+      this.gapTimer = setTimeout(() => {
+        this.gapTimer = null;
+        if (!this._playing) return;
+        this._position = loop.start;
+        this.applySchedule();
+        this.timer = setInterval(() => this.tick(), POSITION_INTERVAL_MS);
+        this.emit("looped");
+      }, gap * 1000);
+      return;
+    }
     if (!this._loop && this._position >= this._duration) {
       this._position = this._duration;
       this.pause();
@@ -178,6 +221,10 @@ export class RecordingPlayer {
   pause(): void {
     if (!this._playing) return;
     this._playing = false;
+    if (this.gapTimer) {
+      clearTimeout(this.gapTimer);
+      this.gapTimer = null;
+    }
     this.applySchedule();
     if (this.timer) {
       clearInterval(this.timer);

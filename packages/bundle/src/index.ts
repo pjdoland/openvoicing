@@ -13,5 +13,6 @@ export type {
   BundleManifest,
   BundleRecording,
   BundleScore,
+  SavedLoop,
   ScoreType,
 } from "./types";

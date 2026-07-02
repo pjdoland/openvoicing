@@ -75,6 +75,17 @@ describe("bundle round-trip", () => {
     expect(() => createBundle(bundle)).toThrow(/unsupported bundle version/);
   });
 
+  it("round-trips saved loops", () => {
+    const bundle = demoBundle();
+    bundle.manifest.recordings[0]!.loops = [
+      { id: "l1", name: "tricky bit", start: 2.5, end: 6.25 },
+    ];
+    const parsed = readBundle(createBundle(bundle));
+    expect(parsed.manifest.recordings[0]!.loops).toEqual([
+      { id: "l1", name: "tricky bit", start: 2.5, end: 6.25 },
+    ]);
+  });
+
   it("round-trips attribution metadata", () => {
     const bundle = demoBundle();
     bundle.manifest.attribution = { composer: "Trad.", license: "CC-BY-4.0" };

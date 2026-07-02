@@ -11,6 +11,14 @@ export interface BundleScore {
   type: ScoreType;
 }
 
+export interface SavedLoop {
+  id: string;
+  name: string;
+  /** Loop region in recording seconds. */
+  start: number;
+  end: number;
+}
+
 export interface BundleRecording {
   id: string;
   /** Display name, usually the original file name. */
@@ -19,6 +27,8 @@ export interface BundleRecording {
   path: string;
   /** Sync anchors in absolute score ticks, empty or absent when unsynced. */
   syncPoints?: SyncPoint[];
+  /** Named practice loops. */
+  loops?: SavedLoop[];
 }
 
 /** Attribution and licensing metadata. All fields are free text and optional. */

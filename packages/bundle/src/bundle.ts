@@ -54,6 +54,19 @@ export function validateManifest(value: unknown): BundleManifest {
         }
       }
     }
+    if (r["loops"] !== undefined) {
+      if (!Array.isArray(r["loops"])) fail("loops must be an array");
+      for (const l of r["loops"] as Array<Record<string, unknown>>) {
+        if (
+          typeof l["id"] !== "string" ||
+          typeof l["name"] !== "string" ||
+          typeof l["start"] !== "number" ||
+          typeof l["end"] !== "number"
+        ) {
+          fail("loops need id, name, and numeric start/end");
+        }
+      }
+    }
   }
   return value as BundleManifest;
 }

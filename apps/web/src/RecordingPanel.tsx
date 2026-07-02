@@ -6,6 +6,7 @@ import {
   type WaveformPeaks,
 } from "@openvoicing/audio-engine";
 import type { SyncPoint } from "@openvoicing/score-model";
+import type { SavedLoop } from "@openvoicing/bundle";
 import type { RecordingMeta } from "./storage";
 import { SpeedControl } from "./SpeedControl";
 
@@ -36,6 +37,10 @@ interface RecordingPanelProps {
   onMoveSyncPoint: (index: number, timeSeconds: number) => void;
   /** Bar boundary times (seconds) when synced; drag loops snap to these. */
   barTimes: number[] | null;
+  savedLoops: SavedLoop[];
+  onSaveLoop: () => void;
+  onRecallLoop: (loop: SavedLoop) => void;
+  onDeleteLoop: (id: string) => void;
 }
 
 export function RecordingPanel({
@@ -48,6 +53,10 @@ export function RecordingPanel({
   syncPoints,
   onMoveSyncPoint,
   barTimes,
+  savedLoops,
+  onSaveLoop,
+  onRecallLoop,
+  onDeleteLoop,
 }: RecordingPanelProps) {
   const hasActive = activeId !== null;
   const playerRef = useRef<RecordingPlayer | null>(player);
@@ -66,6 +75,7 @@ export function RecordingPanel({
   const [zoom, setZoom] = useState(1);
   const [loop, setLoop] = useState<LoopRegion | null>(null);
   const [repeats, setRepeats] = useState(0);
+  const [gap, setGap] = useState(0);
   const [position, setPosition] = useState(0);
   const [duration, setDuration] = useState(0);
 
@@ -315,7 +325,61 @@ export function RecordingPanel({
                 <span className="position" title="Loop repetitions">
                   ×{repeats}
                 </span>
+                <button onClick={onSaveLoop} title="Save this loop with a name">
+                  Save loop
+                </button>
+                <label className="control" title="Silence with count-in between loop repeats">
+                  Gap
+                  <select
+                    value={gap}
+                    onChange={(e) => {
+                      const value = Number(e.target.value);
+                      setGap(value);
+                      if (playerRef.current) playerRef.current.loopGapSeconds = value;
+                    }}
+                  >
+                    <option value={0}>off</option>
+                    <option value={1}>1s</option>
+                    <option value={2}>2s</option>
+                    <option value={3}>3s</option>
+                  </select>
+                </label>
               </>
+            )}
+            {savedLoops.length > 0 && (
+              <span className="control">
+                <select
+                  value=""
+                  title="Recall a saved loop (keys 1-9)"
+                  aria-label="Saved loops"
+                  onChange={(e) => {
+                    const found = savedLoops.find((l) => l.id === e.target.value);
+                    if (found) onRecallLoop(found);
+                  }}
+                >
+                  <option value="" disabled>
+                    Loops ({savedLoops.length})
+                  </option>
+                  {savedLoops.map((l, i) => (
+                    <option key={l.id} value={l.id}>
+                      {i + 1}. {l.name} ({formatTime(l.start)} to {formatTime(l.end)})
+                    </option>
+                  ))}
+                </select>
+                {loop && savedLoops.some((l) => l.start === loop.start && l.end === loop.end) && (
+                  <button
+                    title="Delete the saved loop matching the current region"
+                    onClick={() => {
+                      const match = savedLoops.find(
+                        (l) => l.start === loop.start && l.end === loop.end,
+                      );
+                      if (match) onDeleteLoop(match.id);
+                    }}
+                  >
+                    🗑
+                  </button>
+                )}
+              </span>
             )}
             <span className="position">
               {formatTime(position)} / {formatTime(duration)}

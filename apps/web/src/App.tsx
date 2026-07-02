@@ -22,6 +22,7 @@ import {
   readBundle,
   scoreFileExtension,
   scoreTypeFromFileName,
+  type SavedLoop,
   type ScoreType,
 } from "@openvoicing/bundle";
 import soundFontUrl from "@coderline/alphatab/soundfont/sonivox.sf3?url";
@@ -120,6 +121,42 @@ export function App() {
 
   const [recordings, setRecordings] = useState<RecordingMeta[]>([]);
   const [activeRecId, setActiveRecId] = useState<string | null>(null);
+  const [savedLoops, setSavedLoops] = useState<SavedLoop[]>([]);
+  const savedLoopsRef = useRef<SavedLoop[]>([]);
+  useEffect(() => {
+    savedLoopsRef.current = savedLoops;
+  }, [savedLoops]);
+
+  async function loadSavedLoops(id: string | null) {
+    setSavedLoops(id ? ((await storage.get<SavedLoop[]>(`loops:${id}`)) ?? []) : []);
+  }
+
+  function persistSavedLoops(id: string, loops: SavedLoop[]) {
+    setSavedLoops(loops);
+    if (loops.length) void storage.set(`loops:${id}`, loops);
+    else void storage.delete(`loops:${id}`);
+  }
+
+  function saveCurrentLoop() {
+    const region = recording.loopRegion;
+    if (!region || !activeRecId) return;
+    const name = window.prompt("Loop name", `Loop ${savedLoops.length + 1}`);
+    if (!name) return;
+    persistSavedLoops(activeRecId, [
+      ...savedLoops,
+      { id: newRecordingId(), name, start: region.start, end: region.end },
+    ]);
+  }
+
+  function recallLoop(loop: SavedLoop) {
+    recording.setLoopRegion({ start: loop.start, end: loop.end });
+    recording.seek(loop.start);
+  }
+
+  function deleteSavedLoop(id: string) {
+    if (!activeRecId) return;
+    persistSavedLoops(activeRecId, savedLoops.filter((l) => l.id !== id));
+  }
   const [syncPoints, setSyncPoints] = useState<SyncPoint[] | null>(null);
   const syncPointsRef = useRef<SyncPoint[] | null>(null);
   const [follow, setFollow] = useState(false);
@@ -271,10 +308,24 @@ export function App() {
         await recording.load(stored.data);
         if (cancelled) return;
         setActiveRecId(meta.id);
+        await loadSavedLoops(meta.id);
         const sync = await storage.get<SyncPoint[]>(`sync:${meta.id}`);
-        if (cancelled || !sync?.length) return;
-        setSyncPoints(sync);
-        setFollow((await storage.get<boolean>("follow")) ?? true);
+        if (!cancelled && sync?.length) {
+          setSyncPoints(sync);
+          setFollow((await storage.get<boolean>("follow")) ?? true);
+        }
+        // Restore the previous session's practice state.
+        const practice = await storage.get<{
+          synthSpeed?: number;
+          recordingSpeed?: number;
+          loop?: { start: number; end: number } | null;
+          position?: number;
+        }>("practice");
+        if (cancelled || !practice) return;
+        if (practice.synthSpeed) setSynthSpeed(practice.synthSpeed);
+        if (practice.recordingSpeed) recording.speed = practice.recordingSpeed;
+        if (practice.loop) recording.setLoopRegion(practice.loop);
+        if (practice.position) recording.seek(practice.position);
       } catch (error) {
         console.error("[openvoicing] session restore failed", error);
       } finally {
@@ -300,6 +351,35 @@ export function App() {
     void storage.set("follow", follow);
   }, [follow]);
 
+  // Practice-state memory: speed, loop, and position survive reloads.
+  const practiceSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const savePracticeState = () => {
+    if (!hydratedRef.current) return;
+    if (practiceSaveTimerRef.current) clearTimeout(practiceSaveTimerRef.current);
+    practiceSaveTimerRef.current = setTimeout(() => {
+      void storage.set("practice", {
+        synthSpeed: speedRef.current,
+        recordingSpeed: recording.speed,
+        loop: recording.loopRegion,
+        position: recording.position,
+      });
+    }, 600);
+  };
+  const savePracticeRef = useRef(savePracticeState);
+  savePracticeRef.current = savePracticeState;
+
+  useEffect(() => {
+    const save = () => savePracticeRef.current();
+    const unsubs = [
+      recording.on("speedChanged", save),
+      recording.on("loopChanged", save),
+      recording.on("stateChanged", save),
+    ];
+    return () => {
+      for (const unsub of unsubs) unsub();
+    };
+  }, [recording]);
+
   useEffect(() => {
     if (!hydratedRef.current || !activeRecId) return;
     void storage.set("activeRecording", activeRecId);
@@ -319,6 +399,7 @@ export function App() {
     void storage.set(`recording:${id}`, { name: file.name, data: copy } satisfies StoredFile);
     saveRecordingsList([...recordings, { id, name: file.name }]);
     setActiveRecId(id);
+    setSavedLoops([]);
   }
 
   async function selectRecording(id: string) {
@@ -327,6 +408,7 @@ export function App() {
     if (!stored) return;
     await recording.load(stored.data);
     setActiveRecId(id);
+    await loadSavedLoops(id);
     const sync = await storage.get<SyncPoint[]>(`sync:${id}`);
     if (sync?.length) {
       setSyncPoints(sync);
@@ -337,6 +419,7 @@ export function App() {
   async function removeRecording(id: string) {
     void storage.delete(`recording:${id}`);
     void storage.delete(`sync:${id}`);
+    void storage.delete(`loops:${id}`);
     const next = recordings.filter((r) => r.id !== id);
     saveRecordingsList(next);
     if (id !== activeRecId) return;
@@ -624,6 +707,7 @@ export function App() {
     speedRef.current = value;
     setSpeed(value);
     if (playerRef.current) playerRef.current.speed = value;
+    savePracticeRef.current?.();
   }
 
   const activeRecIdRef = useRef<string | null>(null);
@@ -706,6 +790,16 @@ export function App() {
             pendingLoopStartRef.current = null;
           }
           return;
+        }
+      }
+      // Number keys recall saved loops (outside edit mode, where they set durations).
+      const digit = /^Digit([1-9])$/.exec(e.code);
+      if (digit && onRecording && !editModeRef.current) {
+        const loop = savedLoopsRef.current[Number(digit[1]) - 1];
+        if (loop) {
+          e.preventDefault();
+          recording.setLoopRegion({ start: loop.start, end: loop.end });
+          recording.seek(loop.start);
         }
       }
     };
@@ -819,6 +913,10 @@ export function App() {
         meta.id === activeRecId
           ? syncPoints
           : ((await storage.get<SyncPoint[]>(`sync:${meta.id}`)) ?? null);
+      const loops =
+        meta.id === activeRecId
+          ? savedLoops
+          : ((await storage.get<SavedLoop[]>(`loops:${meta.id}`)) ?? []);
       const recPath = `recordings/${meta.id}/${sanitizeName(rec.name)}`;
       files.set(recPath, new Uint8Array(rec.data));
       manifestRecordings.push({
@@ -826,6 +924,7 @@ export function App() {
         name: rec.name,
         path: recPath,
         ...(sync?.length ? { syncPoints: sync } : {}),
+        ...(loops.length ? { loops } : {}),
       });
     }
     const bytes = createBundle({
@@ -883,6 +982,8 @@ export function App() {
         } satisfies StoredFile);
         if (entry.syncPoints?.length) void storage.set(`sync:${id}`, entry.syncPoints);
         else void storage.delete(`sync:${id}`);
+        if (entry.loops?.length) void storage.set(`loops:${id}`, entry.loops);
+        else void storage.delete(`loops:${id}`);
         list.push({ id, name: entry.name });
       }
       saveRecordingsList(list);
@@ -892,6 +993,7 @@ export function App() {
         const bytes = bundle.files.get(first.path)!;
         await recording.load(bytes.slice().buffer as ArrayBuffer);
         setActiveRecId(list[0]!.id);
+        setSavedLoops(first.loops ?? []);
         if (first.syncPoints?.length) {
           setSyncPoints(first.syncPoints);
           setFollow(true);
@@ -1041,6 +1143,10 @@ export function App() {
         syncPoints={syncPoints}
         onMoveSyncPoint={moveSyncPoint}
         barTimes={barTimes}
+        savedLoops={savedLoops}
+        onSaveLoop={saveCurrentLoop}
+        onRecallLoop={recallLoop}
+        onDeleteLoop={deleteSavedLoop}
       />
 
       {activeRecId !== null && (
