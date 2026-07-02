@@ -23,6 +23,15 @@ wt = root.find("./work/work-title")
 if wt is not None:
     wt.text = "Goldberg Variations, BWV 988 - Aria"
 
+# Match the synth tempo to Kimiko Ishizaka's recording (~38 bpm average over
+# the 64 bars / 4:59), so switching between synth and recording is seamless.
+TEMPO = 38
+for el in root.iter("sound"):
+    if el.get("tempo") is not None:
+        el.set("tempo", str(TEMPO))
+for pm in root.iter("per-minute"):
+    pm.text = str(TEMPO)
+
 part = root.find("part")
 measures = part.findall("measure")
 assert len(measures) == 32, len(measures)
@@ -39,6 +48,18 @@ for i, m in enumerate(order):
         if bl.find("repeat") is not None:
             nm.remove(bl)  # drop repeat barlines; the score is written out
     part.append(nm)
+
+# alphaTab takes the tempo from a visible metronome mark (it ignores a bare
+# <sound tempo>), so add one to bar 1 matching the recording (~38 bpm).
+first = part.findall("measure")[0]
+direction = ET.Element("direction", {"placement": "above"})
+dtype = ET.SubElement(direction, "direction-type")
+met = ET.SubElement(dtype, "metronome", {"parentheses": "no"})
+ET.SubElement(met, "beat-unit").text = "quarter"
+ET.SubElement(met, "per-minute").text = str(TEMPO)
+ET.SubElement(direction, "sound", {"tempo": str(TEMPO)})
+attrs = first.find("attributes")
+first.insert(list(first).index(attrs) + 1 if attrs is not None else 0, direction)
 
 xml_bytes = ET.tostring(root, encoding="utf-8", xml_declaration=True)
 open(os.path.join(SCRATCH, "goldberg-aria.musicxml"), "wb").write(xml_bytes)

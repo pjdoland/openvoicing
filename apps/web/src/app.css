@@ -1142,8 +1142,9 @@ body {
 .ov-loop-bracket {
   position: absolute;
   box-sizing: border-box;
-  background: color-mix(in srgb, var(--accent) 9%, transparent);
 }
+/* Just an accent edge at the loop boundaries; no fill (that reads as the active
+   bar and clutters the notes). */
 .ov-loop-bracket.start {
   border-left: 3px solid var(--accent);
 }

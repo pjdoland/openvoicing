@@ -5,7 +5,7 @@ import numpy as np
 
 SCRATCH = os.path.dirname(os.path.abspath(__file__))
 OGG = os.path.join(SCRATCH, "goldberg-aria.ogg")
-SR, N_FFT, HOP = 22050, 2048, 512
+SR, N_FFT, HOP = 22050, 2048, 256
 
 raw = subprocess.run(["ffmpeg", "-v", "quiet", "-i", OGG, "-ac", "1", "-ar", str(SR), "-f", "f32le", "-"],
                      capture_output=True, check=True).stdout

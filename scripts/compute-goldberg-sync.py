@@ -27,25 +27,38 @@ dur = len(audio) / SR
 print(f"audio: {dur:.2f}s, {len(audio)} samples", file=sys.stderr)
 
 # ---------- 1b. onset envelope + peaks (for trimming and snapping) ----------
-OW, OH = 2048, 512
+# Fine hop for precise onset localization; a low band isolates the bass
+# attacks that mark the sarabande downbeats (the measure divisions).
+OW, OH = 2048, 256
 own = np.hanning(OW)
 on = 1 + (len(audio) - OW) // OH
-Sflux = np.zeros((on, OW // 2 + 1))
+spec = np.zeros((on, OW // 2 + 1))
 for i in range(on):
-    Sflux[i] = np.abs(np.fft.rfft(audio[i * OH:i * OH + OW] * own))
-Sflux = np.log1p(Sflux)
-flux = np.concatenate([[0], np.maximum(0, np.diff(Sflux, axis=0)).sum(axis=1)])
-ot = np.arange(on) * OH / SR
-onset_peaks = []
-ow = int(0.3 * SR / OH)
-for i in range(1, on - 1):
-    lo, hi = max(0, i - ow), min(on, i + ow)
-    if flux[i] >= flux[i - 1] and flux[i] > flux[i + 1] and flux[i] > 1.3 * flux[lo:hi].mean() and flux[i] > 0:
-        if not onset_peaks or ot[i] - onset_peaks[-1] > 0.08:
-            onset_peaks.append(ot[i])
-onset_peaks = np.array(onset_peaks)
+    spec[i] = np.abs(np.fft.rfft(audio[i * OH:i * OH + OW] * own))
+spec = np.log1p(spec)
+ofreq = np.fft.rfftfreq(OW, 1 / SR)
+bass_band = ofreq < 320
+flux_full = np.concatenate([[0], np.maximum(0, np.diff(spec, axis=0)).sum(axis=1)])
+flux_bass = np.concatenate([[0], np.maximum(0, np.diff(spec[:, bass_band], axis=0)).sum(axis=1)])
+
+def pick_peaks(flux, min_sep, sensitivity):
+    w = int(0.3 * SR / OH)
+    peaks = []
+    for i in range(1, on - 1):
+        lo, hi = max(0, i - w), min(on, i + w)
+        if flux[i] >= flux[i - 1] and flux[i] > flux[i + 1] and flux[i] > sensitivity * flux[lo:hi].mean() and flux[i] > 0:
+            a, b, c = flux[i - 1], flux[i], flux[i + 1]
+            denom = a - 2 * b + c
+            off = 0.5 * (a - c) / denom if denom != 0 else 0.0  # sub-frame peak
+            t = (i + max(-0.5, min(0.5, off))) * OH / SR
+            if not peaks or t - peaks[-1] > min_sep:
+                peaks.append(t)
+    return np.array(peaks)
+
+onset_peaks = pick_peaks(flux_full, min_sep=0.06, sensitivity=1.3)
+bass_onsets = pick_peaks(flux_bass, min_sep=0.18, sensitivity=1.25)
 lead = max(0.0, onset_peaks[0] - 0.05)  # trim silence before the first note
-print(f"onsets={len(onset_peaks)} first={onset_peaks[0]:.3f}s lead-trim={lead:.3f}s", file=sys.stderr)
+print(f"onsets={len(onset_peaks)} bass={len(bass_onsets)} first={onset_peaks[0]:.3f}s lead-trim={lead:.3f}s", file=sys.stderr)
 audio = audio[int(lead * SR):]
 
 # ---------- 2. audio chromagram ----------
@@ -168,14 +181,21 @@ def audio_time_for_tick(tick):
         sf -= 1
     return float(frame_time[s2a.get(sf, 0)]) + lead  # back to absolute time
 
-# DTW gives a coarse time per bar; snap each to the nearest real onset within a
-# window (< half a beat) so downbeats land exactly on the note attack.
+# DTW gives a coarse time per bar; snap each to the nearest onset attack (finely
+# localized). When a bass onset (the downbeat's left-hand note) sits very close
+# to that onset, prefer it as the truer measure division.
 WIN = 0.35
 raw_times = [audio_time_for_tick(b * BAR_TICKS) for b in range(64)]
 
 def snap(t):
     near = onset_peaks[np.argmin(np.abs(onset_peaks - t))]
-    return (float(near), True) if abs(near - t) <= WIN else (t, False)
+    if abs(near - t) > WIN:
+        return (t, False)
+    if len(bass_onsets):
+        bnear = bass_onsets[np.argmin(np.abs(bass_onsets - near))]
+        if abs(bnear - near) <= 0.06:  # bass attack coincides with this onset
+            return (float(bnear), True)
+    return (float(near), True)
 
 bar_times, anchored = [], []
 for t in raw_times:
