@@ -7,7 +7,7 @@ test.describe("responsive layout", () => {
   test("no horizontal page overflow at any width (with a recording)", async ({ page }) => {
     await page.addInitScript(() => localStorage.setItem("ov-mode", "advanced"));
     await freshApp(page);
-    await page.locator('input[accept=".ovb"]').setInputFiles(repoPath("public/demo.ovb"));
+    await page.locator('input[accept*=".ovb"]').setInputFiles(repoPath("public/demo.ovb"));
     await page.waitForTimeout(1500);
 
     for (const w of widths) {
@@ -29,7 +29,7 @@ test.describe("responsive layout", () => {
     await page.waitForTimeout(300);
     await expect(labelWide).toBeHidden();
     // The File menu is still operable by its accessible name.
-    await expect(page.getByRole("button", { name: "File" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "File", exact: true })).toBeVisible();
   });
 
   test("reflows the score to the container width", async ({ page }) => {

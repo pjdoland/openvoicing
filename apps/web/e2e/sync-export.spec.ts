@@ -5,7 +5,7 @@ test.describe("sync and export", () => {
   test("opens the demo bundle and auto-syncs the recording", async ({ page }) => {
     await freshApp(page);
     // The File menu's Open bundle triggers the hidden .ovb input.
-    await page.locator('input[accept=".ovb"]').setInputFiles(repoPath("public/demo.ovb"));
+    await page.locator('input[accept*=".ovb"]').setInputFiles(repoPath("public/demo.ovb"));
     await page.waitForTimeout(1500);
 
     // The recording panel appears; auto-sync lives inside it.

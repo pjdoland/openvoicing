@@ -204,7 +204,10 @@ export function App() {
   function jumpToSection(barIndex: number) {
     const player = playerRef.current;
     const bar = player?.barTicks[barIndex];
-    if (player && bar) player.cursorTick = bar.start;
+    if (player && bar) {
+      player.cursorTick = bar.start;
+      player.scrollBarIntoView(barIndex);
+    }
   }
   function renameSection(barIndex: number) {
     const existing = sections.find((s) => s.barIndex === barIndex);
@@ -645,14 +648,44 @@ export function App() {
     });
   }, [recording]);
 
+  const lastScrollRef = useRef(0);
   useEffect(() => {
     if (!follow || !syncPoints) return;
     return recording.on("positionChanged", (seconds) => {
       const player = playerRef.current;
       if (!player) return;
-      player.cursorTick = Math.max(0, Math.round(tickAtMediaTime(syncPoints, seconds)));
+      const tick = Math.max(0, Math.round(tickAtMediaTime(syncPoints, seconds)));
+      player.cursorTick = tick;
+      // The synth is not playing during recording follow, so alphaTab's own
+      // scroll-on-play never fires; keep the current bar in the notation pane.
+      const now = performance.now();
+      if (now - lastScrollRef.current > 250) {
+        lastScrollRef.current = now;
+        player.scrollBarIntoView(player.barIndexAtTick(tick));
+      }
     });
   }, [follow, syncPoints, recording]);
+
+  // Looping a passage on the waveform brackets the first/last bars and scrolls
+  // them into view (the waveform selector stays pinned), so you see both.
+  useEffect(() => {
+    return recording.on("loopChanged", (region) => {
+      const player = playerRef.current;
+      const points = syncPointsRef.current;
+      if (!player) return;
+      if (!region || !points?.length) {
+        player.setLoopMarkers(null);
+        return;
+      }
+      const startTick = Math.max(0, Math.round(tickAtMediaTime(points, region.start)));
+      const endTick = Math.round(tickAtMediaTime(points, region.end));
+      const startBar = player.barIndexAtTick(startTick);
+      const endBar = Math.max(startBar, player.barIndexAtTick(Math.max(startTick, endTick - 1)));
+      player.setLoopMarkers({ startBar, endBar });
+      player.cursorTick = startTick;
+      player.scrollBarIntoView(startBar);
+    });
+  }, [recording]);
 
   useEffect(() => {
     if (!syncedClick || !barTimesRef.current) return;
@@ -1875,6 +1908,8 @@ export function App() {
           accept=".musicxml,.xml,.mxl,.gp,.gp3,.gp4,.gp5,.gpx"
           onChange={openFile}
           className="visually-hidden-input"
+          aria-hidden="true"
+          tabIndex={-1}
         />
         <input
           ref={bundleInputRef}
@@ -1882,6 +1917,8 @@ export function App() {
           accept=".ovb,application/zip,application/octet-stream"
           onChange={openBundle}
           className="visually-hidden-input"
+          aria-hidden="true"
+          tabIndex={-1}
         />
         <input
           ref={audioInputRef}
@@ -1893,6 +1930,8 @@ export function App() {
             e.target.value = "";
           }}
           className="visually-hidden-input"
+          aria-hidden="true"
+          tabIndex={-1}
         />
         <nav className="menubar" aria-label="Main menu">
           {!locked && <Menu label="File" icon={<FileIcon />} items={fileMenu} />}
@@ -2051,7 +2090,10 @@ export function App() {
             locked={locked}
             onJumpBar={(n) => {
               const player = playerRef.current;
-              if (player && n >= 1 && n <= player.barTicks.length) player.cursorTick = player.barTicks[n - 1]!.start;
+              if (player && n >= 1 && n <= player.barTicks.length) {
+                player.cursorTick = player.barTicks[n - 1]!.start;
+                player.scrollBarIntoView(n - 1);
+              }
             }}
             onJumpSection={jumpToSection}
             onAddSection={addSection}

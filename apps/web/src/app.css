@@ -92,8 +92,22 @@ body {
 .app {
   display: flex;
   flex-direction: column;
-  min-height: 100vh;
-  min-height: 100dvh;
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
+}
+/* The transport, waveform, and controls stay pinned; only the notation scrolls,
+   so a looped/followed passage can be scrolled into view while the waveform
+   selector remains visible. */
+.app > .header,
+.app > .toolbar,
+.app > .edit-band,
+.app > .tracks,
+.app > .panel,
+.app > .sync-bar,
+.app > .footer,
+.app > .stand-controls {
+  flex-shrink: 0;
 }
 
 .header {
@@ -354,6 +368,7 @@ body {
 .score {
   flex: 1;
   min-width: 0;
+  min-height: 0;
   overflow: auto;
   background: var(--score-bg);
 }
@@ -1004,7 +1019,9 @@ body {
 }
 .mode-toggle button.on { background: var(--accent); color: #fff; }
 
-.score-surface { height: 100%; }
+/* Let alphaTab size the surface to its content height so the .score pane
+   scrolls; a min-height keeps a short score from collapsing. */
+.score-surface { min-height: 100%; }
 .navigate { display: inline-flex; align-items: center; gap: 2px; }
 .navigate-menu .menu-trigger { min-width: 28px; padding: 5px 6px; border: 1px solid var(--border-strong); background: var(--panel); color: var(--fg); }
 .navigate-menu .menu-list { left: 0; right: auto; }
@@ -1108,4 +1125,28 @@ body {
   clip: rect(0, 0, 0, 0);
   white-space: nowrap;
   border: 0;
+}
+
+/* alphaTab's built-in playback-range selection fills the full width of every
+   system the range touches, bleeding onto bars outside the loop. Hide it and
+   bracket just the loop's first/last bars ourselves (see .ov-loop-bracket). */
+.at-selection {
+  display: none;
+}
+.ov-loop-markers {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 2;
+}
+.ov-loop-bracket {
+  position: absolute;
+  box-sizing: border-box;
+  background: color-mix(in srgb, var(--accent) 9%, transparent);
+}
+.ov-loop-bracket.start {
+  border-left: 3px solid var(--accent);
+}
+.ov-loop-bracket.end {
+  border-right: 3px solid var(--accent);
 }

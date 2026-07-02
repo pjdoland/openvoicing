@@ -46,6 +46,9 @@ export interface BarTicks {
  */
 export class Player {
   private readonly api: alphaTab.AlphaTabApi;
+  private readonly container: HTMLElement;
+  private loopMarkerLayer: HTMLDivElement | null = null;
+  private loopRange: { startBar: number; endBar: number } | null = null;
   private readonly listeners: { [K in keyof PlayerEvents]: Set<PlayerEvents[K]> } = {
     scoreLoaded: new Set(),
     playerStateChanged: new Set(),
@@ -56,6 +59,7 @@ export class Player {
   };
 
   constructor(container: HTMLElement, options: PlayerOptions) {
+    this.container = container;
     this.api = new alphaTab.AlphaTabApi(container, {
       core: {
         fontDirectory: options.fontDirectory,
@@ -71,6 +75,10 @@ export class Player {
         enableAnimatedBeatCursor: true,
         enableElementHighlighting: true,
         scrollMode: alphaTab.ScrollMode.Continuous,
+        // Scroll the notation pane itself (it has its own overflow), not the
+        // whole page, so following and jumps move the score into view.
+        scrollElement: container.parentElement ?? container,
+        scrollOffsetY: -10,
       },
     });
 
@@ -97,6 +105,8 @@ export class Player {
       });
     });
     this.api.error.on((error) => this.emit("error", error));
+    // Re-place loop markers whenever the score is (re-)laid out.
+    this.api.renderFinished.on(() => this.renderLoopMarkers());
   }
 
   on<K extends keyof PlayerEvents>(event: K, handler: PlayerEvents[K]): () => void {
@@ -192,6 +202,79 @@ export class Player {
 
   set cursorTick(tick: number) {
     this.api.tickPosition = tick;
+  }
+
+  /** Bar index whose start tick is at or before `tick`. */
+  barIndexAtTick(tick: number): number {
+    const bars = this.barTicks;
+    let idx = 0;
+    for (let i = 0; i < bars.length; i++) {
+      if (bars[i]!.start <= tick) idx = i;
+      else break;
+    }
+    return idx;
+  }
+
+  private barBounds(barIndex: number): { x: number; y: number; w: number; h: number } | null {
+    const bl = this.api.renderer?.boundsLookup as
+      | { staffSystems?: Array<{ bars: Array<{ index: number; realBounds: { x: number; y: number; w: number; h: number } }> }> }
+      | undefined;
+    if (!bl?.staffSystems) return null;
+    for (const sys of bl.staffSystems) {
+      for (const bar of sys.bars) {
+        if (bar.index === barIndex) return bar.realBounds;
+      }
+    }
+    return null;
+  }
+
+  /**
+   * Scroll the notation pane so a bar is in view, using the rendered bar bounds
+   * (deterministic, unlike alphaTab's cursor scroll). Only scrolls when the bar
+   * has left the viewport, so following reads like a page turn.
+   */
+  scrollBarIntoView(barIndex: number): void {
+    const pane = this.container.parentElement;
+    const b = this.barBounds(barIndex);
+    if (!pane || !b) return;
+    const top = b.y;
+    const bottom = b.y + b.h;
+    if (top < pane.scrollTop + 8 || bottom > pane.scrollTop + pane.clientHeight - 8) {
+      pane.scrollTop = Math.max(0, top - pane.clientHeight * 0.25);
+    }
+  }
+
+  /** Bracket the first and last bars of a looped range, or clear with null. */
+  setLoopMarkers(range: { startBar: number; endBar: number } | null): void {
+    this.loopRange = range;
+    this.renderLoopMarkers();
+  }
+
+  private renderLoopMarkers(): void {
+    let layer = this.loopMarkerLayer;
+    if (!layer || !layer.isConnected) {
+      layer = document.createElement("div");
+      layer.className = "ov-loop-markers";
+      this.container.style.position = "relative";
+      this.container.appendChild(layer);
+      this.loopMarkerLayer = layer;
+    }
+    layer.textContent = "";
+    const range = this.loopRange;
+    if (!range) return;
+    const draw = (barIndex: number, side: "start" | "end") => {
+      const b = this.barBounds(barIndex);
+      if (!b) return;
+      const el = document.createElement("div");
+      el.className = `ov-loop-bracket ${side}`;
+      el.style.left = `${b.x}px`;
+      el.style.top = `${b.y}px`;
+      el.style.width = `${b.w}px`;
+      el.style.height = `${b.h}px`;
+      layer!.appendChild(el);
+    };
+    draw(range.startBar, "start");
+    draw(range.endBar, "end");
   }
 
   /** Seek synth playback to a time position in seconds. */

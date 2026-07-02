@@ -16,6 +16,7 @@ const events = {
   playerPositionChanged: emitter(),
   beatMouseDown: emitter(),
   error: emitter(),
+  renderFinished: emitter(),
 };
 
 const api = {
@@ -25,6 +26,8 @@ const api = {
   playerPositionChanged: events.playerPositionChanged,
   beatMouseDown: events.beatMouseDown,
   error: events.error,
+  renderFinished: events.renderFinished,
+  renderer: { boundsLookup: { staffSystems: [] } },
   tex: vi.fn(),
   load: vi.fn(() => true),
   playPause: vi.fn(),
