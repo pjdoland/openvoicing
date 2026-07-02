@@ -353,6 +353,8 @@ export function App() {
       if (activeRecIdRef.current === null) setAnnouncement(p ? "Playing" : "Paused");
     });
     player.on("positionChanged", (current, total) => {
+      // The recording drives the position readout when it is the active source.
+      if (preferredSourceRef.current === "recording") return;
       setPosition((prev) => {
         const next = { current: Math.floor(current), total: Math.floor(total) };
         return prev.current === next.current && prev.total === next.total ? prev : next;
@@ -457,6 +459,8 @@ export function App() {
   useEffect(() => {
     return recording.on("loaded", ({ channels, sampleRate }) => {
       recordingAudioRef.current = { channels, sampleRate };
+      recording.speed = speedRef.current; // carry the current practice tempo over
+      preferredSourceRef.current = "recording"; // a loaded recording is the focus
       setSyncPoints(null);
       setFollow(false);
       setTapCount(null);
@@ -620,11 +624,23 @@ export function App() {
       await selectRecording(next[0]!.id);
     } else {
       recording.pause();
+      preferredSourceRef.current = "synth";
       setActiveRecId(null);
       setSyncPoints(null);
       setFollow(false);
     }
   }
+
+  // Mirror the recording's playhead into the shared position readout.
+  useEffect(() => {
+    return recording.on("positionChanged", (seconds, total) => {
+      if (preferredSourceRef.current !== "recording") return;
+      setPosition((prev) => {
+        const next = { current: Math.floor(seconds), total: Math.floor(total) };
+        return prev.current === next.current && prev.total === next.total ? prev : next;
+      });
+    });
+  }, [recording]);
 
   useEffect(() => {
     if (!follow || !syncPoints) return;
@@ -706,6 +722,7 @@ export function App() {
       // Switch to synth at the mapped tick.
       const tick = points ? Math.round(tickAtMediaTime(points, recording.position)) : 0;
       recording.pause();
+      preferredSourceRef.current = "synth";
       player.playFromTick(Math.max(0, tick));
       setAnnouncement("Synth");
     } else {
@@ -713,6 +730,7 @@ export function App() {
       const tick = player.cursorTick;
       const time = points ? mediaTimeAtTick(points, tick) : 0;
       if (player.playing) player.playPause();
+      preferredSourceRef.current = "recording";
       recording.seek(time);
       void recording.play();
       setAnnouncement("Recording");
@@ -1129,15 +1147,28 @@ export function App() {
   }, [editMode]);
 
   // Unified play/pause for external transport (media keys, MIDI pedal).
+  // One transport for the active source: the recording when one is loaded
+  // (the thing you play along to), otherwise the synth. The main Play button,
+  // the Space key, and the media keys all route through here so they agree.
   const togglePlayRef = useRef(() => {});
   togglePlayRef.current = () => {
-    if (activeRecIdRef.current !== null) {
-      if (recording.playing) recording.pause();
-      else void recording.play();
+    // Pause whatever is currently sounding; otherwise start the preferred source.
+    if (recording.playing) {
+      recording.pause();
+    } else if (playerRef.current?.playing) {
+      playerRef.current.playPause();
+    } else if (preferredSourceRef.current === "recording" && activeRecIdRef.current !== null) {
+      void recording.play();
     } else {
-      playerRef.current?.playPause();
+      synthPlayPause();
     }
   };
+
+  function transportStop() {
+    recording.pause();
+    recording.seek(0);
+    playerRef.current?.stop();
+  }
 
   // Media Session: hardware/media keys and lock-screen controls.
   useEffect(() => {
@@ -1288,10 +1319,13 @@ export function App() {
   }
 
   const speedRef = useRef(1);
+  // The single practice-tempo control drives whichever source is heard, so the
+  // slowdown carries across an A/B switch between synth and recording.
   function setSynthSpeed(value: number) {
     speedRef.current = value;
     setSpeed(value);
     if (playerRef.current) playerRef.current.speed = value;
+    recording.speed = value;
     savePracticeRef.current?.();
   }
 
@@ -1299,6 +1333,9 @@ export function App() {
   useEffect(() => {
     activeRecIdRef.current = activeRecId;
   }, [activeRecId]);
+  // Which source the transport acts on: flips to "recording" when one loads and
+  // back to "synth" on A/B, so play/stop/position/speed follow what you hear.
+  const preferredSourceRef = useRef<"synth" | "recording">("synth");
   const tapCountRef = useRef<number | null>(null);
   useEffect(() => {
     tapCountRef.current = tapCount;
@@ -1907,14 +1944,15 @@ export function App() {
         <div className="tb-zone tb-transport">
           <button
             className="btn-primary"
-            onClick={synthPlayPause}
+            onClick={() => togglePlayRef.current()}
             disabled={!ready}
             aria-label={isPlaying ? "Pause" : "Play"}
+            title={activeRecId !== null ? "Play the recording" : "Play the score"}
           >
             {isPlaying ? <PauseIcon /> : <PlayIcon />}
             {isPlaying ? "Pause" : "Play"}
           </button>
-          <button className="btn-icon" onClick={() => playerRef.current?.stop()} disabled={!ready} aria-label="Stop" title="Stop">
+          <button className="btn-icon" onClick={transportStop} disabled={!ready} aria-label="Stop" title="Stop">
             <StopIcon />
           </button>
           <SpeedControl value={speed} onChange={setSynthSpeed} />

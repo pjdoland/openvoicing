@@ -17,7 +17,6 @@ import {
 import type { SyncPoint } from "@openvoicing/score-model";
 import type { SavedLoop } from "@openvoicing/bundle";
 import type { RecordingMeta } from "./storage";
-import { SpeedControl } from "./SpeedControl";
 
 const WAVE_WIDTH = 1200;
 const WAVE_HEIGHT = 96;
@@ -90,7 +89,6 @@ export function RecordingPanel({
   const markerDragRef = useRef<number | null>(null);
   const [markerDrag, setMarkerDrag] = useState<number | null>(null);
   const [playing, setPlaying] = useState(false);
-  const [speed, setSpeed] = useState(1);
   const [zoom, setZoom] = useState(1);
   const [loop, setLoop] = useState<LoopRegion | null>(null);
   const [repeats, setRepeats] = useState(0);
@@ -134,7 +132,6 @@ export function RecordingPanel({
           peaksRef.current = computePeaks(channels, WAVE_WIDTH);
         }
       }),
-      player.on("speedChanged", setSpeed),
       player.on("loopChanged", (region) => {
         setLoop(region);
         setRepeats(0);
@@ -364,10 +361,6 @@ export function RecordingPanel({
     e.target.value = "";
   }
 
-  function changeSpeed(value: number) {
-    if (playerRef.current) playerRef.current.speed = value;
-  }
-
   return (
     <section className="recording">
       <div className="recording-toolbar">
@@ -399,10 +392,6 @@ export function RecordingPanel({
         </label>
         {hasActive && (
           <>
-            <button onClick={() => (playing ? playerRef.current?.pause() : playerRef.current?.play())}>
-              {playing ? "Pause" : "Play"}
-            </button>
-            <SpeedControl value={speed} onChange={changeSpeed} />
             <label className="control" title="Pitch shift in semitones">
               Pitch
               <button
