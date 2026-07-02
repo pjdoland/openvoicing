@@ -10,3 +10,4 @@ export { validateScoreV1, validationErrors, type ValidationIssue } from "./valid
 export { importMusicXmlV1 } from "./import-musicxml";
 export { exportMusicXmlV1 } from "./export-musicxml";
 export { canonicalizeMusicXml, canonicalizeV1, type CanonicalScore } from "./canonical";
+export { ScoreEditorV1, chromaticValue, type NoteLocation } from "./editor";
