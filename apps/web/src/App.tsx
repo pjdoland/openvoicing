@@ -756,14 +756,25 @@ export function App() {
     const audio = recordingAudioRef.current;
     if (!player || !audio) return;
     const bars = player.barTicks;
-    if (bars.length === 0) return;
+    const duration = recording.duration;
+    // Sanity check: the recording must be long enough for its bar count. A few
+    // hundred ms/bar or less means the score and audio don't match (wrong file,
+    // a snippet, or a mis-detected length); skip rather than emit garbage.
+    if (bars.length === 0 || duration <= 0) return;
+    const secondsPerBar = duration / bars.length;
+    if (secondsPerBar < 0.25) {
+      showToast(
+        `That recording is only ${duration.toFixed(1)}s for ${bars.length} bars, too short to sync. Check the file, or tap sync manually.`,
+      );
+      return;
+    }
     const secondsPerTick = 60 / (player.tempoBpm * 960);
     const expected = bars.map((b) => b.start * secondsPerTick);
     const onsets = detectOnsets(audio.channels, audio.sampleRate);
-    const times = alignBarsToOnsets(expected, onsets);
+    const times = alignBarsToOnsets(expected, onsets, duration);
     commitSync(bars.map((b, i) => ({ tick: b.start, timeSeconds: times[i]! })));
     setFollow(true);
-    showToast(`Auto-synced ${bars.length} bars.`, undoSync);
+    showToast(`Auto-synced ${bars.length} bars over ${formatTime(duration)}.`, undoSync);
   }
 
   function nudgeSyncPoint(index: number, deltaSeconds: number) {

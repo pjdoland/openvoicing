@@ -58,9 +58,9 @@ describe("alignBarsToOnsets", () => {
     expect(aligned).toHaveLength(4);
   });
 
-  it("spreads bars across a long, dense recording instead of compressing them", () => {
+  it("spreads bars across a long, dense recording using its duration", () => {
     // Score nominal span is 0..9s, but the performance is 50% slower (rubato)
-    // and dense (a mid-bar onset too). Bars must reach the end, not cram early.
+    // and dense. Anchored to the ~15s duration, bars must reach the end.
     const expected = Array.from({ length: 10 }, (_, i) => i);
     const trueScale = 1.5;
     const onsets: number[] = [];
@@ -68,9 +68,20 @@ describe("alignBarsToOnsets", () => {
       onsets.push(i * trueScale); // downbeat
       onsets.push(i * trueScale + 0.75); // a mid-bar note
     }
-    const aligned = alignBarsToOnsets(expected, onsets);
+    const aligned = alignBarsToOnsets(expected, onsets, 15);
     expect(Math.abs(aligned[0]! - 0)).toBeLessThan(0.2);
     expect(Math.abs(aligned[9]! - 9 * trueScale)).toBeLessThan(0.3);
+  });
+
+  it("ignores a wildly-off nominal tempo and still spans the recording", () => {
+    // Score claims 1s/bar (span 0..63) but the take is ~300s: without duration
+    // anchoring this compressed to the front. Bars should now reach the end.
+    const expected = Array.from({ length: 64 }, (_, i) => i);
+    const onsets = Array.from({ length: 300 }, (_, i) => i); // dense, ~1/s
+    const aligned = alignBarsToOnsets(expected, onsets, 300);
+    expect(aligned[0]!).toBeLessThan(6);
+    expect(aligned[63]!).toBeGreaterThan(280); // spread across the whole take
+    for (let i = 1; i < aligned.length; i++) expect(aligned[i]!).toBeGreaterThan(aligned[i - 1]!);
   });
 
   it("stays strictly increasing", () => {
