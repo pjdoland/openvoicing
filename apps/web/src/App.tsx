@@ -26,7 +26,9 @@ import {
   type SavedLoop,
   type ScoreType,
 } from "@openvoicing/bundle";
-import soundFontUrl from "@coderline/alphatab/soundfont/sonivox.sf3?url";
+// FluidR3 (full General MIDI, MIT) self-hosted; cached on first play. Much
+// richer than alphaTab's bundled sonivox, at ~24MB loaded once.
+const soundFontUrl = "/soundfont/FluidR3Mono_GM.sf3";
 import { DEMO_TEX } from "./demo";
 import { RecordingPanel } from "./RecordingPanel";
 import { SpeedControl, clampSpeed } from "./SpeedControl";

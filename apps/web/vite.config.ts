@@ -14,11 +14,26 @@ export default defineConfig({
       // for offline playback.
       workbox: {
         globPatterns: ["**/*.{js,css,html,svg,png,woff,woff2,sf3,wasm,ovb}"],
+        // The FluidR3 soundfont (~24MB) is too big to precache; it is cached on
+        // first play via runtimeCaching below instead.
+        globIgnores: ["**/soundfont/FluidR3Mono_GM.sf3"],
         maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
         // The embed page is addressed as /embed.html?bundle=<url>; params must
         // not break the precache match, and it must not fall back to index.html.
         ignoreURLParametersMatching: [/.*/],
         navigateFallbackDenylist: [/\/embed\.html/],
+        runtimeCaching: [
+          {
+            urlPattern: ({ url }) => url.pathname.endsWith(".sf3"),
+            handler: "CacheFirst",
+            options: {
+              cacheName: "soundfont",
+              rangeRequests: true,
+              expiration: { maxEntries: 2, maxAgeSeconds: 60 * 60 * 24 * 90 },
+              cacheableResponse: { statuses: [0, 200] },
+            },
+          },
+        ],
       },
       manifest: {
         name: "OpenVoicing",

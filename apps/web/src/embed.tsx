@@ -4,10 +4,10 @@ import { Player } from "@openvoicing/player";
 import { RecordingPlayer } from "@openvoicing/audio-engine";
 import { mediaTimeAtTick, tickAtMediaTime, type SyncPoint } from "@openvoicing/score-model";
 import { readBundle, type Bundle } from "@openvoicing/bundle";
-import soundFontUrl from "@coderline/alphatab/soundfont/sonivox.sf3?url";
 import { parseDeepLink } from "./deep-link";
 import "./embed.css";
 
+const soundFontUrl = "/soundfont/FluidR3Mono_GM.sf3";
 const SPEEDS = [0.5, 0.6, 0.7, 0.8, 0.9, 1, 1.1, 1.25];
 
 function formatTime(seconds: number): string {
