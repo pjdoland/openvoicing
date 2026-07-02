@@ -127,6 +127,34 @@ export function App() {
   const [locked] = useState(() => new URLSearchParams(window.location.search).get("lock") === "1");
   const [assignment, setAssignment] = useState("");
   const [showTour, setShowTour] = useState(false);
+  const [sections, setSections] = useState<Array<{ barIndex: number; label: string }>>([]);
+  useEffect(() => {
+    void storage.get<Array<{ barIndex: number; label: string }>>("sections").then((s) => setSections(s ?? []));
+  }, []);
+  function currentBarIndex(): number {
+    const player = playerRef.current;
+    if (!player) return 0;
+    const tick = player.cursorTick;
+    const bars = player.barTicks;
+    let idx = 0;
+    for (let i = 0; i < bars.length; i++) if (bars[i]!.start <= tick) idx = i;
+    return idx;
+  }
+  function addSection() {
+    const label = window.prompt("Section label (e.g. Verse, Chorus, B)");
+    if (!label) return;
+    const next = [...sections.filter((s) => s.barIndex !== currentBarIndex()), { barIndex: currentBarIndex(), label }].sort(
+      (a, b) => a.barIndex - b.barIndex,
+    );
+    setSections(next);
+    void storage.set("sections", next);
+    showToast(`Section "${label}" added at bar ${currentBarIndex() + 1}.`);
+  }
+  function jumpToSection(barIndex: number) {
+    const player = playerRef.current;
+    const bar = player?.barTicks[barIndex];
+    if (player && bar) player.cursorTick = bar.start;
+  }
   const containerRef = useRef<HTMLDivElement>(null);
   const playerRef = useRef<Player | null>(null);
   const [recording] = useState(() => new RecordingPlayer());
@@ -1442,9 +1470,9 @@ export function App() {
     e.target.value = "";
   }
 
-  async function exportBundle() {
+  async function buildBundleBytes(): Promise<Uint8Array | null> {
     const source = scoreSourceRef.current;
-    if (!source) return;
+    if (!source) return null;
     const scorePath = `score/score.${scoreFileExtension(source.type)}`;
     const files = new Map<string, Uint8Array>([[scorePath, new Uint8Array(source.data)]]);
     const manifestRecordings = [];
@@ -1469,7 +1497,7 @@ export function App() {
         ...(loops.length ? { loops } : {}),
       });
     }
-    const bytes = createBundle({
+    return createBundle({
       manifest: {
         format: BUNDLE_FORMAT,
         formatVersion: BUNDLE_FORMAT_VERSION,
@@ -1481,12 +1509,38 @@ export function App() {
       },
       files,
     });
+  }
+
+  async function exportBundle() {
+    const bytes = await buildBundleBytes();
+    if (!bytes) return;
     const blob = new Blob([bytes as BlobPart], { type: "application/zip" });
     const link = document.createElement("a");
     link.href = URL.createObjectURL(blob);
     link.download = `${(scoreTitle || "score").replace(/[^\w-]+/g, "-").toLowerCase() || "score"}.ovb`;
     link.click();
     URL.revokeObjectURL(link.href);
+  }
+
+  // Library: save the current piece as a bundle in IndexedDB and reopen later.
+  const [library, setLibrary] = useState<Array<{ id: string; title: string }>>([]);
+  useEffect(() => {
+    void storage.get<Array<{ id: string; title: string }>>("library").then((l) => setLibrary(l ?? []));
+  }, []);
+  async function saveToLibrary() {
+    const bytes = await buildBundleBytes();
+    if (!bytes) return;
+    const id = newRecordingId();
+    const title = scoreTitle || "Untitled";
+    await storage.set(`librarypiece:${id}`, bytes.buffer as ArrayBuffer);
+    const next = [...library, { id, title }];
+    setLibrary(next);
+    void storage.set("library", next);
+    showToast(`Saved "${title}" to your library.`);
+  }
+  async function openFromLibrary(id: string) {
+    const buffer = await storage.get<ArrayBuffer>(`librarypiece:${id}`);
+    if (buffer) await loadBundleBytes(new Uint8Array(buffer));
   }
 
   function copyEmbedCode() {
@@ -1623,9 +1677,31 @@ export function App() {
           <button className="header-button" onClick={() => void openFromUrl()}>
             Open URL…
           </button>
-          <button className="header-button" onClick={() => void exportBundle()}>
-            Export bundle
-          </button>
+          {!locked && (
+            <button className="header-button" onClick={() => void exportBundle()}>
+              Export bundle
+            </button>
+          )}
+          {!locked && (
+            <button className="header-button" onClick={() => void saveToLibrary()} title="Save this piece to your library">
+              Save
+            </button>
+          )}
+          {library.length > 0 && (
+            <select
+              className="header-select"
+              value=""
+              aria-label="Open from library"
+              onChange={(e) => e.target.value && void openFromLibrary(e.target.value)}
+            >
+              <option value="">Library ({library.length})</option>
+              {library.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.title}
+                </option>
+              ))}
+            </select>
+          )}
           <button className="header-button" onClick={copyEmbedCode} title="Copy an embed snippet">
             Copy embed
           </button>
@@ -1748,6 +1824,26 @@ export function App() {
             }}
           />
         </span>
+        {sections.length > 0 && (
+          <select
+            className="control"
+            value=""
+            aria-label="Jump to section"
+            onChange={(e) => e.target.value !== "" && jumpToSection(Number(e.target.value))}
+          >
+            <option value="">Sections</option>
+            {sections.map((s) => (
+              <option key={s.barIndex} value={s.barIndex}>
+                {s.label} (bar {s.barIndex + 1})
+              </option>
+            ))}
+          </select>
+        )}
+        {!locked && (
+          <button onClick={addSection} title="Label the current bar as a section">
+            + Section
+          </button>
+        )}
 
         {editMode && (
           <>
