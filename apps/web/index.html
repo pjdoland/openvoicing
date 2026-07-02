@@ -7,6 +7,15 @@
     <link rel="apple-touch-icon" href="/icons/icon-192.png" />
     <meta name="theme-color" content="#1b1f27" />
     <title>OpenVoicing</title>
+    <script>
+      // Apply saved theme and font scale before first paint to avoid a flash.
+      try {
+        var t = localStorage.getItem("ov-theme");
+        if (t && t !== "light") document.documentElement.setAttribute("data-theme", t);
+        var s = localStorage.getItem("ov-scale");
+        if (s) document.documentElement.style.setProperty("--base-font", s + "px");
+      } catch (e) {}
+    </script>
   </head>
   <body>
     <div id="root"></div>

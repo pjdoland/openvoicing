@@ -30,6 +30,7 @@ import soundFontUrl from "@coderline/alphatab/soundfont/sonivox.sf3?url";
 import { DEMO_TEX } from "./demo";
 import { RecordingPanel } from "./RecordingPanel";
 import { SpeedControl, clampSpeed } from "./SpeedControl";
+import { CheatSheet, SettingsControls, useAppSettings } from "./Settings";
 import { storage, type RecordingMeta, type StoredFile } from "./storage";
 
 interface ScoreSource {
@@ -81,6 +82,10 @@ function formatTime(seconds: number): string {
 }
 
 export function App() {
+  const settings = useAppSettings();
+  const [cheatSheetOpen, setCheatSheetOpen] = useState(false);
+  const [announcement, setAnnouncement] = useState("");
+  const [countInNumber, setCountInNumber] = useState<number | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const playerRef = useRef<Player | null>(null);
   const [recording] = useState(() => new RecordingPlayer());
@@ -115,11 +120,22 @@ export function App() {
 
   useEffect(() => {
     editModeRef.current = editMode;
+    setAnnouncement(editMode ? "Edit mode on" : "Edit mode off");
     if (!editMode) {
       selectedBeatRef.current = null;
       setSelectedBeat(null);
     }
   }, [editMode]);
+
+  useEffect(() => {
+    const unsubs = [
+      recording.on("stateChanged", (p) => setAnnouncement(p ? "Recording playing" : "Paused")),
+      recording.on("speedChanged", (s) => setAnnouncement(`Speed ${Math.round(s * 100)} percent`)),
+    ];
+    return () => {
+      for (const u of unsubs) u();
+    };
+  }, [recording]);
 
   useEffect(() => {
     selectedBeatRef.current = selectedBeat;
@@ -199,7 +215,10 @@ export function App() {
       setScoreArtist(info.artist);
     });
     player.on("playerReady", () => setReady(true));
-    player.on("playerStateChanged", setPlaying);
+    player.on("playerStateChanged", (p) => {
+      setPlaying(p);
+      if (activeRecIdRef.current === null) setAnnouncement(p ? "Playing" : "Paused");
+    });
     player.on("positionChanged", (current, total) => {
       setPosition((prev) => {
         const next = { current: Math.floor(current), total: Math.floor(total) };
@@ -945,6 +964,32 @@ export function App() {
     return () => window.removeEventListener("keydown", onKey);
   }, [editMode]);
 
+  // Big visual (and audible) count-in before synth playback when Count-in is on.
+  function synthPlayPause() {
+    const player = playerRef.current;
+    if (!player) return;
+    if (player.playing || !countIn) {
+      player.playPause();
+      return;
+    }
+    const beatMs = (60 / player.tempoBpm) * 1000;
+    let n = 4;
+    setCountInNumber(n);
+    playClick(true);
+    const step = () => {
+      n -= 1;
+      if (n <= 0) {
+        setCountInNumber(null);
+        player.playPause();
+        return;
+      }
+      setCountInNumber(n);
+      playClick(false);
+      window.setTimeout(step, beatMs);
+    };
+    window.setTimeout(step, beatMs);
+  }
+
   const speedRef = useRef(1);
   function setSynthSpeed(value: number) {
     speedRef.current = value;
@@ -975,6 +1020,11 @@ export function App() {
           target.tagName === "TEXTAREA" ||
           target.isContentEditable)
       ) {
+        return;
+      }
+      if ((e.key === "?" || (e.shiftKey && e.code === "Slash")) && !e.metaKey && !e.ctrlKey) {
+        e.preventDefault();
+        setCheatSheetOpen((v) => !v);
         return;
       }
       if (tapCountRef.current !== null) return;
@@ -1128,9 +1178,9 @@ export function App() {
   }
 
   function toggleCountIn() {
-    const value = !countIn;
-    setCountIn(value);
-    playerRef.current?.setCountIn(value);
+    // Count-in is handled by our visual + click overlay in synthPlayPause,
+    // so alphaTab's own audio count-in stays off to avoid doubling.
+    setCountIn(!countIn);
   }
 
   function setTrackMute(index: number, mute: boolean) {
@@ -1278,6 +1328,15 @@ export function App() {
         <h1>OpenVoicing</h1>
         <span className="tagline">open source living sheet music</span>
         <span className="header-actions">
+          <SettingsControls {...settings} />
+          <button
+            className="header-button"
+            onClick={() => setCheatSheetOpen(true)}
+            title="Keyboard shortcuts (?)"
+            aria-label="Keyboard shortcuts"
+          >
+            ?
+          </button>
           <label className="header-button">
             Open bundle…
             <input type="file" accept=".ovb" onChange={openBundle} />
@@ -1288,8 +1347,18 @@ export function App() {
         </span>
       </header>
 
+      <div className="sr-only" role="status" aria-live="polite">
+        {announcement}
+      </div>
+      {cheatSheetOpen && <CheatSheet onClose={() => setCheatSheetOpen(false)} />}
+      {countInNumber !== null && (
+        <div className="countin-overlay" aria-hidden="true">
+          <span className="countin-number">{countInNumber}</span>
+        </div>
+      )}
+
       <div className="toolbar">
-        <button onClick={() => playerRef.current?.playPause()} disabled={!ready}>
+        <button onClick={synthPlayPause} disabled={!ready}>
           {playing ? "Pause" : "Play"}
         </button>
         <button onClick={() => playerRef.current?.stop()} disabled={!ready}>
