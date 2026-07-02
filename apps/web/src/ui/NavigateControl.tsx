@@ -87,7 +87,7 @@ export function NavigateControl({
           <option key={s.barIndex} value={s.label} />
         ))}
       </datalist>
-      {!locked && <Menu label="" items={manageItems} className="navigate-menu" />}
+      {!locked && <Menu label="Sections" items={manageItems} className="navigate-menu" />}
     </span>
   );
 }

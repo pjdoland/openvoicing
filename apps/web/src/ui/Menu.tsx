@@ -64,9 +64,10 @@ export function Menu({
         aria-expanded={open}
         aria-controls={open ? menuId : undefined}
         onClick={() => setOpen((v) => !v)}
+        aria-label={label}
       >
         {icon}
-        {label}
+        <span className="menu-trigger-label">{label}</span>
         <span aria-hidden="true" className="menu-caret">
           ▾
         </span>
