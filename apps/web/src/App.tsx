@@ -234,6 +234,7 @@ export function App() {
   const [scoreArtist, setScoreArtist] = useState("");
   const scoreSourceRef = useRef<ScoreSource | null>(null);
   const [position, setPosition] = useState({ current: 0, total: 0 });
+  const [preferredSource, setPreferredSource] = useState<"synth" | "recording">("synth");
 
   const editorRef = useRef<ScoreEditor | null>(null);
   const [hasEditor, setHasEditor] = useState(false);
@@ -460,7 +461,7 @@ export function App() {
     return recording.on("loaded", ({ channels, sampleRate }) => {
       recordingAudioRef.current = { channels, sampleRate };
       recording.speed = speedRef.current; // carry the current practice tempo over
-      preferredSourceRef.current = "recording"; // a loaded recording is the focus
+      applyPreferred("recording"); // a loaded recording is the focus
       setSyncPoints(null);
       setFollow(false);
       setTapCount(null);
@@ -624,7 +625,7 @@ export function App() {
       await selectRecording(next[0]!.id);
     } else {
       recording.pause();
-      preferredSourceRef.current = "synth";
+      applyPreferred("synth");
       setActiveRecId(null);
       setSyncPoints(null);
       setFollow(false);
@@ -713,28 +714,35 @@ export function App() {
     }
   }
 
-  // A/B: jump between synth and recording at the same musical position.
-  function toggleSynthRecording() {
+  // Switch which source the transport plays, jumping to the same musical
+  // position and preserving whether it was playing. Silences the other source
+  // first so the two can never sound at once.
+  function switchSource(target: "synth" | "recording") {
     const player = playerRef.current;
-    if (!player || !activeRecId) return;
+    if (!player || activeRecIdRef.current === null || preferredSourceRef.current === target) return;
     const points = syncPointsRef.current;
-    if (recording.playing) {
-      // Switch to synth at the mapped tick.
-      const tick = points ? Math.round(tickAtMediaTime(points, recording.position)) : 0;
+    const wasPlaying = recording.playing || player.playing;
+    if (target === "synth") {
+      const tick = points ? Math.round(tickAtMediaTime(points, recording.position)) : player.cursorTick;
       recording.pause();
-      preferredSourceRef.current = "synth";
-      player.playFromTick(Math.max(0, tick));
+      applyPreferred("synth");
+      if (wasPlaying) player.playFromTick(Math.max(0, tick));
+      else player.cursorTick = Math.max(0, tick);
       setAnnouncement("Synth");
     } else {
-      // Switch to recording at the mapped time.
       const tick = player.cursorTick;
       const time = points ? mediaTimeAtTick(points, tick) : 0;
-      if (player.playing) player.playPause();
-      preferredSourceRef.current = "recording";
+      player.stop();
+      applyPreferred("recording");
       recording.seek(time);
-      void recording.play();
+      if (wasPlaying) void recording.play();
       setAnnouncement("Recording");
     }
+  }
+
+  // A/B (key "v"): flip to the other source.
+  function toggleSynthRecording() {
+    switchSource(preferredSourceRef.current === "recording" ? "synth" : "recording");
   }
 
   function applyPitchSemitones(value: number) {
@@ -1152,14 +1160,14 @@ export function App() {
   // the Space key, and the media keys all route through here so they agree.
   const togglePlayRef = useRef(() => {});
   togglePlayRef.current = () => {
-    // Pause whatever is currently sounding; otherwise start the preferred source.
-    if (recording.playing) {
-      recording.pause();
-    } else if (playerRef.current?.playing) {
-      playerRef.current.playPause();
-    } else if (preferredSourceRef.current === "recording" && activeRecIdRef.current !== null) {
-      void recording.play();
+    // Key the decision off the source we control, not alphaTab's async player
+    // state, and always silence the other source, so the two can never overlap.
+    if (preferredSourceRef.current === "recording" && activeRecIdRef.current !== null) {
+      playerRef.current?.stop();
+      if (recording.playing) recording.pause();
+      else void recording.play();
     } else {
+      recording.pause();
       synthPlayPause();
     }
   };
@@ -1334,8 +1342,13 @@ export function App() {
     activeRecIdRef.current = activeRecId;
   }, [activeRecId]);
   // Which source the transport acts on: flips to "recording" when one loads and
-  // back to "synth" on A/B, so play/stop/position/speed follow what you hear.
+  // back to "synth" via the source toggle, so play/stop/position/speed follow
+  // what you hear. The ref is read inside event handlers; the state drives UI.
   const preferredSourceRef = useRef<"synth" | "recording">("synth");
+  function applyPreferred(which: "synth" | "recording") {
+    preferredSourceRef.current = which;
+    setPreferredSource(which);
+  }
   const tapCountRef = useRef<number | null>(null);
   useEffect(() => {
     tapCountRef.current = tapCount;
@@ -1376,36 +1389,27 @@ export function App() {
       switch (e.code) {
         case "Space": {
           e.preventDefault();
-          if (onRecording) {
-            if (recording.playing) recording.pause();
-            else void recording.play();
-          } else {
-            playerRef.current?.playPause();
-          }
+          togglePlayRef.current();
           return;
         }
         case "Minus":
         case "Equal": {
           e.preventDefault();
           const delta = e.code === "Minus" ? -0.05 : 0.05;
-          if (onRecording) recording.speed = clampSpeed(recording.speed + delta);
-          else setSynthSpeed(clampSpeed(speedRef.current + delta));
+          setSynthSpeed(clampSpeed(speedRef.current + delta));
           return;
         }
         case "KeyH": {
           if (editModeRef.current) return;
           e.preventDefault();
-          const transport = onRecording ? "recording" : "synth";
-          const current = onRecording ? recording.speed : speedRef.current;
+          // Toggle to half speed and back; one practice tempo drives both sources.
           const held = halfSpeedReturnRef.current;
-          if (current === 0.5 && held && held.transport === transport) {
-            if (onRecording) recording.speed = held.speed;
-            else setSynthSpeed(held.speed);
+          if (speedRef.current === 0.5 && held) {
+            setSynthSpeed(held.speed);
             halfSpeedReturnRef.current = null;
           } else {
-            halfSpeedReturnRef.current = { transport, speed: current };
-            if (onRecording) recording.speed = 0.5;
-            else setSynthSpeed(0.5);
+            halfSpeedReturnRef.current = { transport: "synth", speed: speedRef.current };
+            setSynthSpeed(0.5);
           }
           return;
         }
@@ -1984,6 +1988,26 @@ export function App() {
               )}
             </span>
           </Popover>
+          {activeRecId !== null && (
+            <div className="mode-toggle source-toggle" role="group" aria-label="Playback source">
+              <button
+                className={preferredSource === "recording" ? "on" : ""}
+                aria-pressed={preferredSource === "recording"}
+                onClick={() => switchSource("recording")}
+                title="Play the recording"
+              >
+                Recording
+              </button>
+              <button
+                className={preferredSource === "synth" ? "on" : ""}
+                aria-pressed={preferredSource === "synth"}
+                onClick={() => switchSource("synth")}
+                title="Play the notation (synth)"
+              >
+                Synth
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Practice aids (advanced) */}
@@ -2035,11 +2059,6 @@ export function App() {
             >
               <RecordIcon />
             </button>
-            {activeRecId !== null && (
-              <button className="btn-icon" onClick={toggleSynthRecording} title="A/B synth and recording (v)" aria-label="A/B synth and recording">
-                A/B
-              </button>
-            )}
           </div>
         )}
 

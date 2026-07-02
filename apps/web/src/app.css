@@ -1082,3 +1082,16 @@ body {
   fill: var(--accent);
   stroke: var(--accent);
 }
+
+/* Source toggle (Recording | Synth) sits in the light toolbar, not the header. */
+.source-toggle {
+  border-color: var(--border-strong);
+}
+.source-toggle button {
+  color: var(--fg);
+  min-height: 32px;
+}
+.source-toggle button.on {
+  background: var(--accent);
+  color: #fff;
+}
