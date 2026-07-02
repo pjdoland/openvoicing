@@ -5,6 +5,15 @@ export interface ValidationIssue {
   code: string;
   message: string;
   where?: string;
+  /** "error" (default) means a structural defect; "warning" means an
+   * irregularity that occurs in real (often machine-generated) sources and must
+   * not block import. */
+  severity?: "error" | "warning";
+}
+
+/** Only the error-severity issues (warnings are tolerated on imported sources). */
+export function validationErrors(doc: ScoreV1): ValidationIssue[] {
+  return validateScoreV1(doc).filter((i) => (i.severity ?? "error") === "error");
 }
 
 /**
@@ -64,6 +73,7 @@ export function validateScoreV1(doc: ScoreV1): ValidationIssue[] {
         if (!implicit && voice.beats.length > 0 && Math.abs(filled - barTicks) > 1) {
           issues.push({
             code: "bar-fill",
+            severity: "warning",
             message: `voice ${voice.id} fills ${filled} of ${barTicks} ticks (${part.name} bar ${barIndex})`,
           });
         }

@@ -6,4 +6,7 @@ export {
   beatStartTicks,
   tupletIndex,
 } from "./durations";
-export { validateScoreV1, type ValidationIssue } from "./validate";
+export { validateScoreV1, validationErrors, type ValidationIssue } from "./validate";
+export { importMusicXmlV1 } from "./import-musicxml";
+export { exportMusicXmlV1 } from "./export-musicxml";
+export { canonicalizeMusicXml, canonicalizeV1, type CanonicalScore } from "./canonical";
