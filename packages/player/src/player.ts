@@ -327,6 +327,61 @@ export class Player {
     this.api.downloadMidi();
   }
 
+  /**
+   * Render a programmatically-constructed alphaTab Score (the model→render
+   * adapter's target). alphaTab does not finish a hand-built score, so we run
+   * the finish pipeline first — without it, playback ticks
+   * (beat.playbackStart/Duration) stay 0 and the score won't play or sync.
+   */
+  renderScore(score: alphaTab.model.Score): void {
+    score.finish(this.api.settings);
+    score.rebuildRepeatGroups();
+    this.api.renderScore(score, undefined);
+  }
+
+  /**
+   * P0 render-adapter proof: build a minimal Score from scratch and render it
+   * via {@link renderScore}. Kept as an executable reference + e2e regression
+   * guard for the programmatic-render path Option C depends on.
+   */
+  spikeRenderMinimal(): void {
+    const m = alphaTab.model;
+    const score = new m.Score();
+    score.title = "spike";
+    for (let i = 0; i < 2; i++) {
+      const mb = new m.MasterBar();
+      mb.timeSignatureNumerator = 4;
+      mb.timeSignatureDenominator = 4;
+      score.addMasterBar(mb);
+    }
+    const track = new m.Track();
+    track.name = "Spike";
+    score.addTrack(track);
+    const staff = new m.Staff();
+    track.addStaff(staff);
+    const tonesPerBar = [
+      [0, 2, 4, 5],
+      [7, 9, 11, 0],
+    ];
+    for (const tones of tonesPerBar) {
+      const bar = new m.Bar();
+      bar.clef = m.Clef.G2;
+      staff.addBar(bar);
+      const voice = new m.Voice();
+      bar.addVoice(voice);
+      for (const tone of tones) {
+        const beat = new m.Beat();
+        beat.duration = m.Duration.Quarter;
+        voice.addBeat(beat);
+        const note = new m.Note();
+        note.octave = 4;
+        note.tone = tone;
+        beat.addNote(note);
+      }
+    }
+    this.renderScore(score);
+  }
+
   destroy(): void {
     this.api.destroy();
   }
