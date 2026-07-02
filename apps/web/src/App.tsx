@@ -85,17 +85,29 @@ function loadScoreIntoPlayer(player: Player, source: ScoreSource): ScoreEditor |
     return null;
   }
   if (source.type === "musicxml") {
-    try {
-      const doc = importMusicXml(new TextDecoder().decode(source.data));
-      player.loadTex(toAlphaTex(doc));
-      return new ScoreEditor(doc);
-    } catch {
-      // Binary containers (.mxl) and files the v0 importer cannot handle
-      // fall back to alphaTab's native parser, read-only.
+    const text = new TextDecoder().decode(source.data);
+    // The v0 model is single-staff/single-voice; routing a piano or ensemble
+    // score through it would drop staves (e.g. the bass clef). Render those
+    // natively for full fidelity (read-only); keep simple scores editable.
+    if (!isMultiStaffMusicXml(text)) {
+      try {
+        const doc = importMusicXml(text);
+        player.loadTex(toAlphaTex(doc));
+        return new ScoreEditor(doc);
+      } catch {
+        // Files the v0 importer cannot handle fall back to native, read-only.
+      }
     }
   }
   player.load(new Uint8Array(source.data));
   return null;
+}
+
+/** True when a MusicXML has more than one part or a second staff (grand staff). */
+function isMultiStaffMusicXml(xml: string): boolean {
+  const parts = xml.match(/<score-part\b/g)?.length ?? 0;
+  if (parts > 1) return true;
+  return /<staff>\s*[2-9]/.test(xml) || /<staves>\s*[2-9]/.test(xml);
 }
 
 function newRecordingId(): string {

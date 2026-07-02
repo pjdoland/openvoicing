@@ -58,6 +58,21 @@ describe("alignBarsToOnsets", () => {
     expect(aligned).toHaveLength(4);
   });
 
+  it("spreads bars across a long, dense recording instead of compressing them", () => {
+    // Score nominal span is 0..9s, but the performance is 50% slower (rubato)
+    // and dense (a mid-bar onset too). Bars must reach the end, not cram early.
+    const expected = Array.from({ length: 10 }, (_, i) => i);
+    const trueScale = 1.5;
+    const onsets: number[] = [];
+    for (let i = 0; i < 10; i++) {
+      onsets.push(i * trueScale); // downbeat
+      onsets.push(i * trueScale + 0.75); // a mid-bar note
+    }
+    const aligned = alignBarsToOnsets(expected, onsets);
+    expect(Math.abs(aligned[0]! - 0)).toBeLessThan(0.2);
+    expect(Math.abs(aligned[9]! - 9 * trueScale)).toBeLessThan(0.3);
+  });
+
   it("stays strictly increasing", () => {
     const aligned = alignBarsToOnsets([0, 0.01, 0.02], [0.5]);
     expect(aligned[1]!).toBeGreaterThan(aligned[0]!);

@@ -78,7 +78,17 @@ export function alignBarsToOnsets(expectedTimes: number[], onsets: number[]): nu
   if (onsets.length === 0) return [...expectedTimes];
 
   const first = expectedTimes[0]!;
+  const last = expectedTimes[expectedTimes.length - 1]!;
+  const expectedSpan = last - first;
+  const onsetSpan = onsets[onsets.length - 1]! - onsets[0]!;
   const tolerance = 0.1;
+  // With at least one onset per bar the recording is dense enough that a single
+  // hit-count no longer discriminates tempo (many scales land every bar on some
+  // onset), so ties break toward the scale whose span matches the recording's,
+  // spreading bars across the whole take. When onsets are sparse, hits are
+  // meaningful and ties break toward the score's nominal tempo instead.
+  const dense = onsets.length >= expectedTimes.length && expectedSpan > 0;
+  const spanFit = (scale: number) => Math.abs(expectedSpan * scale - onsetSpan);
   let best = { scale: 1, offset: onsets[0]! - first, hits: -1 };
   for (let scale = 0.5; scale <= 2.0001; scale += 0.01) {
     for (const candidate of onsets.slice(0, 8)) {
@@ -88,11 +98,10 @@ export function alignBarsToOnsets(expectedTimes: number[], onsets: number[]): nu
         const predicted = expected * scale + offset;
         if (Math.abs(nearest(onsets, predicted) - predicted) <= tolerance) hits++;
       }
-      // Dense periodic onsets make several tempo octaves fit perfectly, so
-      // ties break toward the scale closest to the score's nominal tempo.
-      const better =
-        hits > best.hits ||
-        (hits === best.hits && Math.abs(Math.log(scale)) < Math.abs(Math.log(best.scale)));
+      const tieBetter = dense
+        ? spanFit(scale) < spanFit(best.scale)
+        : Math.abs(Math.log(scale)) < Math.abs(Math.log(best.scale));
+      const better = hits > best.hits || (hits === best.hits && tieBetter);
       if (better) best = { scale, offset, hits };
     }
   }

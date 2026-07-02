@@ -66,6 +66,11 @@ export class Player {
       player: {
         playerMode: alphaTab.PlayerMode.EnabledAutomatic,
         soundFont: options.soundFontUrl,
+        // Show where playback is: highlight the active bar/beat and follow it.
+        enableCursor: true,
+        enableAnimatedBeatCursor: true,
+        enableElementHighlighting: true,
+        scrollMode: alphaTab.ScrollMode.Continuous,
       },
     });
 

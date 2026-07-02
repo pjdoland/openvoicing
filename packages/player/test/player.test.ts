@@ -58,6 +58,7 @@ vi.mock("@coderline/alphatab", () => ({
     return api;
   }),
   PlayerMode: { EnabledAutomatic: 1 },
+  ScrollMode: { Off: 0, Continuous: 1, OffScreen: 2 },
   synth: { PlayerState: { Paused: 0, Playing: 1 } },
 }));
 

@@ -1069,3 +1069,16 @@ body {
   .tagline { display: none; }
   .position { font-size: 0.75rem; }
 }
+
+/* ===== alphaTab playback position cursor / active bar highlight ===== */
+.at-cursor-bar {
+  background: color-mix(in srgb, var(--accent) 22%, transparent);
+}
+.at-cursor-beat {
+  background: var(--accent);
+  width: 2px;
+}
+.at-highlight * {
+  fill: var(--accent);
+  stroke: var(--accent);
+}
