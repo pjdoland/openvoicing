@@ -11,6 +11,7 @@ import {
   toAlphaTex,
   toMidi,
   toMusicXml,
+  v1,
   type Beat,
   type BeatAddress,
   type ScoreDocument,
@@ -386,6 +387,9 @@ export function App() {
       w.__ovRecording = recording;
       w.__ovEditor = () => editorRef.current;
       w.__ovSelected = () => selectedBeatRef.current;
+      // Dev hook: render any MusicXML through the full-fidelity v1 pipeline
+      // (import -> v1 model -> alphaTab adapter), the Option C render path.
+      w.__ovRenderV1 = (xml: string) => player.renderV1(v1.importMusicXmlV1(xml));
     }
     let disposed = false;
     void (async () => {

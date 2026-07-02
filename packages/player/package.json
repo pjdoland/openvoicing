@@ -13,7 +13,8 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@coderline/alphatab": "^1.8.3"
+    "@coderline/alphatab": "^1.8.3",
+    "@openvoicing/score-model": "workspace:*"
   },
   "devDependencies": {
     "typescript": "^6.0.3",

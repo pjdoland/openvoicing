@@ -116,6 +116,9 @@ importers:
       '@coderline/alphatab':
         specifier: ^1.8.3
         version: 1.8.3
+      '@openvoicing/score-model':
+        specifier: workspace:*
+        version: link:../score-model
     devDependencies:
       typescript:
         specifier: ^6.0.3

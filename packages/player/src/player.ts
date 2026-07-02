@@ -1,4 +1,6 @@
 import * as alphaTab from "@coderline/alphatab";
+import { v1 } from "@openvoicing/score-model";
+import { toAlphaTabScore } from "./alphatab-adapter";
 
 export interface TrackInfo {
   index: number;
@@ -337,6 +339,11 @@ export class Player {
     score.finish(this.api.settings);
     score.rebuildRepeatGroups();
     this.api.renderScore(score, undefined);
+  }
+
+  /** Render a full-fidelity v1 document via the model→alphaTab adapter. */
+  renderV1(doc: v1.ScoreV1): void {
+    this.renderScore(toAlphaTabScore(doc));
   }
 
   /**
