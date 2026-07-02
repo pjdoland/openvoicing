@@ -310,3 +310,5 @@ body {
   line-height: 1;
   padding: 0 4px;
 }
+
+.sync-marker.conf-good, .sync-marker.conf-fair, .sync-marker.conf-poor { color: #fff; }

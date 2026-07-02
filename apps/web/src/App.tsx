@@ -11,6 +11,7 @@ import {
   toAlphaTex,
   toMidi,
   toMusicXml,
+  type Beat,
   type BeatAddress,
   type ScoreDocument,
   type SyncPoint,
@@ -65,6 +66,10 @@ function newRecordingId(): string {
   return globalThis.crypto.randomUUID().slice(0, 8);
 }
 
+function structuredCloneBeat(beat: Beat): Beat {
+  return structuredClone(beat);
+}
+
 function sanitizeName(name: string): string {
   return name.replace(/[^\w.-]+/g, "_");
 }
@@ -98,6 +103,15 @@ export function App() {
   const editModeRef = useRef(false);
   const selectedBeatRef = useRef<BeatAddress | null>(null);
   const [selectedBeat, setSelectedBeat] = useState<BeatAddress | null>(null);
+  const clipboardRef = useRef<Beat[] | null>(null);
+  // Range anchor for Shift+Arrow selection within a bar; null when single-beat.
+  const rangeAnchorRef = useRef<number | null>(null);
+  const rangeEndRef = useRef<number | null>(null);
+  const [, setRangeEnd] = useState<number | null>(null);
+  function updateRangeEnd(value: number | null) {
+    rangeEndRef.current = value;
+    setRangeEnd(value);
+  }
 
   useEffect(() => {
     editModeRef.current = editMode;
@@ -728,10 +742,72 @@ export function App() {
         if (changed) rerenderScore();
         return;
       }
+      const selectedForClip = selectedBeatRef.current;
+      if ((e.metaKey || e.ctrlKey) && (e.code === "KeyC" || e.code === "KeyX") && selectedForClip) {
+        e.preventDefault();
+        const beats =
+          editor.doc.parts[selectedForClip.partIndex]?.measures[selectedForClip.barIndex]?.voices[
+            selectedForClip.voiceIndex
+          ]?.beats ?? [];
+        const anchor = rangeAnchorRef.current;
+        const lo = anchor === null ? selectedForClip.beatIndex : Math.min(anchor, rangeEndRef.current ?? anchor);
+        const hi = anchor === null ? selectedForClip.beatIndex : Math.max(anchor, rangeEndRef.current ?? anchor);
+        clipboardRef.current = beats.slice(lo, hi + 1).map(structuredCloneBeat);
+        if (e.code === "KeyX") {
+          // Delete from the end so indices stay valid.
+          let changed = false;
+          for (let i = hi; i >= lo; i--) {
+            changed = editor.deleteBeat({ ...selectedForClip, beatIndex: i }) || changed;
+          }
+          if (changed) {
+            const remaining =
+              editor.doc.parts[selectedForClip.partIndex]?.measures[selectedForClip.barIndex]
+                ?.voices[selectedForClip.voiceIndex]?.beats ?? [];
+            const sel =
+              remaining.length === 0
+                ? null
+                : { ...selectedForClip, beatIndex: Math.min(lo, remaining.length - 1) };
+            selectedBeatRef.current = sel;
+            setSelectedBeat(sel);
+            rerenderScore();
+          }
+        }
+        rangeAnchorRef.current = null;
+        updateRangeEnd(null);
+        return;
+      }
+      if ((e.metaKey || e.ctrlKey) && e.code === "KeyV" && selectedForClip && clipboardRef.current) {
+        e.preventDefault();
+        if (editor.insertBeatsAfter(selectedForClip, clipboardRef.current)) {
+          const next = { ...selectedForClip, beatIndex: selectedForClip.beatIndex + 1 };
+          selectedBeatRef.current = next;
+          setSelectedBeat(next);
+          rerenderScore();
+        }
+        return;
+      }
       const selected = selectedBeatRef.current;
       if (!selected || e.metaKey || e.ctrlKey || e.altKey) return;
+      // Shift+Arrow extends a selection range within the current bar.
+      if ((e.code === "ArrowLeft" || e.code === "ArrowRight") && e.shiftKey) {
+        e.preventDefault();
+        const beats =
+          editor.doc.parts[selected.partIndex]?.measures[selected.barIndex]?.voices[
+            selected.voiceIndex
+          ]?.beats ?? [];
+        if (rangeAnchorRef.current === null) rangeAnchorRef.current = selected.beatIndex;
+        const delta = e.code === "ArrowRight" ? 1 : -1;
+        const nextEnd = Math.min(
+          beats.length - 1,
+          Math.max(0, (rangeEndRef.current ?? selected.beatIndex) + delta),
+        );
+        updateRangeEnd(nextEnd);
+        return;
+      }
       if (e.code === "ArrowLeft" || e.code === "ArrowRight") {
         e.preventDefault();
+        rangeAnchorRef.current = null;
+        updateRangeEnd(null);
         const next = neighborBeatAddress(
           editor.doc,
           selected,
@@ -759,6 +835,53 @@ export function App() {
       if (e.code === "KeyT") {
         e.preventDefault();
         if (editor.toggleTie(selected)) rerenderScore();
+        return;
+      }
+      if (e.code === "Period") {
+        e.preventDefault();
+        if (editor.toggleDotted(selected)) rerenderScore();
+        return;
+      }
+      if (e.code === "Equal" || e.code === "Minus") {
+        e.preventDefault();
+        if (editor.cycleAccidental(selected, e.code === "Equal" ? 1 : -1)) rerenderScore();
+        return;
+      }
+      if (e.code === "KeyB") {
+        e.preventDefault();
+        if (editor.repeatPreviousBar(selected)) rerenderScore();
+        return;
+      }
+      // Shift + a-g adds a note to the chord.
+      const chordMatch = e.shiftKey ? /^Key([A-G])$/.exec(e.code) : null;
+      if (chordMatch) {
+        e.preventDefault();
+        if (editor.addNoteToChord(selected, chordMatch[1] as "A")) rerenderScore();
+        return;
+      }
+      if (e.code === "Digit3" && e.shiftKey) {
+        e.preventDefault();
+        const beat =
+          editor.doc.parts[selected.partIndex]?.measures[selected.barIndex]?.voices[
+            selected.voiceIndex
+          ]?.beats[selected.beatIndex];
+        if (editor.setTuplet(selected, beat?.tuplet ? null : 3)) rerenderScore();
+        return;
+      }
+      if (e.code === "KeyL") {
+        e.preventDefault();
+        const beat =
+          editor.doc.parts[selected.partIndex]?.measures[selected.barIndex]?.voices[
+            selected.voiceIndex
+          ]?.beats[selected.beatIndex];
+        const lyric = window.prompt("Lyric syllable", beat?.lyric ?? "");
+        if (lyric !== null && editor.setLyric(selected, lyric)) rerenderScore();
+        return;
+      }
+      if (e.code === "Escape") {
+        e.preventDefault();
+        selectedBeatRef.current = null;
+        setSelectedBeat(null);
         return;
       }
       if (e.code === "ArrowUp" || e.code === "ArrowDown") {
@@ -855,8 +978,10 @@ export function App() {
         return;
       }
       if (tapCountRef.current !== null) return;
+      // In edit mode the score editor owns the keyboard (its own handler runs).
+      if (editModeRef.current) return;
       // Cmd/Ctrl+Z undoes sync-map edits when the score editor is not active.
-      if ((e.metaKey || e.ctrlKey) && e.code === "KeyZ" && !editModeRef.current) {
+      if ((e.metaKey || e.ctrlKey) && e.code === "KeyZ") {
         e.preventDefault();
         undoSync();
         return;
@@ -1218,14 +1343,70 @@ export function App() {
         {editMode && (
           <span className="hint">
             {selectedBeat
-              ? "a-g pitch, ←→ select, ↑↓ transpose, 1/2/4/8/6/3 duration, r rest, i insert, x delete, t tie, j respell, Cmd+Z undo"
-              : "click a note to select it"}
+              ? `bar ${selectedBeat.barIndex + 1}: a-g pitch, Shift+a-g chord, ←→ move, ↑↓ transpose, 1-8 dur, . dot, +/− accidental, Shift+3 triplet, r rest, b repeat bar, l lyric, t tie, i insert, x delete`
+              : "click a note to select it, or press Esc to deselect"}
           </span>
         )}
 
         <span className="position">
           {formatTime(position.current)} / {formatTime(position.total)}
         </span>
+
+        <span className="control" title="Jump to a bar number">
+          <input
+            className="bars-input"
+            placeholder="go to bar"
+            aria-label="Go to bar"
+            size={7}
+            onKeyDown={(e) => {
+              if (e.key !== "Enter") return;
+              const n = parseInt((e.target as HTMLInputElement).value, 10);
+              const player = playerRef.current;
+              if (player && n >= 1 && n <= player.barTicks.length) {
+                player.cursorTick = player.barTicks[n - 1]!.start;
+              }
+            }}
+          />
+        </span>
+
+        {editMode && (
+          <>
+            <button
+              onClick={() => {
+                if (editorRef.current?.undo()) rerenderScore();
+              }}
+              disabled={!editorRef.current?.canUndo}
+              title="Undo edit (Cmd+Z)"
+            >
+              ↶ Undo
+            </button>
+            <button
+              onClick={() => {
+                if (editorRef.current?.redo()) rerenderScore();
+              }}
+              disabled={!editorRef.current?.canRedo}
+              title="Redo edit (Shift+Cmd+Z)"
+            >
+              ↷ Redo
+            </button>
+            <button
+              onClick={() => {
+                if (editorRef.current?.transposeScore(1)) rerenderScore();
+              }}
+              title="Transpose whole score up a semitone"
+            >
+              Transpose +
+            </button>
+            <button
+              onClick={() => {
+                if (editorRef.current?.transposeScore(-1)) rerenderScore();
+              }}
+              title="Transpose whole score down a semitone"
+            >
+              Transpose −
+            </button>
+          </>
+        )}
 
         <button onClick={newScore}>New score</button>
         {hasEditor && (

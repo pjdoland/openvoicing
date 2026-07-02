@@ -1,5 +1,13 @@
 import { newId } from "./ids";
-import type { Beat, Note, NoteStep, ScoreDocument, Voice } from "./types";
+import { PPQ, type Beat, type Note, type NoteStep, type ScoreDocument, type Voice } from "./types";
+
+/** True for whole..64th note lengths (powers of two of PPQ), not dotted or tuplet. */
+function isPlainDuration(ticks: number): boolean {
+  for (let d = PPQ * 4; d >= PPQ / 16; d /= 2) {
+    if (ticks === d) return true;
+  }
+  return false;
+}
 
 const STEP_SEMITONES: Record<NoteStep, number> = {
   C: 0,
@@ -217,6 +225,24 @@ export class ScoreEditor {
     return { ...address, beatIndex: address.beatIndex + 1 };
   }
 
+  /** Insert deep copies of beats (with fresh ids) after an address. */
+  insertBeatsAfter(address: BeatAddress, beats: Beat[]): boolean {
+    if (beats.length === 0) return false;
+    const voice = this.locateVoice(this.doc, address);
+    if (!voice) return false;
+    const next = structuredClone(this.doc);
+    const nextVoice = this.locateVoice(next, address)!;
+    const clones = beats.map((b) => ({
+      ...structuredClone(b),
+      id: newId("beat"),
+      notes: b.notes.map((n) => ({ ...n, id: newId("note") })),
+    }));
+    nextVoice.beats.splice(address.beatIndex + 1, 0, ...clones);
+    this.recomputeStartTicks(nextVoice);
+    this.commit(next);
+    return true;
+  }
+
   /** Remove a beat, repacking the voice. */
   deleteBeat(address: BeatAddress): boolean {
     const beat = this.locateBeat(this.doc, address);
@@ -270,6 +296,152 @@ export class ScoreEditor {
       if (spelling) {
         note.step = spelling.step;
         note.alter = spelling.alter;
+      }
+    }
+    this.commit(next);
+    return true;
+  }
+
+  /** Toggle an augmentation dot: dotted lengthens by half, undot restores. */
+  toggleDotted(address: BeatAddress): boolean {
+    const beat = this.locateBeat(this.doc, address);
+    if (!beat) return false;
+    // Dotted if the un-dotted length (duration / 1.5) is a plain power-of-two value.
+    const base = (beat.durationTicks / 3) * 2;
+    const dotted = Number.isInteger(base) && isPlainDuration(base);
+    const next = structuredClone(this.doc);
+    const target = this.locateBeat(next, address)!;
+    target.durationTicks = dotted ? base : Math.round(beat.durationTicks * 1.5);
+    this.recomputeStartTicks(this.locateVoice(next, address)!);
+    this.commit(next);
+    return true;
+  }
+
+  /** Shift the beat's notes chromatically by one semitone, keeping their steps. */
+  cycleAccidental(address: BeatAddress, delta: 1 | -1): boolean {
+    const notes = this.locateNotes(this.doc, address);
+    if (!notes || notes.length === 0) return false;
+    for (const note of notes) {
+      if (note.alter + delta < -2 || note.alter + delta > 2) return false;
+    }
+    const next = structuredClone(this.doc);
+    for (const note of this.locateNotes(next, address)!) note.alter += delta;
+    this.commit(next);
+    return true;
+  }
+
+  /** Add a note of the given step to the beat's chord (nearest octave). */
+  addNoteToChord(address: BeatAddress, step: NoteStep): boolean {
+    const beat = this.locateBeat(this.doc, address);
+    if (!beat || beat.notes.length === 0) return false;
+    const refMidi = pitchToMidi(beat.notes[0]!.step, beat.notes[0]!.alter, beat.notes[0]!.octave);
+    let octave = 4;
+    let bestDistance = Infinity;
+    for (let candidate = 0; candidate <= 8; candidate++) {
+      const distance = Math.abs(pitchToMidi(step, 0, candidate) - refMidi);
+      if (distance < bestDistance) {
+        bestDistance = distance;
+        octave = candidate;
+      }
+    }
+    const midi = pitchToMidi(step, 0, octave);
+    if (beat.notes.some((n) => pitchToMidi(n.step, n.alter, n.octave) === midi)) return false;
+    const next = structuredClone(this.doc);
+    this.locateBeat(next, address)!.notes.push({ id: newId("note"), step, alter: 0, octave });
+    this.commit(next);
+    return true;
+  }
+
+  /** Copy the previous measure's content into this one. */
+  repeatPreviousBar(address: BeatAddress): boolean {
+    if (address.barIndex === 0) return false;
+    const part = this.doc.parts[address.partIndex];
+    const prev = part?.measures[address.barIndex - 1]?.voices[address.voiceIndex];
+    if (!prev || prev.beats.length === 0) return false;
+    const next = structuredClone(this.doc);
+    const voice = this.locateVoice(next, address)!;
+    voice.beats = prev.beats.map((b) => ({
+      ...structuredClone(b),
+      id: newId("beat"),
+      notes: b.notes.map((n) => ({ ...n, id: newId("note") })),
+    }));
+    this.recomputeStartTicks(voice);
+    this.commit(next);
+    return true;
+  }
+
+  /** Set or clear a tuplet grouping on a beat (e.g. 3 for a triplet). */
+  setTuplet(address: BeatAddress, tuplet: number | null): boolean {
+    const beat = this.locateBeat(this.doc, address);
+    if (!beat) return false;
+    const next = structuredClone(this.doc);
+    const target = this.locateBeat(next, address)!;
+    if (tuplet) target.tuplet = tuplet;
+    else delete target.tuplet;
+    this.commit(next);
+    return true;
+  }
+
+  /** Set or clear the lyric syllable under a beat. */
+  setLyric(address: BeatAddress, lyric: string): boolean {
+    const beat = this.locateBeat(this.doc, address);
+    if (!beat) return false;
+    const next = structuredClone(this.doc);
+    const target = this.locateBeat(next, address)!;
+    if (lyric) target.lyric = lyric;
+    else delete target.lyric;
+    this.commit(next);
+    return true;
+  }
+
+  /** Change the time signature from a bar onward until the next explicit change. */
+  setTimeSignatureFrom(barIndex: number, beats: number, beatUnit: number): boolean {
+    if (!this.doc.bars[barIndex]) return false;
+    const prior = this.doc.bars[barIndex]!.timeSignature;
+    const next = structuredClone(this.doc);
+    for (let i = barIndex; i < next.bars.length; i++) {
+      const bar = next.bars[i]!;
+      if (i > barIndex && (bar.timeSignature.beats !== prior.beats || bar.timeSignature.beatUnit !== prior.beatUnit)) {
+        break;
+      }
+      bar.timeSignature = { beats, beatUnit };
+    }
+    this.commit(next);
+    return true;
+  }
+
+  /** Change the key signature from a bar onward until the next explicit change. */
+  setKeyFrom(barIndex: number, keyFifths: number): boolean {
+    if (!this.doc.bars[barIndex]) return false;
+    const prior = this.doc.bars[barIndex]!.keyFifths;
+    const next = structuredClone(this.doc);
+    for (let i = barIndex; i < next.bars.length; i++) {
+      const bar = next.bars[i]!;
+      if (i > barIndex && bar.keyFifths !== prior) break;
+      bar.keyFifths = keyFifths;
+    }
+    this.commit(next);
+    return true;
+  }
+
+  /** Transpose every note in the score by a number of semitones. */
+  transposeScore(semitones: number): boolean {
+    if (semitones === 0) return false;
+    const next = structuredClone(this.doc);
+    for (const part of next.parts) {
+      for (const measure of part.measures) {
+        for (const voice of measure.voices) {
+          for (const beat of voice.beats) {
+            for (const note of beat.notes) {
+              const midi = pitchToMidi(note.step, note.alter, note.octave) + semitones;
+              if (midi < 0 || midi > 127) return false;
+              const pitch = midiToPitch(midi);
+              note.step = pitch.step;
+              note.alter = pitch.alter;
+              note.octave = pitch.octave;
+            }
+          }
+        }
       }
     }
     this.commit(next);

@@ -55,14 +55,29 @@ function barTicks(ts: TimeSignature): number {
 }
 
 function beatToTex(beat: Beat): string {
-  const duration = durationName(beat.durationTicks);
-  if (beat.rest || beat.notes.length === 0) return `r.${duration}`;
-  // A tie continuation is written as "-" placeholders: (-).4 or (- -).4.
-  if (beat.notes.every((n) => n.tieStop)) {
-    return `(${beat.notes.map(() => "-").join(" ")}).${duration}`;
-  }
-  if (beat.notes.length === 1) return `${noteToTex(beat.notes[0]!)}.${duration}`;
-  return `(${beat.notes.map(noteToTex).join(" ")}).${duration}`;
+  const duration = durationName(beat.tuplet ? tupletBaseTicks(beat) : beat.durationTicks);
+  const effects: string[] = [];
+  if (beat.tuplet) effects.push(`tu ${beat.tuplet}`);
+  if (beat.lyric) effects.push(`lyrics "${beat.lyric.replaceAll('"', "'")}"`);
+  const suffix = effects.length ? `{${effects.join(" ")}}` : "";
+  const core = (() => {
+    if (beat.rest || beat.notes.length === 0) return `r.${duration}`;
+    // A tie continuation is written as "-" placeholders: (-).4 or (- -).4.
+    if (beat.notes.every((n) => n.tieStop)) {
+      return `(${beat.notes.map(() => "-").join(" ")}).${duration}`;
+    }
+    if (beat.notes.length === 1) return `${noteToTex(beat.notes[0]!)}.${duration}`;
+    return `(${beat.notes.map(noteToTex).join(" ")}).${duration}`;
+  })();
+  return suffix ? `${core}${suffix}` : core;
+}
+
+/** The written (pre-tuplet) duration whose N-in-time value equals the beat's actual ticks. */
+function tupletBaseTicks(beat: Beat): number {
+  const tuplet = beat.tuplet ?? 3;
+  // A triplet eighth is written as an eighth; three fit where two would.
+  const nearestPow2 = Math.pow(2, Math.round(Math.log2(tuplet)));
+  return Math.round((beat.durationTicks * tuplet) / nearestPow2);
 }
 
 function noteToTex(note: Note): string {

@@ -85,6 +85,9 @@ function beatToXml(beat: Beat): string[] {
     if (note.tieStart) out.push('        <tie type="start"/>');
     out.push("        <voice>1</voice>");
     if (type) out.push(`        ${type}`);
+    if (i === 0 && beat.lyric) {
+      out.push(`        <lyric><text>${escapeXml(beat.lyric)}</text></lyric>`);
+    }
     if (note.tieStart || note.tieStop) {
       const tied = [
         ...(note.tieStop ? ['<tied type="stop"/>'] : []),

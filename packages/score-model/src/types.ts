@@ -43,6 +43,10 @@ export interface Beat {
   durationTicks: number;
   rest: boolean;
   notes: Note[];
+  /** Tuplet grouping (e.g. 3 for a triplet), absent for plain beats. */
+  tuplet?: number;
+  /** Optional lyric syllable under the beat. */
+  lyric?: string;
 }
 
 export interface Voice {
