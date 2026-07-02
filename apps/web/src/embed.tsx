@@ -15,6 +15,45 @@ function formatTime(seconds: number): string {
   return `${m}:${String(s).padStart(2, "0")}`;
 }
 
+function applyDeepLink(
+  params: URLSearchParams,
+  player: Player,
+  recording: RecordingPlayer,
+  syncPoints: SyncPoint[] | undefined,
+): { speed?: number } {
+  const applied: { speed?: number } = {};
+  const speed = Number(params.get("speed"));
+  if (speed >= 0.25 && speed <= 1.5) {
+    if (recording.duration > 0) recording.speed = speed;
+    else player.speed = speed;
+    applied.speed = speed;
+  }
+  const loop = params.get("loop");
+  if (loop && recording.duration > 0) {
+    const bars = /^b(\d+)-(\d+)$/.exec(loop);
+    const secs = /^([\d.]+)-([\d.]+)$/.exec(loop);
+    if (bars && syncPoints?.length) {
+      const ticks = player.barTicks;
+      const from = ticks[Number(bars[1]) - 1]?.start;
+      const toBar = ticks[Number(bars[2]) - 1];
+      if (from !== undefined && toBar) {
+        recording.setLoopRegion({
+          start: mediaTimeAtTick(syncPoints, from),
+          end: mediaTimeAtTick(syncPoints, toBar.start + toBar.duration),
+        });
+      }
+    } else if (secs) {
+      recording.setLoopRegion({ start: Number(secs[1]), end: Number(secs[2]) });
+    }
+  }
+  const start = Number(params.get("t"));
+  if (start > 0) {
+    if (recording.duration > 0) recording.seek(start);
+    else player.seekSeconds(start);
+  }
+  return applied;
+}
+
 function EmbedApp() {
   const containerRef = useRef<HTMLDivElement>(null);
   const playerRef = useRef<Player | null>(null);
@@ -35,7 +74,8 @@ function EmbedApp() {
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
-    const url = new URLSearchParams(window.location.search).get("bundle");
+    const params = new URLSearchParams(window.location.search);
+    const url = params.get("bundle");
     if (!url) {
       setError("No bundle specified. Use embed.html?bundle=<url>.");
       return;
@@ -95,6 +135,11 @@ function EmbedApp() {
           setActiveRecording(rec.id);
           syncRef.current = rec.syncPoints?.length ? rec.syncPoints : null;
         }
+
+        // Deep-link presets: ?speed=0.75&loop=2-6&t=1.5 (loop/t in seconds,
+        // or loop=b3-6 for bar numbers when the recording is synced).
+        const applied = applyDeepLink(params, player, recording, rec?.syncPoints);
+        if (applied.speed) setSpeed(applied.speed);
       } catch (err) {
         setError(err instanceof Error ? err.message : String(err));
       }
@@ -210,7 +255,13 @@ function EmbedApp() {
   }, [embedded, position]);
 
   if (error) {
-    return <div className="embed-error">{error}</div>;
+    return (
+      <div className="embed-error" role="alert">
+        <p>This OpenVoicing player could not load.</p>
+        <p className="embed-error-detail">{error}</p>
+        <button onClick={() => window.location.reload()}>Retry</button>
+      </div>
+    );
   }
 
   return (

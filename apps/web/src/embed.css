@@ -76,3 +76,21 @@ body {
   color: #b91c1c;
   font-size: 14px;
 }
+
+.embed-error {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+}
+.embed-error-detail {
+  color: #7a8494;
+  font-size: 12px;
+}
+.embed-error button {
+  padding: 6px 14px;
+  border: 1px solid #c8ceda;
+  border-radius: 6px;
+  background: #fff;
+  cursor: pointer;
+}

@@ -1401,12 +1401,55 @@ export function App() {
     URL.revokeObjectURL(link.href);
   }
 
+  function copyEmbedCode() {
+    const origin = window.location.origin;
+    const snippet = `<script src="${origin}/openvoicing-embed.js"></script>\n<div data-openvoicing-bundle="YOUR_BUNDLE_URL"></div>`;
+    void navigator.clipboard.writeText(snippet).then(
+      () => showToast("Embed code copied. Replace YOUR_BUNDLE_URL with your hosted .ovb."),
+      () => window.prompt("Copy the embed code:", snippet),
+    );
+  }
+
+  async function openFromUrl() {
+    const url = window.prompt("Bundle or MusicXML URL");
+    if (!url) return;
+    try {
+      const response = await fetch(url);
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const buffer = await response.arrayBuffer();
+      const name = url.split("/").pop() || "download";
+      if (name.toLowerCase().endsWith(".ovb")) {
+        await loadBundleBytes(new Uint8Array(buffer));
+      } else {
+        const player = playerRef.current;
+        if (!player) return;
+        const type = scoreTypeFromFileName(name);
+        const source: ScoreSource = { name, type, data: buffer };
+        adoptEditor(loadScoreIntoPlayer(player, source));
+        scoreSourceRef.current = source;
+        void storage.set("score", { name, type, data: buffer });
+      }
+      showToast(`Loaded ${name}.`);
+    } catch (err) {
+      window.alert(`Could not load: ${err instanceof Error ? err.message : String(err)}`);
+    }
+  }
+
   async function openBundle(e: ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     e.target.value = "";
     if (!file) return;
     try {
-      const bundle = readBundle(new Uint8Array(await file.arrayBuffer()));
+      await loadBundleBytes(new Uint8Array(await file.arrayBuffer()));
+    } catch (error) {
+      console.error("[openvoicing] failed to open bundle", error);
+      window.alert(error instanceof Error ? error.message : "Failed to open bundle");
+    }
+  }
+
+  async function loadBundleBytes(bytes: Uint8Array) {
+    {
+      const bundle = readBundle(bytes);
       const { manifest } = bundle;
       const player = playerRef.current;
 
@@ -1459,9 +1502,6 @@ export function App() {
         setSyncPoints(null);
         setFollow(false);
       }
-    } catch (error) {
-      console.error("[openvoicing] failed to open bundle", error);
-      window.alert(error instanceof Error ? error.message : "Failed to open bundle");
     }
   }
 
@@ -1491,8 +1531,14 @@ export function App() {
             Open bundle…
             <input type="file" accept=".ovb" onChange={openBundle} />
           </label>
+          <button className="header-button" onClick={() => void openFromUrl()}>
+            Open URL…
+          </button>
           <button className="header-button" onClick={() => void exportBundle()}>
             Export bundle
+          </button>
+          <button className="header-button" onClick={copyEmbedCode} title="Copy an embed snippet">
+            Copy embed
           </button>
         </span>
       </header>

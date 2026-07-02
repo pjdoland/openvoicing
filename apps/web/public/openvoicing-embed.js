@@ -33,16 +33,47 @@
     var height = opts.height || el.getAttribute("data-openvoicing-height") || 480;
 
     var bundleUrl = new URL(bundle, window.location.href).toString();
+    var params = opts.params && typeof opts.params === "object" ? opts.params : null;
     var src =
       playerUrl + (playerUrl.indexOf("?") === -1 ? "?" : "&") + "bundle=" + encodeURIComponent(bundleUrl);
+    if (params) {
+      for (var key in params) {
+        if (Object.prototype.hasOwnProperty.call(params, key)) {
+          src += "&" + encodeURIComponent(key) + "=" + encodeURIComponent(params[key]);
+        }
+      }
+    }
 
     var iframe = document.createElement("iframe");
-    iframe.src = src;
     iframe.allow = "autoplay";
+    iframe.loading = "lazy";
     iframe.style.width = "100%";
     iframe.style.height = typeof height === "number" ? height + "px" : height;
     iframe.style.border = "0";
-    iframe.setAttribute("title", "OpenVoicing player");
+    iframe.setAttribute("title", opts.title || "OpenVoicing interactive sheet music player");
+
+    // Lazy-load: defer the ~1.5MB player until the element nears the viewport,
+    // so pages with many embeds stay light. Disable with { lazy: false }.
+    var loaded = false;
+    function loadIframe() {
+      if (loaded) return;
+      loaded = true;
+      iframe.src = src;
+    }
+    if (opts.lazy === false || typeof IntersectionObserver === "undefined") {
+      loadIframe();
+    } else {
+      var observer = new IntersectionObserver(
+        function (entries) {
+          if (entries[0] && entries[0].isIntersecting) {
+            observer.disconnect();
+            loadIframe();
+          }
+        },
+        { rootMargin: "200px" },
+      );
+      observer.observe(el);
+    }
     el.appendChild(iframe);
 
     var ready = false;
