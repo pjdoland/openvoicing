@@ -268,6 +268,26 @@ export function App() {
     null,
   );
 
+  // Sync-map-driven metronome: click on each bar boundary of the real recording.
+  const [syncedClick, setSyncedClick] = useState(false);
+  const clickCtxRef = useRef<AudioContext | null>(null);
+  const lastClickBarRef = useRef(-1);
+  function playClick(accent: boolean) {
+    let ctx = clickCtxRef.current;
+    if (!ctx) {
+      ctx = new AudioContext();
+      clickCtxRef.current = ctx;
+    }
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.frequency.value = accent ? 1600 : 1000;
+    gain.gain.setValueAtTime(0.35, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.05);
+    osc.connect(gain).connect(ctx.destination);
+    osc.start();
+    osc.stop(ctx.currentTime + 0.06);
+  }
+
   useEffect(() => {
     return recording.on("loaded", ({ channels, sampleRate }) => {
       recordingAudioRef.current = { channels, sampleRate };
@@ -443,6 +463,52 @@ export function App() {
     });
   }, [follow, syncPoints, recording]);
 
+  useEffect(() => {
+    if (!syncedClick || !barTimesRef.current) return;
+    lastClickBarRef.current = -1;
+    return recording.on("positionChanged", (seconds) => {
+      const times = barTimesRef.current;
+      if (!times) return;
+      // Fire once per bar as the playhead passes each boundary.
+      let bar = -1;
+      for (let i = 0; i < times.length; i++) {
+        if (seconds >= times[i]! - 0.03) bar = i;
+        else break;
+      }
+      if (bar >= 0 && bar !== lastClickBarRef.current) {
+        lastClickBarRef.current = bar;
+        playClick(bar === 0);
+      }
+    });
+  }, [syncedClick, recording]);
+
+  // Sync-map edits share an undo stack, separate from the score editor.
+  const syncHistoryRef = useRef<SyncPoint[][]>([]);
+  const [syncCanUndo, setSyncCanUndo] = useState(false);
+  const [toast, setToast] = useState<{ message: string; action?: () => void } | null>(null);
+  const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  function showToast(message: string, action?: () => void) {
+    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+    setToast({ message, action });
+    toastTimerRef.current = setTimeout(() => setToast(null), 8000);
+  }
+
+  function commitSync(next: SyncPoint[] | null, options: { pushHistory?: boolean } = {}) {
+    if (options.pushHistory !== false && syncPointsRef.current) {
+      syncHistoryRef.current.push(syncPointsRef.current);
+      setSyncCanUndo(true);
+    }
+    setSyncPoints(next);
+  }
+
+  function undoSync() {
+    const prev = syncHistoryRef.current.pop();
+    if (prev === undefined) return;
+    setSyncPoints(prev);
+    setSyncCanUndo(syncHistoryRef.current.length > 0);
+  }
+
   function autoSync() {
     const player = playerRef.current;
     const audio = recordingAudioRef.current;
@@ -453,8 +519,37 @@ export function App() {
     const expected = bars.map((b) => b.start * secondsPerTick);
     const onsets = detectOnsets(audio.channels, audio.sampleRate);
     const times = alignBarsToOnsets(expected, onsets);
-    setSyncPoints(bars.map((b, i) => ({ tick: b.start, timeSeconds: times[i]! })));
+    commitSync(bars.map((b, i) => ({ tick: b.start, timeSeconds: times[i]! })));
     setFollow(true);
+    showToast(`Auto-synced ${bars.length} bars.`, undoSync);
+  }
+
+  function nudgeSyncPoint(index: number, deltaSeconds: number) {
+    const points = syncPointsRef.current;
+    if (!points || !points[index]) return;
+    commitSync(clampSyncMove(points, index, points[index]!.timeSeconds + deltaSeconds));
+  }
+
+  /** Plant the nearest bar's anchor at the current playback time. */
+  function dropSyncPointAtPlayhead() {
+    const points = syncPointsRef.current;
+    const player = playerRef.current;
+    if (!points || !player) return;
+    const now = recording.position;
+    const bars = player.barTicks;
+    // Choose the bar whose predicted time is closest to now.
+    let best = 0;
+    let bestDist = Infinity;
+    points.forEach((p, i) => {
+      const dist = Math.abs(p.timeSeconds - now);
+      if (dist < bestDist) {
+        bestDist = dist;
+        best = i;
+      }
+    });
+    void bars;
+    commitSync(clampSyncMove(points, best, now));
+    showToast(`Sync point for bar ${best + 1} set to ${now.toFixed(2)}s.`);
   }
 
   // The existing sync map stays until Done replaces it, so Cancel loses nothing.
@@ -486,7 +581,7 @@ export function App() {
       tick: bars[i]!.start,
       timeSeconds,
     }));
-    setSyncPoints(points);
+    commitSync(points);
     setFollow(true);
   }
 
@@ -500,19 +595,44 @@ export function App() {
     setTapCount(tapsRef.current.length);
   }
 
-  function moveSyncPoint(index: number, timeSeconds: number) {
-    setSyncPoints((points) => {
-      if (!points) return points;
-      const gap = 0.05;
-      const min = index > 0 ? points[index - 1]!.timeSeconds + gap : 0;
-      const max =
-        index < points.length - 1
-          ? points[index + 1]!.timeSeconds - gap
-          : recording.duration;
-      const clamped = Math.min(Math.max(timeSeconds, min), Math.max(min, max));
-      return points.map((p, i) => (i === index ? { ...p, timeSeconds: clamped } : p));
-    });
+  function clampSyncMove(points: SyncPoint[], index: number, timeSeconds: number): SyncPoint[] {
+    const gap = 0.05;
+    const min = index > 0 ? points[index - 1]!.timeSeconds + gap : 0;
+    const max =
+      index < points.length - 1
+        ? points[index + 1]!.timeSeconds - gap
+        : recording.duration || points[index]!.timeSeconds + 1;
+    const clamped = Math.min(Math.max(timeSeconds, min), Math.max(min, max));
+    return points.map((p, i) => (i === index ? { ...p, timeSeconds: clamped } : p));
   }
+
+  // Drag pushes one history entry on pointer-down, then updates without stacking.
+  const draggingSyncRef = useRef(false);
+  function moveSyncPoint(index: number, timeSeconds: number) {
+    const points = syncPointsRef.current;
+    if (!points) return;
+    const pushHistory = !draggingSyncRef.current;
+    draggingSyncRef.current = true;
+    commitSync(clampSyncMove(points, index, timeSeconds), { pushHistory });
+  }
+  function endSyncDrag() {
+    draggingSyncRef.current = false;
+  }
+
+  // Per-bar confidence from spacing regularity: a bar whose interval to the next
+  // deviates sharply from the median interval is a likely bad anchor.
+  const syncConfidence = useMemo(() => {
+    if (!syncPoints || syncPoints.length < 3) return null;
+    const gaps = syncPoints.slice(1).map((p, i) => p.timeSeconds - syncPoints[i]!.timeSeconds);
+    const sorted = [...gaps].sort((a, b) => a - b);
+    const median = sorted[Math.floor(sorted.length / 2)]!;
+    return syncPoints.map((_, i) => {
+      const before = i > 0 ? gaps[i - 1]! : median;
+      const after = i < gaps.length ? gaps[i]! : median;
+      const dev = Math.max(Math.abs(before - median), Math.abs(after - median)) / (median || 1);
+      return dev < 0.15 ? "good" : dev < 0.4 ? "fair" : "poor";
+    });
+  }, [syncPoints]);
 
   useEffect(() => {
     if (tapCount === null) return;
@@ -735,6 +855,12 @@ export function App() {
         return;
       }
       if (tapCountRef.current !== null) return;
+      // Cmd/Ctrl+Z undoes sync-map edits when the score editor is not active.
+      if ((e.metaKey || e.ctrlKey) && e.code === "KeyZ" && !editModeRef.current) {
+        e.preventDefault();
+        undoSync();
+        return;
+      }
       if (e.metaKey || e.ctrlKey || e.altKey) return;
       const onRecording = activeRecIdRef.current !== null;
 
@@ -789,6 +915,12 @@ export function App() {
             recording.setLoopRegion({ start, end });
             pendingLoopStartRef.current = null;
           }
+          return;
+        }
+        case "KeyP": {
+          if (editModeRef.current || !onRecording || !syncPointsRef.current) return;
+          e.preventDefault();
+          dropSyncPointAtPlayhead();
           return;
         }
       }
@@ -858,6 +990,11 @@ export function App() {
     // barCount stands in for the loaded score changing.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [syncPoints, barCount]);
+
+  const barTimesRef = useRef<number[] | null>(null);
+  useEffect(() => {
+    barTimesRef.current = barTimes;
+  }, [barTimes]);
 
   function toggleMetronome() {
     const value = !metronome;
@@ -1142,6 +1279,9 @@ export function App() {
         onRemove={(id) => void removeRecording(id)}
         syncPoints={syncPoints}
         onMoveSyncPoint={moveSyncPoint}
+        onNudgeSyncPoint={nudgeSyncPoint}
+        onEndSyncDrag={endSyncDrag}
+        syncConfidence={syncConfidence}
         barTimes={barTimes}
         savedLoops={savedLoops}
         onSaveLoop={saveCurrentLoop}
@@ -1166,8 +1306,20 @@ export function App() {
                     />
                     Follow recording
                   </label>
+                  <label className="control" title="Click on each bar of the recording">
+                    <input
+                      type="checkbox"
+                      checked={syncedClick}
+                      onChange={(e) => setSyncedClick(e.target.checked)}
+                    />
+                    Click
+                  </label>
+                  <button onClick={undoSync} disabled={!syncCanUndo} title="Undo sync edit (Cmd+Z)">
+                    Undo sync
+                  </button>
                   <span className="hint">
-                    synced at {syncPoints.length} bars; click a note to jump the recording there
+                    {syncPoints.length} bars synced; play and tap P to fix a bar, drag or
+                    arrow-nudge a marker, click a note to jump
                   </span>
                 </>
               ) : (
@@ -1191,6 +1343,25 @@ export function App() {
               <span className="hint">tip: slow the recording speed to make tapping easier</span>
             </>
           )}
+        </div>
+      )}
+
+      {toast && (
+        <div className="toast" role="status">
+          <span>{toast.message}</span>
+          {toast.action && (
+            <button
+              onClick={() => {
+                toast.action?.();
+                setToast(null);
+              }}
+            >
+              Undo
+            </button>
+          )}
+          <button className="toast-close" aria-label="Dismiss" onClick={() => setToast(null)}>
+            ×
+          </button>
         </div>
       )}
 

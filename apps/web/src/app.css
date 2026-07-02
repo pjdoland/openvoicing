@@ -271,3 +271,42 @@ body {
   text-align: center;
   font-variant-numeric: tabular-nums;
 }
+
+.sync-marker.conf-good { background: #2563eb; }
+.sync-marker.conf-fair { background: #d97706; }
+.sync-marker.conf-poor { background: #dc2626; }
+.sync-marker:focus-visible { outline: 2px solid #1e3a8a; outline-offset: 1px; }
+
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: 20px;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  background: #1b1f27;
+  color: #fff;
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+  font-size: 13px;
+  z-index: 50;
+}
+
+.toast button {
+  padding: 3px 10px;
+  border: 1px solid #4b5563;
+  border-radius: 5px;
+  background: transparent;
+  color: #fff;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.toast .toast-close {
+  border: none;
+  font-size: 16px;
+  line-height: 1;
+  padding: 0 4px;
+}

@@ -1,4 +1,11 @@
-import { useEffect, useRef, useState, type ChangeEvent, type PointerEvent } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  type ChangeEvent,
+  type KeyboardEvent as ReactKeyboardEvent,
+  type PointerEvent,
+} from "react";
 import {
   RecordingPlayer,
   computePeaks,
@@ -35,6 +42,9 @@ interface RecordingPanelProps {
   /** Sync anchors to render as draggable markers, or null when unsynced. */
   syncPoints: SyncPoint[] | null;
   onMoveSyncPoint: (index: number, timeSeconds: number) => void;
+  onNudgeSyncPoint: (index: number, deltaSeconds: number) => void;
+  onEndSyncDrag: () => void;
+  syncConfidence: Array<"good" | "fair" | "poor"> | null;
   /** Bar boundary times (seconds) when synced; drag loops snap to these. */
   barTimes: number[] | null;
   savedLoops: SavedLoop[];
@@ -52,6 +62,9 @@ export function RecordingPanel({
   onRemove,
   syncPoints,
   onMoveSyncPoint,
+  onNudgeSyncPoint,
+  onEndSyncDrag,
+  syncConfidence,
   barTimes,
   savedLoops,
   onSaveLoop,
@@ -253,6 +266,16 @@ export function RecordingPanel({
   function onMarkerPointerUp() {
     markerDragRef.current = null;
     setMarkerDrag(null);
+    onEndSyncDrag();
+  }
+
+  function onMarkerKeyDown(e: ReactKeyboardEvent<HTMLDivElement>, index: number) {
+    if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
+      e.preventDefault();
+      const base = e.shiftKey ? 0.05 : 0.01;
+      onNudgeSyncPoint(index, e.key === "ArrowRight" ? base : -base);
+      onEndSyncDrag();
+    }
   }
 
   function clearLoop() {
@@ -393,19 +416,35 @@ export function RecordingPanel({
           <div className="wave-content" style={{ width: `${zoom * 100}%` }}>
             {syncPoints && duration > 0 && (
               <div className="sync-lane">
-                {syncPoints.map((p, i) => (
-                  <div
-                    key={i}
-                    className={markerDrag === i ? "sync-marker dragging" : "sync-marker"}
-                    style={{ left: `${(p.timeSeconds / duration) * 100}%` }}
-                    title={`Bar ${i + 1}: ${p.timeSeconds.toFixed(2)}s. Drag to adjust.`}
-                    onPointerDown={(e) => onMarkerPointerDown(e, i)}
-                    onPointerMove={(e) => onMarkerPointerMove(e, i)}
-                    onPointerUp={onMarkerPointerUp}
-                  >
-                    {i + 1}
-                  </div>
-                ))}
+                {syncPoints.map((p, i) => {
+                  const confidence = syncConfidence?.[i];
+                  const cls = [
+                    "sync-marker",
+                    markerDrag === i ? "dragging" : "",
+                    confidence ? `conf-${confidence}` : "",
+                  ]
+                    .filter(Boolean)
+                    .join(" ");
+                  return (
+                    <div
+                      key={i}
+                      className={cls}
+                      style={{ left: `${(p.timeSeconds / duration) * 100}%` }}
+                      tabIndex={0}
+                      role="slider"
+                      aria-label={`Bar ${i + 1} sync point`}
+                      aria-valuenow={Number(p.timeSeconds.toFixed(2))}
+                      aria-valuetext={`${p.timeSeconds.toFixed(2)} seconds${confidence ? `, ${confidence} confidence` : ""}`}
+                      title={`Bar ${i + 1}: ${p.timeSeconds.toFixed(2)}s${confidence ? ` (${confidence})` : ""}. Drag or arrow-nudge.`}
+                      onPointerDown={(e) => onMarkerPointerDown(e, i)}
+                      onPointerMove={(e) => onMarkerPointerMove(e, i)}
+                      onPointerUp={onMarkerPointerUp}
+                      onKeyDown={(e) => onMarkerKeyDown(e, i)}
+                    >
+                      {i + 1}
+                    </div>
+                  );
+                })}
               </div>
             )}
             <canvas
