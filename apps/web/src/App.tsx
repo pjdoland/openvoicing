@@ -970,17 +970,28 @@ export function App() {
 
   function exportMusicXml() {
     const editor = editorRef.current;
-    if (!editor) return;
-    downloadBlob(
-      new Blob([toMusicXml(editor.doc)], { type: "application/vnd.recordare.musicxml+xml" }),
-      "musicxml",
-    );
+    const type = "application/vnd.recordare.musicxml+xml";
+    if (editor) {
+      downloadBlob(new Blob([toMusicXml(editor.doc)], { type }), "musicxml");
+      return;
+    }
+    // Read-only score: re-export the loaded MusicXML source if that is what it is.
+    const source = scoreSourceRef.current;
+    if (source?.type === "musicxml") {
+      downloadBlob(new Blob([source.data], { type }), "musicxml");
+      return;
+    }
+    showToast("This file can't be exported as MusicXML. Try MIDI, Print, or Export bundle.");
   }
 
   function exportMidi() {
     const editor = editorRef.current;
-    if (!editor) return;
-    downloadBlob(new Blob([toMidi(editor.doc) as BlobPart], { type: "audio/midi" }), "mid");
+    if (editor) {
+      downloadBlob(new Blob([toMidi(editor.doc) as BlobPart], { type: "audio/midi" }), "mid");
+      return;
+    }
+    // Read-only score: alphaTab generates MIDI from the rendered score.
+    playerRef.current?.downloadMidi();
   }
 
   useEffect(() => {
@@ -1866,8 +1877,8 @@ export function App() {
     { id: "openbundle", label: "Open bundle…", group: "File", run: () => bundleInputRef.current?.click() },
     { id: "openurl", label: "Open from URL…", group: "File", run: () => void openFromUrl() },
     { id: "save", label: "Save to My pieces", group: "File", run: () => void saveToLibrary(), enabled: !locked },
-    { id: "expxml", label: "Export MusicXML", group: "File", run: exportMusicXml, enabled: canEdit },
-    { id: "expmidi", label: "Export MIDI", group: "File", run: exportMidi, enabled: canEdit },
+    { id: "expxml", label: "Export MusicXML", group: "File", run: exportMusicXml, enabled: ready && !locked },
+    { id: "expmidi", label: "Export MIDI", group: "File", run: exportMidi, enabled: ready && !locked },
     { id: "expbundle", label: "Export bundle", group: "File", run: () => void exportBundle(), enabled: !locked },
     { id: "print", label: "Print / save as PDF", group: "File", shortcut: "", run: doPrint, enabled: ready },
     { id: "embed", label: "Copy embed code", group: "Share", run: copyEmbedCode },
@@ -1891,8 +1902,8 @@ export function App() {
     { label: "Save / Export", heading: true },
     { label: "Save to My pieces", onSelect: () => void saveToLibrary(), disabled: locked },
     { label: "Export bundle", onSelect: () => void exportBundle(), disabled: locked },
-    { label: "Export MusicXML", onSelect: exportMusicXml, disabled: !canEdit },
-    { label: "Export MIDI", onSelect: exportMidi, disabled: !canEdit },
+    { label: "Export MusicXML", onSelect: exportMusicXml, disabled: !ready },
+    { label: "Export MIDI", onSelect: exportMidi, disabled: !ready },
     { divider: true },
     { label: "Print / save as PDF", onSelect: doPrint, disabled: !ready },
     { divider: true },

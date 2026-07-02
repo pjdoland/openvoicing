@@ -313,6 +313,20 @@ export class Player {
     this.api.print();
   }
 
+  /** True once a score is loaded and can be exported. */
+  get hasScore(): boolean {
+    return this.api.score !== null;
+  }
+
+  /**
+   * Download the rendered score as a Standard MIDI File. Works for any loaded
+   * score (including read-only imports), since alphaTab generates it from the
+   * rendered model rather than our editable document.
+   */
+  downloadMidi(): void {
+    this.api.downloadMidi();
+  }
+
   destroy(): void {
     this.api.destroy();
   }
