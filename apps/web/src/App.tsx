@@ -31,7 +31,28 @@ import { DEMO_TEX } from "./demo";
 import { RecordingPanel } from "./RecordingPanel";
 import { SpeedControl, clampSpeed } from "./SpeedControl";
 import { clampSyncMove as clampSyncMovePure, computeSyncConfidence } from "./sync-utils";
-import { CheatSheet, SettingsControls, useAppSettings } from "./Settings";
+import { CheatSheet, useAppSettings, type Theme } from "./Settings";
+import { Menu, type MenuItem } from "./ui/Menu";
+import { Popover } from "./ui/Popover";
+import { CollapsiblePanel, resetLayout } from "./ui/CollapsiblePanel";
+import { CommandPalette } from "./ui/CommandPalette";
+import { NavigateControl } from "./ui/NavigateControl";
+import type { Command } from "./ui/commands";
+import {
+  BookmarkIcon,
+  ExportIcon,
+  FileIcon,
+  HelpIcon,
+  LoopIcon,
+  MetronomeIcon,
+  NavigateIcon,
+  PauseIcon,
+  PlayIcon,
+  RecordIcon,
+  ShareIcon,
+  StopIcon,
+  ViewIcon,
+} from "./ui/icons";
 import { MicRecorder } from "./mic";
 import { storage, type RecordingMeta, type StoredFile } from "./storage";
 
@@ -128,6 +149,21 @@ export function App() {
   const [locked] = useState(() => new URLSearchParams(window.location.search).get("lock") === "1");
   const [assignment, setAssignment] = useState("");
   const [showTour, setShowTour] = useState(false);
+
+  // Basic vs Advanced: Basic keeps the surface calm; Advanced reveals practice
+  // aids, capture, and editing extras. Locked mode is always the minimal end.
+  const [mode, setMode] = useState<"basic" | "advanced">(
+    () => (localStorage.getItem("ov-mode") as "basic" | "advanced") || "basic",
+  );
+  useEffect(() => {
+    localStorage.setItem("ov-mode", mode);
+  }, [mode]);
+  const advanced = mode === "advanced" && !locked;
+  const [paletteOpen, setPaletteOpen] = useState(false);
+  const [closed, setClosed] = useState(false);
+  const scoreInputRef = useRef<HTMLInputElement>(null);
+  const bundleInputRef = useRef<HTMLInputElement>(null);
+  const audioInputRef = useRef<HTMLInputElement>(null);
   const [sections, setSections] = useState<Array<{ barIndex: number; label: string }>>([]);
   useEffect(() => {
     void storage.get<Array<{ barIndex: number; label: string }>>("sections").then((s) => setSections(s ?? []));
@@ -155,6 +191,21 @@ export function App() {
     const player = playerRef.current;
     const bar = player?.barTicks[barIndex];
     if (player && bar) player.cursorTick = bar.start;
+  }
+  function renameSection(barIndex: number) {
+    const existing = sections.find((s) => s.barIndex === barIndex);
+    const label = window.prompt("Rename section", existing?.label ?? "");
+    if (label === null) return;
+    const next = sections
+      .map((s) => (s.barIndex === barIndex ? { ...s, label } : s))
+      .filter((s) => s.label);
+    setSections(next);
+    void storage.set("sections", next);
+  }
+  function deleteSection(barIndex: number) {
+    const next = sections.filter((s) => s.barIndex !== barIndex);
+    setSections(next);
+    void storage.set("sections", next);
   }
   const containerRef = useRef<HTMLDivElement>(null);
   const playerRef = useRef<Player | null>(null);
@@ -798,6 +849,7 @@ export function App() {
   function newScore() {
     const player = playerRef.current;
     if (!player) return;
+    setClosed(false);
     const doc = createEmptyScore();
     const editor = new ScoreEditor(doc);
     editorRef.current = editor;
@@ -1435,6 +1487,7 @@ export function App() {
   async function openFile(e: ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
+    setClosed(false);
     const player = playerRef.current;
     if (!player) return;
     const buffer = await file.arrayBuffer();
@@ -1571,6 +1624,7 @@ export function App() {
   }
 
   async function loadBundleBytes(bytes: Uint8Array) {
+    setClosed(false);
     {
       const bundle = readBundle(bytes);
       const { manifest } = bundle;
@@ -1629,64 +1683,174 @@ export function App() {
     }
   }
 
+  // Cmd/Ctrl-K opens the command palette from anywhere.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        setPaletteOpen((v) => !v);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+
+  const canEdit = hasEditor && !locked;
+  const doPrint = () => playerRef.current?.print();
+  const doTranspose = (n: number) => {
+    if (editorRef.current?.transposeScore(n)) rerenderScore();
+  };
+  const doEditUndo = () => {
+    if (editorRef.current?.undo()) rerenderScore();
+  };
+  const doEditRedo = () => {
+    if (editorRef.current?.redo()) rerenderScore();
+  };
+
+  // Every action, for the command palette (Cmd-K) and, where sensible, menus.
+  const commands: Command[] = [
+    { id: "play", label: playing || recording.playing ? "Pause" : "Play", group: "Transport", shortcut: "Space", run: () => togglePlayRef.current() },
+    { id: "stop", label: "Stop", group: "Transport", run: () => playerRef.current?.stop(), enabled: ready },
+    { id: "half", label: "Toggle half speed", group: "Transport", shortcut: "H", run: () => setSynthSpeed(speedRef.current === 0.5 ? 1 : 0.5) },
+    { id: "loop", label: loop ? "Turn loop off" : "Turn loop on", group: "Transport", run: toggleLoop },
+    { id: "metro", label: metronome ? "Metronome off" : "Metronome on", group: "Practice", run: toggleMetronome },
+    { id: "countin", label: countIn ? "Count-in off" : "Count-in on", group: "Practice", run: toggleCountIn },
+    { id: "addsection", label: "Add section here", group: "Navigate", run: addSection, enabled: !locked },
+    { id: "record", label: micRecording ? "Stop recording" : "Record with microphone", group: "Capture", run: () => void toggleMicRecording() },
+    { id: "ab", label: "A/B synth and recording", group: "Capture", shortcut: "V", run: toggleSynthRecording, enabled: activeRecId !== null },
+    { id: "autosync", label: "Auto sync recording", group: "Sync", run: autoSync, enabled: activeRecId !== null },
+    { id: "tapsync", label: "Start tap sync", group: "Sync", run: startTapSync, enabled: activeRecId !== null },
+    { id: "edit", label: editMode ? "Turn off Edit mode" : "Turn on Edit mode", group: "Edit", run: () => setEditMode((v) => !v), enabled: canEdit },
+    { id: "transup", label: "Transpose up a semitone", group: "Edit", run: () => doTranspose(1), enabled: editMode },
+    { id: "transdown", label: "Transpose down a semitone", group: "Edit", run: () => doTranspose(-1), enabled: editMode },
+    { id: "new", label: "New score", group: "File", run: newScore, enabled: !locked },
+    { id: "openfile", label: "Open score file…", group: "File", run: () => scoreInputRef.current?.click(), enabled: !locked },
+    { id: "openbundle", label: "Open bundle…", group: "File", run: () => bundleInputRef.current?.click() },
+    { id: "openurl", label: "Open from URL…", group: "File", run: () => void openFromUrl() },
+    { id: "save", label: "Save to My pieces", group: "File", run: () => void saveToLibrary(), enabled: !locked },
+    { id: "expxml", label: "Export MusicXML", group: "File", run: exportMusicXml, enabled: canEdit },
+    { id: "expmidi", label: "Export MIDI", group: "File", run: exportMidi, enabled: canEdit },
+    { id: "expbundle", label: "Export bundle", group: "File", run: () => void exportBundle(), enabled: !locked },
+    { id: "print", label: "Print / save as PDF", group: "File", shortcut: "", run: doPrint, enabled: ready },
+    { id: "embed", label: "Copy embed code", group: "Share", run: copyEmbedCode },
+    { id: "stand", label: "Music-stand mode", group: "View", run: () => setStandMode(true) },
+    { id: "themeL", label: "Theme: Light", group: "View", run: () => settings.setTheme("light") },
+    { id: "themeD", label: "Theme: Dark", group: "View", run: () => settings.setTheme("dark") },
+    { id: "themeC", label: "Theme: High contrast", group: "View", run: () => settings.setTheme("contrast") },
+    { id: "advanced", label: advanced ? "Switch to Basic view" : "Switch to Advanced view", group: "View", run: () => setMode(advanced ? "basic" : "advanced") },
+    { id: "shortcuts", label: "Keyboard shortcuts", group: "Help", shortcut: "?", run: () => setCheatSheetOpen(true) },
+    { id: "tour", label: "Show the welcome tour", group: "Help", run: () => setShowTour(true) },
+  ];
+
+  const fileMenu: MenuItem[] = [
+    { label: "New / Open", heading: true },
+    { label: "New score", onSelect: newScore, disabled: locked },
+    { label: "Open score file…", onSelect: () => scoreInputRef.current?.click(), disabled: locked },
+    { label: "Open bundle…", onSelect: () => bundleInputRef.current?.click() },
+    { label: "Open from URL…", onSelect: () => void openFromUrl() },
+    { label: "Add recording…", onSelect: () => audioInputRef.current?.click(), disabled: locked },
+    { divider: true },
+    { label: "Save / Export", heading: true },
+    { label: "Save to My pieces", onSelect: () => void saveToLibrary(), disabled: locked },
+    { label: "Export bundle", onSelect: () => void exportBundle(), disabled: locked },
+    { label: "Export MusicXML", onSelect: exportMusicXml, disabled: !canEdit },
+    { label: "Export MIDI", onSelect: exportMidi, disabled: !canEdit },
+    { divider: true },
+    { label: "Print / save as PDF", onSelect: doPrint, disabled: !ready },
+    { divider: true },
+    { label: "Close piece", onSelect: () => setClosed(true) },
+  ];
+
+  const viewMenu: MenuItem[] = [
+    { label: "Theme", heading: true },
+    { label: "Light", checked: settings.theme === "light", onSelect: () => settings.setTheme("light") },
+    { label: "Dark", checked: settings.theme === "dark", onSelect: () => settings.setTheme("dark") },
+    { label: "High contrast", checked: settings.theme === "contrast", onSelect: () => settings.setTheme("contrast") },
+    { divider: true },
+    { label: `Text size: ${settings.scale}px`, heading: true },
+    { label: "Larger text", onSelect: () => settings.setScale(Math.min(22, settings.scale + 1)) },
+    { label: "Smaller text", onSelect: () => settings.setScale(Math.max(12, settings.scale - 1)) },
+    { divider: true },
+    { label: "Music-stand mode", onSelect: () => setStandMode(true) },
+    { label: "Reset panel layout", onSelect: resetLayout },
+  ];
+
+  const shareMenu: MenuItem[] = [
+    { label: "Copy embed code", onSelect: copyEmbedCode },
+    {
+      label: "Copy student practice link",
+      onSelect: () => {
+        const url = `${window.location.origin}${window.location.pathname}?lock=1`;
+        void navigator.clipboard.writeText(url).then(
+          () => showToast("Student link copied. Open a shared bundle in it to assign practice."),
+          () => window.prompt("Copy the student link:", url),
+        );
+      },
+    },
+  ];
+
+  const helpMenu: MenuItem[] = [
+    { label: "Keyboard shortcuts", shortcut: "?", onSelect: () => setCheatSheetOpen(true) },
+    { label: "Command palette", shortcut: "⌘K", onSelect: () => setPaletteOpen(true) },
+    { label: "Show welcome tour", onSelect: () => setShowTour(true) },
+  ];
+
+  const isPlaying = playing || recording.playing;
+
   return (
-    <div className={standMode ? "app stand-mode" : "app"}>
-      <header className="header">
+    <div className={`app${standMode ? " stand-mode" : ""}${closed ? " closed" : ""}`}>
+      <header className="header" role="banner">
         <h1>OpenVoicing</h1>
-        <span className="tagline">open source living sheet music</span>
-        <span className="header-actions">
-          <SettingsControls {...settings} />
-          <button
-            className="header-button"
-            onClick={() => setStandMode(true)}
-            title="Music-stand mode (full-screen, screen stays on)"
-          >
-            Stand
-          </button>
-          <button
-            className="header-button"
-            onClick={() => setCheatSheetOpen(true)}
-            title="Keyboard shortcuts (?)"
-            aria-label="Keyboard shortcuts"
-          >
-            ?
-          </button>
-          <label className="header-button">
-            Open bundle…
-            <input type="file" accept=".ovb" onChange={openBundle} />
-          </label>
-          <button className="header-button" onClick={() => void openFromUrl()}>
-            Open URL…
-          </button>
-          {!locked && (
-            <button className="header-button" onClick={() => void exportBundle()}>
-              Export bundle
-            </button>
+        {scoreTitle && <span className="tagline">{scoreTitle}</span>}
+        {/* Hidden file inputs driven by File-menu items and the palette. */}
+        <input
+          ref={scoreInputRef}
+          type="file"
+          accept=".musicxml,.xml,.mxl,.gp,.gp3,.gp4,.gp5,.gpx"
+          onChange={openFile}
+          style={{ display: "none" }}
+        />
+        <input
+          ref={bundleInputRef}
+          type="file"
+          accept=".ovb"
+          onChange={openBundle}
+          style={{ display: "none" }}
+        />
+        <input
+          ref={audioInputRef}
+          type="file"
+          accept="audio/*"
+          onChange={(e) => {
+            const f = e.target.files?.[0];
+            if (f) void addRecordingFile(f);
+            e.target.value = "";
+          }}
+          style={{ display: "none" }}
+        />
+        <nav className="menubar" aria-label="Main menu">
+          {!locked && <Menu label="File" icon={<FileIcon />} items={fileMenu} />}
+          <Menu label="View" icon={<ViewIcon />} items={viewMenu} />
+          {!locked && <Menu label="Share" icon={<ShareIcon />} items={shareMenu} />}
+          <Menu label="Help" icon={<HelpIcon />} items={helpMenu} />
+          {!locked && library.length > 0 && (
+            <Menu
+              label="My pieces"
+              icon={<BookmarkIcon />}
+              items={library.map((p) => ({ label: p.title, onSelect: () => void openFromLibrary(p.id) }))}
+            />
           )}
           {!locked && (
-            <button className="header-button" onClick={() => void saveToLibrary()} title="Save this piece to your library">
-              Save
-            </button>
+            <div className="mode-toggle" role="group" aria-label="View complexity">
+              <button className={advanced ? "" : "on"} aria-pressed={!advanced} onClick={() => setMode("basic")}>
+                Basic
+              </button>
+              <button className={advanced ? "on" : ""} aria-pressed={advanced} onClick={() => setMode("advanced")}>
+                Advanced
+              </button>
+            </div>
           )}
-          {library.length > 0 && (
-            <select
-              className="header-select"
-              value=""
-              aria-label="Open from library"
-              onChange={(e) => e.target.value && void openFromLibrary(e.target.value)}
-            >
-              <option value="">Library ({library.length})</option>
-              {library.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.title}
-                </option>
-              ))}
-            </select>
-          )}
-          <button className="header-button" onClick={copyEmbedCode} title="Copy an embed snippet">
-            Copy embed
-          </button>
-        </span>
+        </nav>
       </header>
 
       {standMode && (
@@ -1702,6 +1866,7 @@ export function App() {
         {announcement}
       </div>
       {cheatSheetOpen && <CheatSheet onClose={() => setCheatSheetOpen(false)} />}
+      {paletteOpen && <CommandPalette commands={commands} onClose={() => setPaletteOpen(false)} />}
       {showTour && (
         <div className="cheatsheet-backdrop" role="dialog" aria-modal="true" aria-label="Welcome">
           <div className="cheatsheet tour" onClick={(e) => e.stopPropagation()}>
@@ -1725,149 +1890,141 @@ export function App() {
         </div>
       )}
 
-      <div className="toolbar">
-        <button onClick={synthPlayPause} disabled={!ready}>
-          {playing ? "Pause" : "Play"}
-        </button>
-        <button onClick={() => playerRef.current?.stop()} disabled={!ready}>
-          Stop
-        </button>
+      <div className="toolbar" role="toolbar" aria-label="Playback and navigation">
+        {/* Transport (pinned left, always visible) */}
+        <div className="tb-zone tb-transport">
+          <button
+            className="btn-primary"
+            onClick={synthPlayPause}
+            disabled={!ready}
+            aria-label={isPlaying ? "Pause" : "Play"}
+          >
+            {isPlaying ? <PauseIcon /> : <PlayIcon />}
+            {isPlaying ? "Pause" : "Play"}
+          </button>
+          <button className="btn-icon" onClick={() => playerRef.current?.stop()} disabled={!ready} aria-label="Stop" title="Stop">
+            <StopIcon />
+          </button>
+          <SpeedControl value={speed} onChange={setSynthSpeed} />
+          <Popover
+            label="Loop"
+            icon={<LoopIcon />}
+            active={loop || barLoopActive}
+            title="Loop settings"
+          >
+            <label className="control">
+              <input type="checkbox" checked={loop} onChange={toggleLoop} /> Loop playback
+            </label>
+            <span className="control">
+              <input
+                className="bars-input"
+                placeholder="bars 3-6"
+                aria-label="Loop bar range"
+                value={barsInput}
+                size={8}
+                onChange={(e) => setBarsInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") applyBarLoop();
+                }}
+              />
+              {barLoopActive && (
+                <button className="btn-icon" onClick={clearBarLoop} title="Clear bar loop" aria-label="Clear bar loop">
+                  ×
+                </button>
+              )}
+            </span>
+          </Popover>
+        </div>
 
-        <SpeedControl value={speed} onChange={setSynthSpeed} />
+        {/* Practice aids (advanced) */}
+        {advanced && (
+          <div className="tb-zone">
+            <span className="tb-zone-label">Practice</span>
+            <button
+              className={metronome ? "btn-icon on" : "btn-icon"}
+              onClick={toggleMetronome}
+              aria-pressed={metronome}
+              aria-label="Metronome"
+              title="Metronome"
+            >
+              <MetronomeIcon />
+            </button>
+            <label className="control">
+              <input type="checkbox" checked={countIn} onChange={toggleCountIn} /> Count-in
+            </label>
+          </div>
+        )}
 
-        <label className="control">
-          <input type="checkbox" checked={loop} onChange={toggleLoop} /> Loop
-        </label>
-
-        <span className="control">
-          <input
-            className="bars-input"
-            placeholder="bars 3-6"
-            aria-label="Loop bar range"
-            value={barsInput}
-            size={7}
-            onChange={(e) => setBarsInput(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") applyBarLoop();
+        {/* Navigation */}
+        <div className="tb-zone" role="group" aria-label="Navigation">
+          <span className="tb-zone-label">Go to</span>
+          <NavigateControl
+            barCount={barCount}
+            sections={sections}
+            locked={locked}
+            onJumpBar={(n) => {
+              const player = playerRef.current;
+              if (player && n >= 1 && n <= player.barTicks.length) player.cursorTick = player.barTicks[n - 1]!.start;
             }}
+            onJumpSection={jumpToSection}
+            onAddSection={addSection}
+            onRenameSection={renameSection}
+            onDeleteSection={deleteSection}
           />
-          {barLoopActive && (
-            <button onClick={clearBarLoop} title="Clear bar loop">
-              ×
+        </div>
+
+        {/* Capture (advanced) */}
+        {advanced && (
+          <div className="tb-zone">
+            <span className="tb-zone-label">Capture</span>
+            <button
+              className={micRecording ? "btn-icon on" : "btn-icon"}
+              onClick={() => void toggleMicRecording()}
+              aria-label={micRecording ? "Stop recording" : "Record"}
+              title="Record with the microphone"
+            >
+              <RecordIcon />
+            </button>
+            {activeRecId !== null && (
+              <button className="btn-icon" onClick={toggleSynthRecording} title="A/B synth and recording (v)" aria-label="A/B synth and recording">
+                A/B
+              </button>
+            )}
+          </div>
+        )}
+
+        <div className="tb-zone tb-right">
+          <span className="position">
+            {formatTime(position.current)} / {formatTime(position.total)}
+          </span>
+          {canEdit && (
+            <button
+              className={editMode ? "btn-primary" : "btn-icon"}
+              onClick={() => setEditMode((v) => !v)}
+              aria-pressed={editMode}
+            >
+              {editMode ? "Done editing" : "Edit"}
             </button>
           )}
-        </span>
-        <label className="control">
-          <input type="checkbox" checked={metronome} onChange={toggleMetronome} /> Metronome
-        </label>
-        <label className="control">
-          <input type="checkbox" checked={countIn} onChange={toggleCountIn} /> Count-in
-        </label>
+        </div>
+      </div>
 
-        {hasEditor && !locked && (
-          <label className="control">
-            <input
-              type="checkbox"
-              checked={editMode}
-              onChange={(e) => {
-                setEditMode(e.target.checked);
-                e.target.blur();
-              }}
-            />
-            Edit
-          </label>
-        )}
-        {editMode && (
-          <span className="hint">
-            {selectedBeat
-              ? `bar ${selectedBeat.barIndex + 1}: a-g pitch, Shift+a-g chord, ←→ move, ↑↓ transpose, 1-8 dur, . dot, +/− accidental, Shift+3 triplet, r rest, b repeat bar, l lyric, t tie, i insert, x delete`
-              : "click a note to select it, or press Esc to deselect"}
-          </span>
-        )}
-
-        <span className="position">
-          {formatTime(position.current)} / {formatTime(position.total)}
-        </span>
-
-        <span className="control" title="Jump to a bar number">
-          <input
-            className="bars-input"
-            placeholder="go to bar"
-            aria-label="Go to bar"
-            size={7}
-            onKeyDown={(e) => {
-              if (e.key !== "Enter") return;
-              const n = parseInt((e.target as HTMLInputElement).value, 10);
-              const player = playerRef.current;
-              if (player && n >= 1 && n <= player.barTicks.length) {
-                player.cursorTick = player.barTicks[n - 1]!.start;
-              }
-            }}
-          />
-        </span>
-        {sections.length > 0 && (
-          <select
-            className="control"
-            value=""
-            aria-label="Jump to section"
-            onChange={(e) => e.target.value !== "" && jumpToSection(Number(e.target.value))}
-          >
-            <option value="">Sections</option>
-            {sections.map((s) => (
-              <option key={s.barIndex} value={s.barIndex}>
-                {s.label} (bar {s.barIndex + 1})
-              </option>
-            ))}
-          </select>
-        )}
-        {!locked && (
-          <button onClick={addSection} title="Label the current bar as a section">
-            + Section
+      {editMode && (
+        <div className="edit-band" role="region" aria-label="Editing tools">
+          <span className="inspector-title">Editing</span>
+          <button className="btn-icon" onClick={doEditUndo} disabled={!editorRef.current?.canUndo} title="Undo (Cmd+Z)" aria-label="Undo">
+            ↶
           </button>
-        )}
-
-        {editMode && (
-          <>
-            <button
-              onClick={() => {
-                if (editorRef.current?.undo()) rerenderScore();
-              }}
-              disabled={!editorRef.current?.canUndo}
-              title="Undo edit (Cmd+Z)"
-            >
-              ↶ Undo
-            </button>
-            <button
-              onClick={() => {
-                if (editorRef.current?.redo()) rerenderScore();
-              }}
-              disabled={!editorRef.current?.canRedo}
-              title="Redo edit (Shift+Cmd+Z)"
-            >
-              ↷ Redo
-            </button>
-            <button
-              onClick={() => {
-                if (editorRef.current?.transposeScore(1)) rerenderScore();
-              }}
-              title="Transpose whole score up a semitone"
-            >
-              Transpose +
-            </button>
-            <button
-              onClick={() => {
-                if (editorRef.current?.transposeScore(-1)) rerenderScore();
-              }}
-              title="Transpose whole score down a semitone"
-            >
-              Transpose −
-            </button>
-          </>
-        )}
-
-        {editMode && (
+          <button className="btn-icon" onClick={doEditRedo} disabled={!editorRef.current?.canRedo} title="Redo (Shift+Cmd+Z)" aria-label="Redo">
+            ↷
+          </button>
+          <span className="subgroup">
+            <span className="subgroup-label">Transpose</span>
+            <button className="btn-icon" onClick={() => doTranspose(1)} aria-label="Transpose up" title="Transpose up">＋</button>
+            <button className="btn-icon" onClick={() => doTranspose(-1)} aria-label="Transpose down" title="Transpose down">－</button>
+          </span>
           <label className="control" title="Playback instrument for this part">
-            <span className="sr-only">Instrument</span>
+            Instrument
             <select
               value={editorRef.current?.doc.parts[0]?.midiProgram ?? 0}
               onChange={(e) => {
@@ -1881,56 +2038,35 @@ export function App() {
               ))}
             </select>
           </label>
-        )}
-
-        <button
-          onClick={() => void toggleMicRecording()}
-          title="Record yourself with the microphone"
-          style={micRecording ? { color: "#dc2626", fontWeight: 600 } : undefined}
-        >
-          {micRecording ? "● Stop rec" : "● Record"}
-        </button>
-        {activeRecId !== null && (
-          <button onClick={toggleSynthRecording} title="Toggle synth / recording (v)">
-            A/B
-          </button>
-        )}
-
-        <button onClick={() => playerRef.current?.print()} disabled={!ready} title="Print or save as PDF">
-          Print
-        </button>
-        {!locked && <button onClick={newScore}>New score</button>}
-        {hasEditor && !locked && (
-          <>
-            <button onClick={exportMusicXml}>Export MusicXML</button>
-            <button onClick={exportMidi}>Export MIDI</button>
-          </>
-        )}
-        {!locked && (
-          <label className="control open-file">
-            Open file…
-            <input
-              type="file"
-              accept=".musicxml,.xml,.mxl,.gp,.gp3,.gp4,.gp5,.gpx"
-              onChange={openFile}
-            />
-          </label>
-        )}
-      </div>
-
-      {(assignment || (hasEditor && !locked)) && (
-        <div className="assignment-bar">
-          <strong>Assignment</strong>
-          {locked ? (
-            <span>{assignment || "No assignment set."}</span>
-          ) : (
+          <span className="inspector">
+            {selectedBeat ? (
+              <span className="hint">Bar {selectedBeat.barIndex + 1} selected</span>
+            ) : (
+              <span className="hint">Click a note to select</span>
+            )}
+            <Popover label="Shortcuts" title="Editing shortcuts">
+              <div className="hint" style={{ maxWidth: 280 }}>
+                a-g pitch · Shift+a-g chord · ←→ move · ↑↓ transpose · 1-8 duration · . dot ·
+                +/− accidental · Shift+3 triplet · r rest · b repeat bar · l lyric · t tie ·
+                i insert · x delete
+              </div>
+            </Popover>
+          </span>
+          <label className="control assignment-inline" title="A note shown to students">
+            Assignment
             <input
               className="assignment-input"
-              placeholder="Add a note for students (saved with the piece)…"
+              placeholder="Add a note for students…"
               value={assignment}
               onChange={(e) => saveAssignment(e.target.value)}
             />
-          )}
+          </label>
+        </div>
+      )}
+      {locked && assignment && (
+        <div className="edit-band" role="region" aria-label="Assignment">
+          <span className="inspector-title">Assignment</span>
+          <span>{assignment}</span>
         </div>
       )}
 
@@ -1960,82 +2096,80 @@ export function App() {
         </div>
       )}
 
-      <RecordingPanel
-        player={recording}
-        recordings={recordings}
-        activeId={activeRecId}
-        onSelect={(id) => void selectRecording(id)}
-        onAddFile={addRecordingFile}
-        onRemove={(id) => void removeRecording(id)}
-        syncPoints={syncPoints}
-        onMoveSyncPoint={moveSyncPoint}
-        onNudgeSyncPoint={nudgeSyncPoint}
-        onEndSyncDrag={endSyncDrag}
-        syncConfidence={syncConfidence}
-        barTimes={barTimes}
-        savedLoops={savedLoops}
-        onSaveLoop={saveCurrentLoop}
-        onRecallLoop={recallLoop}
-        onDeleteLoop={deleteSavedLoop}
-        pitchSemitones={pitchSemitones}
-        onPitchChange={applyPitchSemitones}
-      />
+      {(activeRecId !== null || advanced) && (
+        <CollapsiblePanel
+          id="recording"
+          title={activeRecId !== null ? "Recording & sync" : "Recording"}
+          ariaLabel="Recording and sync"
+          defaultOpen={activeRecId !== null}
+        >
+          <RecordingPanel
+            player={recording}
+            recordings={recordings}
+            activeId={activeRecId}
+            onSelect={(id) => void selectRecording(id)}
+            onAddFile={addRecordingFile}
+            onRemove={(id) => void removeRecording(id)}
+            syncPoints={syncPoints}
+            onMoveSyncPoint={moveSyncPoint}
+            onNudgeSyncPoint={nudgeSyncPoint}
+            onEndSyncDrag={endSyncDrag}
+            syncConfidence={syncConfidence}
+            barTimes={barTimes}
+            savedLoops={savedLoops}
+            onSaveLoop={saveCurrentLoop}
+            onRecallLoop={recallLoop}
+            onDeleteLoop={deleteSavedLoop}
+            pitchSemitones={pitchSemitones}
+            onPitchChange={applyPitchSemitones}
+          />
 
-      {activeRecId !== null && (
-        <div className="sync-bar">
-          <strong>Sync</strong>
-          {tapCount === null ? (
-            <>
-              <button onClick={autoSync}>Auto sync</button>
-              <button onClick={startTapSync}>Start tap sync</button>
-              {syncPoints ? (
+          {activeRecId !== null && !locked && (
+            <div className="sync-bar" role="region" aria-label="Sync">
+              {tapCount === null ? (
                 <>
-                  <label className="control">
-                    <input
-                      type="checkbox"
-                      checked={follow}
-                      onChange={(e) => setFollow(e.target.checked)}
-                    />
-                    Follow recording
-                  </label>
-                  <label className="control" title="Click on each bar of the recording">
-                    <input
-                      type="checkbox"
-                      checked={syncedClick}
-                      onChange={(e) => setSyncedClick(e.target.checked)}
-                    />
-                    Click
-                  </label>
-                  <button onClick={undoSync} disabled={!syncCanUndo} title="Undo sync edit (Cmd+Z)">
-                    Undo sync
-                  </button>
-                  <span className="hint">
-                    {syncPoints.length} bars synced; play and tap P to fix a bar, drag or
-                    arrow-nudge a marker, click a note to jump
-                  </span>
+                  <span className="subgroup-label">Sync</span>
+                  <button onClick={autoSync}>Auto sync</button>
+                  <button onClick={startTapSync}>Start tap sync</button>
+                  {syncPoints ? (
+                    <>
+                      <label className="control">
+                        <input type="checkbox" checked={follow} onChange={(e) => setFollow(e.target.checked)} />
+                        Follow
+                      </label>
+                      <label className="control" title="Click on each bar of the recording">
+                        <input type="checkbox" checked={syncedClick} onChange={(e) => setSyncedClick(e.target.checked)} />
+                        Click
+                      </label>
+                      <button onClick={undoSync} disabled={!syncCanUndo} title="Undo sync edit (Cmd+Z)">
+                        Undo sync
+                      </button>
+                      <span className="hint">
+                        {syncPoints.length} bars synced; play + tap P to fix a bar, drag or arrow-nudge a marker
+                      </span>
+                    </>
+                  ) : (
+                    <span className="hint">not synced yet; auto-sync or tap each bar's downbeat</span>
+                  )}
                 </>
               ) : (
-                <span className="hint">
-                  plays the recording from the start; tap at each bar's downbeat
-                </span>
+                <>
+                  <button className="tap-button" onClick={tap}>
+                    Tap bar {tapCount + 1} of {barCount} (or press Space)
+                  </button>
+                  <button onClick={undoTap} disabled={tapCount === 0}>
+                    Undo tap
+                  </button>
+                  <button onClick={finishTapSync} disabled={tapsRef.current.length < 2}>
+                    Done
+                  </button>
+                  <button onClick={cancelTapSync}>Cancel</button>
+                  <span className="hint">tip: slow the recording speed to make tapping easier</span>
+                </>
               )}
-            </>
-          ) : (
-            <>
-              <button className="tap-button" onClick={tap}>
-                Tap bar {tapCount + 1} of {barCount} (or press Space)
-              </button>
-              <button onClick={undoTap} disabled={tapCount === 0}>
-                Undo tap (Backspace)
-              </button>
-              <button onClick={finishTapSync} disabled={tapsRef.current.length < 2}>
-                Done
-              </button>
-              <button onClick={cancelTapSync}>Cancel</button>
-              <span className="hint">tip: slow the recording speed to make tapping easier</span>
-            </>
+            </div>
           )}
-        </div>
+        </CollapsiblePanel>
       )}
 
       {toast && (
@@ -2057,6 +2191,36 @@ export function App() {
         </div>
       )}
 
+      {closed && (
+        <div className="empty-state">
+          <div className="empty-card">
+            <h2>No piece open</h2>
+            <p>Open a piece to practice, or start a new score.</p>
+            <div className="empty-actions">
+              <button className="btn-primary" onClick={() => scoreInputRef.current?.click()}>
+                Open a piece…
+              </button>
+              {library.length > 0 && (
+                <button
+                  className="btn-icon"
+                  onClick={() => library[0] && void openFromLibrary(library[0].id)}
+                >
+                  My pieces
+                </button>
+              )}
+              {!locked && (
+                <button className="btn-icon" onClick={newScore}>
+                  New score
+                </button>
+              )}
+              <button className="btn-icon" onClick={() => setShowTour(true)}>
+                Take the tour
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <p className="sr-only" id="score-summary">
         {scoreTitle}
         {scoreArtist ? ` by ${scoreArtist}` : ""}. {barCount} bars.
@@ -2064,13 +2228,9 @@ export function App() {
           ? ` Time signature ${editorRef.current.doc.bars[0].timeSignature.beats}/${editorRef.current.doc.bars[0].timeSignature.beatUnit}.`
           : ""}
       </p>
-      <main
-        className="score"
-        ref={containerRef}
-        role="img"
-        aria-label="Musical score"
-        aria-describedby="score-summary"
-      />
+      <main className="score" aria-label="Score" aria-describedby="score-summary">
+        <div ref={containerRef} className="score-surface" role="img" aria-label="Musical notation" />
+      </main>
 
       <footer className="footer">
         Tip: click a note to jump there, drag across notes to loop a passage.

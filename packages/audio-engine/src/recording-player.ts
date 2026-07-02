@@ -27,6 +27,8 @@ export class RecordingPlayer {
   private context: AudioContext | null = null;
   private node: SignalsmithStretchNode | null = null;
   private _duration = 0;
+  private _loadedInfo: { duration: number; channels: Float32Array[]; sampleRate: number } | null =
+    null;
   private _speed = 1;
   private _playing = false;
   private _position = 0;
@@ -86,6 +88,7 @@ export class RecordingPlayer {
     this._duration = buffer.duration;
     this._position = 0;
     this._loop = null;
+    this._loadedInfo = { duration: buffer.duration, channels, sampleRate: buffer.sampleRate };
     this.emit("loaded", {
       duration: buffer.duration,
       channels,
@@ -96,6 +99,14 @@ export class RecordingPlayer {
 
   get duration(): number {
     return this._duration;
+  }
+
+  /**
+   * The most recently loaded audio, for a UI that subscribed after load() fired
+   * its "loaded" event (e.g. a panel that mounts lazily). Null before any load.
+   */
+  get loadedInfo(): { duration: number; channels: Float32Array[]; sampleRate: number } | null {
+    return this._loadedInfo;
   }
 
   get playing(): boolean {

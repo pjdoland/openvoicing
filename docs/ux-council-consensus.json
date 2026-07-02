@@ -1,0 +1,726 @@
+[
+ {
+  "id": "U1",
+  "title": "Consolidate file operations into a File menu",
+  "description": "Collapse Open bundle, Open URL, Open file, New score, Save, Export bundle, Export MusicXML, Export MIDI, Print (and Library/Copy embed for some) out of the header and toolbar into a single header File dropdown with grouped sections (New/Open, Save/Export, Print), leaving only the app name and current-piece title on the bar.",
+  "proposedBy": [
+   "ia-architect",
+   "ux-notation",
+   "a11y-cognitive",
+   "interaction-menus",
+   "user-teacher",
+   "user-power",
+   "ui-minimalist"
+  ],
+  "yesVotes": 7,
+  "yesFrom": [
+   "ia-architect",
+   "ux-notation",
+   "a11y-cognitive",
+   "interaction-menus",
+   "user-teacher",
+   "user-power",
+   "ui-minimalist"
+  ]
+ },
+ {
+  "id": "U2",
+  "title": "Move theme, font scaling, and Stand mode into a View menu",
+  "description": "Consolidate the Light/Dark/High-contrast theme picker, the A-/A+ font steppers, and the Stand (music-stand) mode toggle into a single header View/gear menu, since these are set-once display preferences that should stop competing with playback controls.",
+  "proposedBy": [
+   "ia-architect",
+   "ux-notation",
+   "a11y-cognitive",
+   "interaction-menus",
+   "user-teacher",
+   "user-power",
+   "ui-minimalist"
+  ],
+  "yesVotes": 7,
+  "yesFrom": [
+   "ia-architect",
+   "ux-notation",
+   "a11y-cognitive",
+   "interaction-menus",
+   "user-teacher",
+   "user-power",
+   "ui-minimalist"
+  ]
+ },
+ {
+  "id": "U3",
+  "title": "Introduce a persisted Basic vs Advanced mode toggle",
+  "description": "Add a single Basic/Advanced (Simple/Advanced) switch, persisted per user in localStorage, where Basic shows only core transport plus navigation and Edit, and Advanced reveals metronome, count-in, go-to-bar, A/B, Record, the instrument picker, and export controls, giving newcomers a calm default without removing anything.",
+  "proposedBy": [
+   "ia-architect",
+   "ux-notation",
+   "a11y-cognitive",
+   "interaction-menus",
+   "user-teacher",
+   "user-power",
+   "ui-minimalist"
+  ],
+  "yesVotes": 7,
+  "yesFrom": [
+   "ia-architect",
+   "ux-notation",
+   "a11y-cognitive",
+   "interaction-menus",
+   "user-teacher",
+   "user-power",
+   "ui-minimalist"
+  ]
+ },
+ {
+  "id": "U4",
+  "title": "Add a command palette (Cmd/Ctrl-K)",
+  "description": "Provide a fuzzy-searchable command palette bound to Cmd/Ctrl-K that lists every action (play, export MIDI, add section, auto sync, toggle metronome, themes, etc.) with its keyboard shortcut shown inline, so power, keyboard, and screen-reader users can reach any feature without hunting the toolbar.",
+  "proposedBy": [
+   "ia-architect",
+   "ux-notation",
+   "a11y-cognitive",
+   "interaction-menus",
+   "user-teacher",
+   "user-power",
+   "ui-minimalist"
+  ],
+  "yesVotes": 7,
+  "yesFrom": [
+   "ia-architect",
+   "ux-notation",
+   "a11y-cognitive",
+   "interaction-menus",
+   "user-teacher",
+   "user-power",
+   "ui-minimalist"
+  ]
+ },
+ {
+  "id": "U5",
+  "title": "Group the transport controls into one bounded cluster pinned left",
+  "description": "Wrap the primary playback controls (Play, Stop, Speed, Loop, and for some also loop-range, Metronome, Count-in, go-to-bar) into a single visually bounded transport segment anchored to the far left of the toolbar so the primary action is always in the same place and never wraps.",
+  "proposedBy": [
+   "ux-notation",
+   "interaction-menus",
+   "user-teacher",
+   "user-power",
+   "ui-minimalist"
+  ],
+  "yesVotes": 7,
+  "yesFrom": [
+   "ia-architect",
+   "ux-notation",
+   "a11y-cognitive",
+   "interaction-menus",
+   "user-teacher",
+   "user-power",
+   "ui-minimalist"
+  ]
+ },
+ {
+  "id": "U6",
+  "title": "Split the whole toolbar into stable labeled zones",
+  "description": "Reorganize the ~20-control wrapping row into a small set of stable, individually labeled clusters (e.g. Transport, Position/Navigation, Practice, Editing, Export/Mode) so controls stop reflowing unpredictably as the window resizes and users scan by section rather than reading a wall of controls.",
+  "proposedBy": [
+   "ia-architect",
+   "a11y-cognitive"
+  ],
+  "yesVotes": 7,
+  "yesFrom": [
+   "ia-architect",
+   "ux-notation",
+   "a11y-cognitive",
+   "interaction-menus",
+   "user-teacher",
+   "user-power",
+   "ui-minimalist"
+  ]
+ },
+ {
+  "id": "U7",
+  "title": "Add dividers and consistent spacing between control groups",
+  "description": "Insert subtle vertical separators and standardized gap spacing between the logical toolbar groups (transport, navigation, practice, edit, export) and within panels so related controls read as distinct chunks rather than one undifferentiated stream.",
+  "proposedBy": [
+   "ia-architect",
+   "ux-notation",
+   "user-teacher",
+   "user-power",
+   "ui-minimalist"
+  ],
+  "yesVotes": 7,
+  "yesFrom": [
+   "ia-architect",
+   "ux-notation",
+   "a11y-cognitive",
+   "interaction-menus",
+   "user-teacher",
+   "user-power",
+   "ui-minimalist"
+  ]
+ },
+ {
+  "id": "U8",
+  "title": "Gate all editing controls behind Edit mode in a distinct edit band",
+  "description": "When Edit is off, hide all edit-only controls (instrument dropdown, +Section, New score, MusicXML/MIDI export, assignment note, edit-mode hint) entirely; when Edit is on, render them together in a clearly bordered or tinted Editing band so the mode change is unmistakable.",
+  "proposedBy": [
+   "ia-architect",
+   "ux-notation",
+   "a11y-cognitive",
+   "interaction-menus",
+   "user-teacher",
+   "user-power",
+   "ui-minimalist"
+  ],
+  "yesVotes": 7,
+  "yesFrom": [
+   "ia-architect",
+   "ux-notation",
+   "a11y-cognitive",
+   "interaction-menus",
+   "user-teacher",
+   "user-power",
+   "ui-minimalist"
+  ]
+ },
+ {
+  "id": "U9",
+  "title": "Replace the verbose edit-mode hint with a compact info affordance",
+  "description": "Swap the always-on big edit-mode hint string for a small '?'/(i) info chip or dismissible inline tip (with a 'don't show again' option) next to the Edit toggle that reveals the same guidance on hover/click, reclaiming a large chunk of horizontal toolbar space while keeping the coaching available.",
+  "proposedBy": [
+   "ia-architect",
+   "ux-notation",
+   "a11y-cognitive",
+   "interaction-menus",
+   "user-power",
+   "ui-minimalist"
+  ],
+  "yesVotes": 7,
+  "yesFrom": [
+   "ia-architect",
+   "ux-notation",
+   "a11y-cognitive",
+   "interaction-menus",
+   "user-teacher",
+   "user-power",
+   "ui-minimalist"
+  ]
+ },
+ {
+  "id": "U10",
+  "title": "Move recording controls into a collapsible Recording/Audio panel",
+  "description": "Relocate the entire recording row (selector, remove, Add audio, Play, Speed, Pitch, zoom, Clear loop, repeat counter, Save loop, Gap, saved-loops, waveform) into a dockable, titled panel with a collapse/expand chevron so those controls appear only when expanded and stop stacking full-width rows.",
+  "proposedBy": [
+   "ia-architect",
+   "ux-notation",
+   "a11y-cognitive",
+   "interaction-menus",
+   "user-teacher",
+   "user-power",
+   "ui-minimalist"
+  ],
+  "yesVotes": 7,
+  "yesFrom": [
+   "ia-architect",
+   "ux-notation",
+   "a11y-cognitive",
+   "interaction-menus",
+   "user-teacher",
+   "user-power",
+   "ui-minimalist"
+  ]
+ },
+ {
+  "id": "U11",
+  "title": "Sub-divide the recording panel into Playback and Loop sub-groups",
+  "description": "Within the recording panel, visually separate playback controls (Play/Speed/Pitch/zoom) from loop controls (Clear loop/repeat counter/Save loop/Gap/saved-loops) with a divider and mini labels (and, for some, a Source group of selector/remove/Add audio) so the workflows stop blurring together.",
+  "proposedBy": [
+   "a11y-cognitive",
+   "user-power",
+   "ui-minimalist"
+  ],
+  "yesVotes": 7,
+  "yesFrom": [
+   "ia-architect",
+   "ux-notation",
+   "a11y-cognitive",
+   "interaction-menus",
+   "user-teacher",
+   "user-power",
+   "ui-minimalist"
+  ]
+ },
+ {
+  "id": "U14",
+  "title": "Move the Sync row into the recording panel as a Sync tab/section",
+  "description": "Fold Auto sync, Start tap sync, Follow recording, the synced Click checkbox, Undo sync, and the hint into a Sync tab/segment/expander within the recording panel (with the tap-mode controls swapping in-place), so sync tools live next to the waveform they act on and the two dense rows no longer stack simultaneously.",
+  "proposedBy": [
+   "ia-architect",
+   "ux-notation",
+   "a11y-cognitive",
+   "interaction-menus",
+   "user-teacher",
+   "user-power",
+   "ui-minimalist"
+  ],
+  "yesVotes": 7,
+  "yesFrom": [
+   "ia-architect",
+   "ux-notation",
+   "a11y-cognitive",
+   "interaction-menus",
+   "user-teacher",
+   "user-power",
+   "ui-minimalist"
+  ]
+ },
+ {
+  "id": "U15",
+  "title": "Give the tap-sync workflow a focused two-state step layout",
+  "description": "Show only Auto sync and Start tap sync by default, and when tap mode is active swap the whole strip to a focused Tap / Undo tap / Done / Cancel step bar with an inline progress hint, hiding all unrelated audio controls during tapping.",
+  "proposedBy": [
+   "ia-architect"
+  ],
+  "yesVotes": 7,
+  "yesFrom": [
+   "ia-architect",
+   "ux-notation",
+   "a11y-cognitive",
+   "interaction-menus",
+   "user-teacher",
+   "user-power",
+   "ui-minimalist"
+  ]
+ },
+ {
+  "id": "U17",
+  "title": "Collapse the Loop checkbox and bar-range into one Loop popover",
+  "description": "Turn the Loop checkbox and the exposed 'bars 3-6' range input into a single Loop button that reveals the range field, clear-loop action, and repeat count only when looping is enabled, so the range field isn't sitting exposed and confusing when not looping.",
+  "proposedBy": [
+   "ia-architect",
+   "interaction-menus",
+   "user-teacher",
+   "ui-minimalist"
+  ],
+  "yesVotes": 7,
+  "yesFrom": [
+   "ia-architect",
+   "ux-notation",
+   "a11y-cognitive",
+   "interaction-menus",
+   "user-teacher",
+   "user-power",
+   "ui-minimalist"
+  ]
+ },
+ {
+  "id": "U18",
+  "title": "Merge Sections and go-to-bar into a single Go-to/Navigate control",
+  "description": "Combine the Sections dropdown, the go-to-bar input, and the current-position readout into one combined 'Navigate'/'Jump to...' combobox that accepts a bar number or a section name, replacing two or three adjacent navigation widgets with one.",
+  "proposedBy": [
+   "ux-notation",
+   "user-teacher",
+   "user-power"
+  ],
+  "yesVotes": 7,
+  "yesFrom": [
+   "ia-architect",
+   "ux-notation",
+   "a11y-cognitive",
+   "interaction-menus",
+   "user-teacher",
+   "user-power",
+   "ui-minimalist"
+  ]
+ },
+ {
+  "id": "U19",
+  "title": "Cluster section-navigation controls under a Navigation heading",
+  "description": "Pair the Sections dropdown, +Section, and the go-to-bar input together as one Navigation cluster with a clear heading and internal labels, keeping the widgets distinct but grouped and separated from playback controls.",
+  "proposedBy": [
+   "a11y-cognitive",
+   "ui-minimalist"
+  ],
+  "yesVotes": 7,
+  "yesFrom": [
+   "ia-architect",
+   "ux-notation",
+   "a11y-cognitive",
+   "interaction-menus",
+   "user-teacher",
+   "user-power",
+   "ui-minimalist"
+  ]
+ },
+ {
+  "id": "U20",
+  "title": "Turn Sections into a split-button with add/rename/delete actions",
+  "description": "Merge the Sections dropdown and the +Section button into a single split-button where the dropdown navigates sections and its attached caret menu holds Add/Rename/Delete section actions, keeping section management self-contained.",
+  "proposedBy": [
+   "interaction-menus"
+  ],
+  "yesVotes": 7,
+  "yesFrom": [
+   "ia-architect",
+   "ux-notation",
+   "a11y-cognitive",
+   "interaction-menus",
+   "user-teacher",
+   "user-power",
+   "ui-minimalist"
+  ]
+ },
+ {
+  "id": "U22",
+  "title": "Replace text-label buttons with icons plus tooltips/labels",
+  "description": "Give high-frequency controls (Play, Stop, Record, Loop, Metronome, Count-in, Print, A/B, zoom, remove) consistent icons with accessible aria-labels and hover tooltips (icon-plus-label, never icon-only for accessibility; icon-only may kick in on narrow widths), cutting toolbar text density while preserving discoverability.",
+  "proposedBy": [
+   "ia-architect",
+   "ux-notation",
+   "a11y-cognitive",
+   "interaction-menus",
+   "user-teacher",
+   "user-power",
+   "ui-minimalist"
+  ],
+  "yesVotes": 7,
+  "yesFrom": [
+   "ia-architect",
+   "ux-notation",
+   "a11y-cognitive",
+   "interaction-menus",
+   "user-teacher",
+   "user-power",
+   "ui-minimalist"
+  ]
+ },
+ {
+  "id": "U23",
+  "title": "Establish clear visual hierarchy with tiered button weights",
+  "description": "Style one primary action per region (Play, and sometimes Edit) as a high-emphasis filled button, demote common actions to outlined/secondary and rare ones to quiet ghost/text buttons, and use distinct type sizes/weights with a muted color for hints and inline values, so the eye lands on the main task rather than twenty equal-weight controls.",
+  "proposedBy": [
+   "ia-architect",
+   "ux-notation",
+   "a11y-cognitive",
+   "interaction-menus",
+   "user-teacher",
+   "user-power",
+   "ui-minimalist"
+  ],
+  "yesVotes": 7,
+  "yesFrom": [
+   "ia-architect",
+   "ux-notation",
+   "a11y-cognitive",
+   "interaction-menus",
+   "user-teacher",
+   "user-power",
+   "ui-minimalist"
+  ]
+ },
+ {
+  "id": "U24",
+  "title": "Fold shortcuts, tour, and docs into a unified Help menu",
+  "description": "Combine the '?' shortcuts cheat sheet, the first-run tour re-launch, and a link to docs/getting-started under a single header Help menu (one variant makes it a slide-out Settings/Help drawer that also holds theme and font), giving new and cognitively-loaded users one obvious place to get oriented.",
+  "proposedBy": [
+   "ia-architect",
+   "a11y-cognitive",
+   "interaction-menus",
+   "user-teacher"
+  ],
+  "yesVotes": 7,
+  "yesFrom": [
+   "ia-architect",
+   "ux-notation",
+   "a11y-cognitive",
+   "interaction-menus",
+   "user-teacher",
+   "user-power",
+   "ui-minimalist"
+  ]
+ },
+ {
+  "id": "U25",
+  "title": "Group sharing/distribution actions into a Share menu",
+  "description": "Gather distribution and persistence actions (Copy embed, the ?lock=1 student-view link, and for some also Save and the Library dropdown) under a single header Share menu so 'send a piece to a student' is obvious and named plainly rather than scattered across the header.",
+  "proposedBy": [
+   "ux-notation",
+   "user-teacher",
+   "user-power"
+  ],
+  "yesVotes": 7,
+  "yesFrom": [
+   "ia-architect",
+   "ux-notation",
+   "a11y-cognitive",
+   "interaction-menus",
+   "user-teacher",
+   "user-power",
+   "ui-minimalist"
+  ]
+ },
+ {
+  "id": "U27",
+  "title": "Cluster Record and A/B into a Capture group with contextual reveal",
+  "description": "Group Record, A/B, and Add audio under a single 'Capture'/Compare label or menu, and only surface the A/B toggle once a recording exists, so recording-related entry points live in one discoverable place and appear when they are actionable.",
+  "proposedBy": [
+   "a11y-cognitive",
+   "user-power"
+  ],
+  "yesVotes": 7,
+  "yesFrom": [
+   "ia-architect",
+   "ux-notation",
+   "a11y-cognitive",
+   "interaction-menus",
+   "user-teacher",
+   "user-power",
+   "ui-minimalist"
+  ]
+ },
+ {
+  "id": "U29",
+  "title": "Consolidate export/print actions into one Export split-button",
+  "description": "Replace the separate Print, Export MusicXML, Export MIDI, Export bundle (and for some Copy embed) buttons with a single Export split-button whose dropdown lists each format and remembers the last-used format as the primary click, removing four-plus always-visible buttons from the top-level surface.",
+  "proposedBy": [
+   "ia-architect",
+   "interaction-menus",
+   "user-power"
+  ],
+  "yesVotes": 7,
+  "yesFrom": [
+   "ia-architect",
+   "ux-notation",
+   "a11y-cognitive",
+   "interaction-menus",
+   "user-teacher",
+   "user-power",
+   "ui-minimalist"
+  ]
+ },
+ {
+  "id": "U30",
+  "title": "Relocate the assignment note into a contextual editor panel",
+  "description": "Move the free-text assignment-note input out of its own always-present full-width row into a clearly labeled, collapsible field inside the edit-mode side panel/band (or the left rail), so it appears only when editing and reads as part of the teacher tools.",
+  "proposedBy": [
+   "ia-architect",
+   "ux-notation",
+   "a11y-cognitive",
+   "interaction-menus",
+   "user-power",
+   "ui-minimalist"
+  ],
+  "yesVotes": 7,
+  "yesFrom": [
+   "ia-architect",
+   "ux-notation",
+   "a11y-cognitive",
+   "interaction-menus",
+   "user-teacher",
+   "user-power",
+   "ui-minimalist"
+  ]
+ },
+ {
+  "id": "U32",
+  "title": "Combine Play and Stop into a Play/Pause button with a smaller Stop",
+  "description": "Show a single large primary Play/Pause button as the visual anchor of the toolbar, with Stop demoted to a smaller secondary icon beside it, so the two most-used actions read clearly.",
+  "proposedBy": [
+   "user-teacher"
+  ],
+  "yesVotes": 7,
+  "yesFrom": [
+   "ia-architect",
+   "ux-notation",
+   "a11y-cognitive",
+   "interaction-menus",
+   "user-teacher",
+   "user-power",
+   "ui-minimalist"
+  ]
+ },
+ {
+  "id": "U33",
+  "title": "Add a contextual Inspector panel for selection-specific editing",
+  "description": "When a note or bar is selected in Edit mode, show a collapsible right-side Inspector with per-selection controls (duration, dot, tie, pitch, instrument for that part) so those controls live next to the selection instead of inflating the top toolbar.",
+  "proposedBy": [
+   "ux-notation"
+  ],
+  "yesVotes": 7,
+  "yesFrom": [
+   "ia-architect",
+   "ux-notation",
+   "a11y-cognitive",
+   "interaction-menus",
+   "user-teacher",
+   "user-power",
+   "ui-minimalist"
+  ]
+ },
+ {
+  "id": "U34",
+  "title": "Establish ARIA landmark regions and headings for each section",
+  "description": "Wrap the header, toolbar, editing panel, recording panel, and score in proper landmark roles (banner, toolbar, region with aria-label, main) with visually-hidden headings so screen-reader users can jump between sections predictably.",
+  "proposedBy": [
+   "a11y-cognitive"
+  ],
+  "yesVotes": 7,
+  "yesFrom": [
+   "ia-architect",
+   "ux-notation",
+   "a11y-cognitive",
+   "interaction-menus",
+   "user-teacher",
+   "user-power",
+   "ui-minimalist"
+  ]
+ },
+ {
+  "id": "U35",
+  "title": "Persist each panel's collapse/expand state with a reset action",
+  "description": "Make the Practice, Editing, Recording/Sections panels (and Sync segment) individually collapsible with clear disclosure carets, persist each open/closed state in localStorage so users are not re-overwhelmed on every visit, and add a View-menu 'Reset layout' to restore defaults.",
+  "proposedBy": [
+   "a11y-cognitive",
+   "user-power"
+  ],
+  "yesVotes": 7,
+  "yesFrom": [
+   "ia-architect",
+   "ux-notation",
+   "a11y-cognitive",
+   "interaction-menus",
+   "user-teacher",
+   "user-power",
+   "ui-minimalist"
+  ]
+ },
+ {
+  "id": "U36",
+  "title": "Default new sessions to a minimal layout (progressive disclosure)",
+  "description": "On first load with no recording and Edit off, default to Basic mode showing only the header menus, the core transport cluster, and the score, keeping recording, sync, and editing regions fully hidden (metronome/count-in unchecked) until their triggering feature is used.",
+  "proposedBy": [
+   "a11y-cognitive",
+   "user-teacher",
+   "ui-minimalist"
+  ],
+  "yesVotes": 7,
+  "yesFrom": [
+   "ia-architect",
+   "ux-notation",
+   "a11y-cognitive",
+   "interaction-menus",
+   "user-teacher",
+   "user-power",
+   "ui-minimalist"
+  ]
+ },
+ {
+  "id": "U37",
+  "title": "Make locked/student mode a stripped minimal Practice preset",
+  "description": "Define the ?lock=1 student view (and a sensible viewer default) as the minimal end of the Basic/Advanced continuum, presenting only the transport, section navigation, and the score while hiding Edit, Record, Sync, and export, so the locked experience reuses the same organized components rather than a separate ad hoc hidden state.",
+  "proposedBy": [
+   "ia-architect",
+   "ux-notation"
+  ],
+  "yesVotes": 7,
+  "yesFrom": [
+   "ia-architect",
+   "ux-notation",
+   "a11y-cognitive",
+   "interaction-menus",
+   "user-teacher",
+   "user-power",
+   "ui-minimalist"
+  ]
+ },
+ {
+  "id": "U38",
+  "title": "Show a friendly empty-state landing panel before a piece is open",
+  "description": "When no score is loaded, replace the full toolbar with a centered card offering 'Open a piece', 'Open recent', and 'Take the tour', so the first screen presents three clear choices instead of every control at once.",
+  "proposedBy": [
+   "user-teacher"
+  ],
+  "yesVotes": 7,
+  "yesFrom": [
+   "ia-architect",
+   "ux-notation",
+   "a11y-cognitive",
+   "interaction-menus",
+   "user-teacher",
+   "user-power",
+   "ui-minimalist"
+  ]
+ },
+ {
+  "id": "U39",
+  "title": "Rename and restyle the Library dropdown as 'My pieces'",
+  "description": "Re-label and re-style the Library dropdown as 'My pieces' with a bookmark-style icon so it reads as the user's personal saved collection rather than a technical term.",
+  "proposedBy": [
+   "user-teacher"
+  ],
+  "yesVotes": 7,
+  "yesFrom": [
+   "ia-architect",
+   "ux-notation",
+   "a11y-cognitive",
+   "interaction-menus",
+   "user-teacher",
+   "user-power",
+   "ui-minimalist"
+  ]
+ },
+ {
+  "id": "U41",
+  "title": "Upgrade the '?' cheat sheet into a searchable, categorized reference",
+  "description": "Reorganize the shortcut overlay into grouped sections (Transport, Navigation, Pitch, Duration, Editing) with a filter box, showing each shortcut's key binding so the cheat sheet and command palette stay in sync.",
+  "proposedBy": [
+   "user-power"
+  ],
+  "yesVotes": 7,
+  "yesFrom": [
+   "ia-architect",
+   "ux-notation",
+   "a11y-cognitive",
+   "interaction-menus",
+   "user-teacher",
+   "user-power",
+   "ui-minimalist"
+  ]
+ },
+ {
+  "id": "U16",
+  "title": "Consolidate Metronome, Count-in, and Click into a Practice popover",
+  "description": "Replace the always-visible Metronome and Count-in checkboxes (plus the recording-synced Click) with a single 'Practice'/Playback-options popover that groups the click-related rehearsal aids together; one variant also pulls Loop, bar-range, and Speed into the same Practice panel.",
+  "proposedBy": [
+   "ux-notation",
+   "a11y-cognitive",
+   "interaction-menus",
+   "ui-minimalist"
+  ],
+  "yesVotes": 6,
+  "yesFrom": [
+   "ia-architect",
+   "ux-notation",
+   "a11y-cognitive",
+   "interaction-menus",
+   "user-teacher",
+   "ui-minimalist"
+  ]
+ },
+ {
+  "id": "U21",
+  "title": "Move Sections into a dedicated left-rail Sections panel",
+  "description": "Relocate the Sections dropdown, +Section, and section reorder/rename controls into a collapsible left-rail panel that lists sections as a clickable navigable list, leaving only a compact section jump in the toolbar.",
+  "proposedBy": [
+   "user-power"
+  ],
+  "yesVotes": 6,
+  "yesFrom": [
+   "ia-architect",
+   "a11y-cognitive",
+   "interaction-menus",
+   "user-teacher",
+   "user-power",
+   "ui-minimalist"
+  ]
+ }
+]

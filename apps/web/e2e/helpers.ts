@@ -12,14 +12,16 @@ export function repoPath(relativeToAppWeb: string): string {
 /** Start each test from a clean slate (no persisted session). */
 export async function freshApp(page: Page, path = "/") {
   // Clear persisted state once per tab, not on every navigation, so that
-  // reload-persistence tests still work.
+  // reload-persistence tests still work. Resets localStorage (theme, mode,
+  // panel collapse) to defaults so tests do not pollute each other.
   await page.addInitScript(() => {
     try {
-      localStorage.setItem("ov-toured", "1"); // skip the first-run tour
       if (!sessionStorage.getItem("ov-e2e-cleared")) {
         sessionStorage.setItem("ov-e2e-cleared", "1");
+        localStorage.clear();
         indexedDB.deleteDatabase("openvoicing");
       }
+      localStorage.setItem("ov-toured", "1"); // skip the first-run tour
     } catch {
       /* ignore */
     }

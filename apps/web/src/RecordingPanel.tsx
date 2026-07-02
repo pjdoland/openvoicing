@@ -103,6 +103,14 @@ export function RecordingPanel({
 
   useEffect(() => {
     playerRef.current = player;
+    // Seed from already-loaded audio: this panel can mount after load() fired
+    // its "loaded" event, so pull the current audio to set duration and peaks.
+    const info = player.loadedInfo;
+    if (info) {
+      channelsRef.current = info.channels;
+      peaksRef.current = computePeaks(info.channels, WAVE_WIDTH);
+      setDuration(info.duration);
+    }
     const unsubs = [
       player.on("stateChanged", setPlaying),
       player.on("positionChanged", (seconds, total) => {

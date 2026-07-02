@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 export type Theme = "light" | "dark" | "contrast";
 
@@ -104,13 +104,36 @@ const SHORTCUTS: Array<[string, string] | { section: string }> = [
 ];
 
 export function CheatSheet({ onClose }: { onClose: () => void }) {
+  const [query, setQuery] = useState("");
+  const inputRef = useRef<HTMLInputElement>(null);
+
   useEffect(() => {
+    inputRef.current?.focus();
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose]);
+
+  // Filter within sections; keep a section heading only if it has matches.
+  const q = query.trim().toLowerCase();
+  const rows: Array<[string, string] | { section: string }> = [];
+  let pendingSection: string | null = null;
+  for (const row of SHORTCUTS) {
+    if ("section" in row) {
+      pendingSection = row.section;
+      continue;
+    }
+    const matches = !q || row[0].toLowerCase().includes(q) || row[1].toLowerCase().includes(q);
+    if (matches) {
+      if (pendingSection) {
+        rows.push({ section: pendingSection });
+        pendingSection = null;
+      }
+      rows.push(row);
+    }
+  }
 
   return (
     <div
@@ -122,8 +145,17 @@ export function CheatSheet({ onClose }: { onClose: () => void }) {
     >
       <div className="cheatsheet" onClick={(e) => e.stopPropagation()}>
         <h2>Keyboard shortcuts</h2>
+        <input
+          ref={inputRef}
+          className="cheatsheet-search"
+          type="text"
+          placeholder="Filter shortcuts…"
+          aria-label="Filter shortcuts"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+        />
         <dl>
-          {SHORTCUTS.map((row, i) =>
+          {rows.map((row, i) =>
             "section" in row ? (
               <div key={i} className="cheatsheet-section">
                 {row.section}
@@ -135,6 +167,7 @@ export function CheatSheet({ onClose }: { onClose: () => void }) {
               </div>
             ),
           )}
+          {rows.length === 0 && <dd>No matching shortcuts</dd>}
         </dl>
       </div>
     </div>

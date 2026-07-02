@@ -1,6 +1,11 @@
 import "@testing-library/jest-dom/vitest";
 import "fake-indexeddb/auto";
 
+// jsdom does not implement scrollIntoView, used by the command palette.
+if (!Element.prototype.scrollIntoView) {
+  Element.prototype.scrollIntoView = () => {};
+}
+
 // jsdom lacks these APIs used across the app; stub them for component tests.
 if (!globalThis.matchMedia) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
