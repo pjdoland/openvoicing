@@ -5,6 +5,7 @@ import {
   type ChangeEvent,
   type KeyboardEvent as ReactKeyboardEvent,
   type PointerEvent,
+  type TouchEvent as ReactTouchEvent,
 } from "react";
 import {
   RecordingPlayer,
@@ -210,11 +211,60 @@ export function RecordingPanel({
   }, [position, playing, duration, zoom]);
 
   function changeZoom(next: number) {
+    const clamped = Math.max(1, Math.min(MAX_ZOOM, next));
     const el = scrollRef.current;
     if (el && el.scrollWidth > 0) {
       pendingCenterRef.current = (el.scrollLeft + el.clientWidth / 2) / el.scrollWidth;
     }
-    setZoom(next);
+    setZoom(clamped);
+  }
+
+  // Touch gestures: double-tap toggles zoom, pinch scales it.
+  const lastTapRef = useRef(0);
+  const pinchStartRef = useRef<{ dist: number; zoom: number } | null>(null);
+  function touchDist(e: ReactTouchEvent<HTMLCanvasElement>): number {
+    const [a, b] = [e.touches[0]!, e.touches[1]!];
+    return Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY);
+  }
+  function onTouchStart(e: ReactTouchEvent<HTMLCanvasElement>) {
+    if (e.touches.length === 2) {
+      pinchStartRef.current = { dist: touchDist(e), zoom };
+    } else if (e.touches.length === 1) {
+      const now = Date.now();
+      if (now - lastTapRef.current < 300) {
+        changeZoom(zoom >= MAX_ZOOM ? 1 : zoom * 2);
+      }
+      lastTapRef.current = now;
+    }
+  }
+  function onTouchMove(e: ReactTouchEvent<HTMLCanvasElement>) {
+    const start = pinchStartRef.current;
+    if (e.touches.length === 2 && start) {
+      e.preventDefault();
+      const factor = touchDist(e) / start.dist;
+      changeZoom(Math.round(start.zoom * factor));
+    }
+  }
+  function onTouchEnd() {
+    pinchStartRef.current = null;
+  }
+
+  // Keyboard alternative for seek/loop on the focusable waveform.
+  function onWaveKeyDown(e: ReactKeyboardEvent<HTMLDivElement>) {
+    const player = playerRef.current;
+    if (!player || duration === 0) return;
+    if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
+      e.preventDefault();
+      const step = e.shiftKey ? 5 : 1;
+      player.seek(player.position + (e.key === "ArrowRight" ? step : -step));
+    } else if (e.key === "Home") {
+      e.preventDefault();
+      player.seek(0);
+    } else if (e.key === " " || e.key === "Enter") {
+      e.preventDefault();
+      if (player.playing) player.pause();
+      else void player.play();
+    }
   }
 
   function canvasX(e: PointerEvent<HTMLCanvasElement>): number {
@@ -449,7 +499,14 @@ export function RecordingPanel({
         )}
       </div>
       {hasActive && (
-        <div className="wave-scroll" ref={scrollRef}>
+        <div
+          className="wave-scroll"
+          ref={scrollRef}
+          tabIndex={0}
+          role="group"
+          aria-label="Waveform: arrow keys seek, space plays"
+          onKeyDown={onWaveKeyDown}
+        >
           <div className="wave-content" style={{ width: `${zoom * 100}%` }}>
             {syncPoints && duration > 0 && (
               <div className="sync-lane">
@@ -492,6 +549,9 @@ export function RecordingPanel({
               onPointerDown={onPointerDown}
               onPointerMove={onPointerMove}
               onPointerUp={onPointerUp}
+              onTouchStart={onTouchStart}
+              onTouchMove={onTouchMove}
+              onTouchEnd={onTouchEnd}
             />
           </div>
         </div>

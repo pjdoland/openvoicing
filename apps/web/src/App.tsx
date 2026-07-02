@@ -102,6 +102,7 @@ export function App() {
   const [micRec] = useState(() => new MicRecorder());
   const [micRecording, setMicRecording] = useState(false);
   const [pitchSemitones, setPitchSemitones] = useState(0);
+  const [standMode, setStandMode] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const playerRef = useRef<Player | null>(null);
   const [recording] = useState(() => new RecordingPlayer());
@@ -1030,6 +1031,76 @@ export function App() {
     return () => window.removeEventListener("keydown", onKey);
   }, [editMode]);
 
+  // Unified play/pause for external transport (media keys, MIDI pedal).
+  const togglePlayRef = useRef(() => {});
+  togglePlayRef.current = () => {
+    if (activeRecIdRef.current !== null) {
+      if (recording.playing) recording.pause();
+      else void recording.play();
+    } else {
+      playerRef.current?.playPause();
+    }
+  };
+
+  // Media Session: hardware/media keys and lock-screen controls.
+  useEffect(() => {
+    if (!("mediaSession" in navigator)) return;
+    try {
+      navigator.mediaSession.setActionHandler("play", () => togglePlayRef.current());
+      navigator.mediaSession.setActionHandler("pause", () => togglePlayRef.current());
+    } catch {
+      /* some actions unsupported */
+    }
+  }, []);
+
+  // Web MIDI: a sustain pedal (CC64) or any note toggles play/pause.
+  useEffect(() => {
+    const nav = navigator as Navigator & {
+      requestMIDIAccess?: () => Promise<{ inputs: Map<string, { onmidimessage: ((e: { data: Uint8Array }) => void) | null }> }>;
+    };
+    if (!nav.requestMIDIAccess) return;
+    let cancelled = false;
+    void nav.requestMIDIAccess().then((access) => {
+      if (cancelled) return;
+      for (const input of access.inputs.values()) {
+        input.onmidimessage = (e) => {
+          const data = e.data;
+          if (!data) return;
+          const status = data[0] ?? 0;
+          const d1 = data[1] ?? 0;
+          const d2 = data[2] ?? 0;
+          const isNoteOn = (status & 0xf0) === 0x90 && d2 > 0;
+          const isPedalDown = (status & 0xf0) === 0xb0 && d1 === 64 && d2 >= 64;
+          if (isNoteOn || isPedalDown) togglePlayRef.current();
+        };
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // Music-stand mode: full-screen score, wake lock to keep the screen on.
+  useEffect(() => {
+    if (!standMode) return;
+    let lock: { release: () => Promise<void> } | null = null;
+    const nav = navigator as Navigator & {
+      wakeLock?: { request: (type: "screen") => Promise<{ release: () => Promise<void> }> };
+    };
+    const acquire = () => {
+      void nav.wakeLock?.request("screen").then((l) => (lock = l)).catch(() => {});
+    };
+    acquire();
+    const onVisible = () => {
+      if (document.visibilityState === "visible") acquire();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      document.removeEventListener("visibilitychange", onVisible);
+      void lock?.release().catch(() => {});
+    };
+  }, [standMode]);
+
   // Big visual (and audible) count-in before synth playback when Count-in is on.
   function synthPlayPause() {
     const player = playerRef.current;
@@ -1395,12 +1466,19 @@ export function App() {
   }
 
   return (
-    <div className="app">
+    <div className={standMode ? "app stand-mode" : "app"}>
       <header className="header">
         <h1>OpenVoicing</h1>
         <span className="tagline">open source living sheet music</span>
         <span className="header-actions">
           <SettingsControls {...settings} />
+          <button
+            className="header-button"
+            onClick={() => setStandMode(true)}
+            title="Music-stand mode (full-screen, screen stays on)"
+          >
+            Stand
+          </button>
           <button
             className="header-button"
             onClick={() => setCheatSheetOpen(true)}
@@ -1418,6 +1496,15 @@ export function App() {
           </button>
         </span>
       </header>
+
+      {standMode && (
+        <div className="stand-controls">
+          <button onClick={() => togglePlayRef.current()} className="stand-play">
+            {playing || recording.playing ? "Pause" : "Play"}
+          </button>
+          <button onClick={() => setStandMode(false)}>Exit stand mode</button>
+        </div>
+      )}
 
       <div className="sr-only" role="status" aria-live="polite">
         {announcement}
