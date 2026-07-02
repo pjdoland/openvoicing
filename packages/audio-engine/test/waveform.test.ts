@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { computePeaks } from "../src/waveform";
+import { computePeaks, computePeaksAsync } from "../src/waveform";
 
 describe("computePeaks", () => {
   it("computes min/max per bucket", () => {
@@ -27,6 +27,24 @@ describe("computePeaks", () => {
 
   it("handles empty input", () => {
     const peaks = computePeaks([], 10);
+    expect(peaks.length).toBe(0);
+  });
+});
+
+describe("computePeaksAsync", () => {
+  it("matches computePeaks and reports progress", async () => {
+    const samples = new Float32Array(20000);
+    for (let i = 0; i < samples.length; i++) samples[i] = Math.sin(i / 50);
+    const sync = computePeaks([samples], 256);
+    const progress: number[] = [];
+    const async = await computePeaksAsync([samples], 256, (f) => progress.push(f));
+    expect(Array.from(async.max)).toEqual(Array.from(sync.max));
+    expect(Array.from(async.min)).toEqual(Array.from(sync.min));
+    expect(progress.at(-1)).toBe(1);
+  });
+
+  it("handles empty input", async () => {
+    const peaks = await computePeaksAsync([], 10);
     expect(peaks.length).toBe(0);
   });
 });

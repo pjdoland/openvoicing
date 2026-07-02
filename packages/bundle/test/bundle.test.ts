@@ -5,6 +5,7 @@ import {
   BundleError,
   createBundle,
   readBundle,
+  scoreFileExtension,
   scoreTypeFromFileName,
   type Bundle,
 } from "../src/index";
@@ -113,5 +114,28 @@ describe("scoreTypeFromFileName", () => {
     expect(scoreTypeFromFileName("song.alphatex")).toBe("alphatex");
     expect(scoreTypeFromFileName("song.musicxml")).toBe("musicxml");
     expect(scoreTypeFromFileName("song.xml")).toBe("musicxml");
+  });
+});
+
+describe("scoreFileExtension", () => {
+  it("maps each type to an extension", () => {
+    expect(scoreFileExtension("guitarpro")).toBe("gp");
+    expect(scoreFileExtension("alphatex")).toBe("alphatex");
+    expect(scoreFileExtension("musicxml")).toBe("musicxml");
+  });
+
+  it("round-trips with scoreTypeFromFileName for known types", () => {
+    for (const type of ["guitarpro", "musicxml", "alphatex"] as const) {
+      expect(scoreTypeFromFileName(`x.${scoreFileExtension(type)}`)).toBe(type);
+    }
+  });
+});
+
+describe("saved loops and assignment round-trip", () => {
+  it("preserves assignment metadata", () => {
+    const bundle = demoBundle();
+    bundle.manifest.assignment = "Practice bars 1-4 at 70%";
+    const parsed = readBundle(createBundle(bundle));
+    expect(parsed.manifest.assignment).toBe("Practice bars 1-4 at 70%");
   });
 });

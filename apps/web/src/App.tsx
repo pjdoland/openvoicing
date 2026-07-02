@@ -30,6 +30,7 @@ import soundFontUrl from "@coderline/alphatab/soundfont/sonivox.sf3?url";
 import { DEMO_TEX } from "./demo";
 import { RecordingPanel } from "./RecordingPanel";
 import { SpeedControl, clampSpeed } from "./SpeedControl";
+import { clampSyncMove as clampSyncMovePure, computeSyncConfidence } from "./sync-utils";
 import { CheatSheet, SettingsControls, useAppSettings } from "./Settings";
 import { MicRecorder } from "./mic";
 import { storage, type RecordingMeta, type StoredFile } from "./storage";
@@ -748,14 +749,7 @@ export function App() {
   }
 
   function clampSyncMove(points: SyncPoint[], index: number, timeSeconds: number): SyncPoint[] {
-    const gap = 0.05;
-    const min = index > 0 ? points[index - 1]!.timeSeconds + gap : 0;
-    const max =
-      index < points.length - 1
-        ? points[index + 1]!.timeSeconds - gap
-        : recording.duration || points[index]!.timeSeconds + 1;
-    const clamped = Math.min(Math.max(timeSeconds, min), Math.max(min, max));
-    return points.map((p, i) => (i === index ? { ...p, timeSeconds: clamped } : p));
+    return clampSyncMovePure(points, index, timeSeconds, recording.duration);
   }
 
   // Drag pushes one history entry on pointer-down, then updates without stacking.
@@ -771,20 +765,7 @@ export function App() {
     draggingSyncRef.current = false;
   }
 
-  // Per-bar confidence from spacing regularity: a bar whose interval to the next
-  // deviates sharply from the median interval is a likely bad anchor.
-  const syncConfidence = useMemo(() => {
-    if (!syncPoints || syncPoints.length < 3) return null;
-    const gaps = syncPoints.slice(1).map((p, i) => p.timeSeconds - syncPoints[i]!.timeSeconds);
-    const sorted = [...gaps].sort((a, b) => a - b);
-    const median = sorted[Math.floor(sorted.length / 2)]!;
-    return syncPoints.map((_, i) => {
-      const before = i > 0 ? gaps[i - 1]! : median;
-      const after = i < gaps.length ? gaps[i]! : median;
-      const dev = Math.max(Math.abs(before - median), Math.abs(after - median)) / (median || 1);
-      return dev < 0.15 ? "good" : dev < 0.4 ? "fair" : "poor";
-    });
-  }, [syncPoints]);
+  const syncConfidence = useMemo(() => computeSyncConfidence(syncPoints), [syncPoints]);
 
   useEffect(() => {
     if (tapCount === null) return;

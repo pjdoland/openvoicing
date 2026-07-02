@@ -91,6 +91,43 @@ describe("editor operations (batch D)", () => {
     ]);
   });
 
+  it("sets an exact pitch spelling (used by MIDI step entry)", () => {
+    const editor = fresh();
+    expect(editor.setBeatPitchExact(FIRST, "E", -1, 5)).toBe(true);
+    const note = editor.doc.parts[0]!.measures[0]!.voices[0]!.beats[0]!.notes[0]!;
+    expect(note).toMatchObject({ step: "E", alter: -1, octave: 5 });
+  });
+
+  it("sets a part instrument", () => {
+    const editor = fresh();
+    expect(editor.setInstrument(0, 52)).toBe(true);
+    expect(editor.doc.parts[0]!.midiProgram).toBe(52);
+    expect(editor.setInstrument(9, 0)).toBe(false);
+  });
+
+  it("inserts multiple beats with fresh ids and repacked ticks", () => {
+    const editor = fresh();
+    editor.setBeatDuration(FIRST, PPQ);
+    const clip = editor.doc.parts[0]!.measures[0]!.voices[0]!.beats.slice(0, 1);
+    expect(editor.insertBeatsAfter(FIRST, clip)).toBe(true);
+    const beats = editor.doc.parts[0]!.measures[0]!.voices[0]!.beats;
+    expect(beats).toHaveLength(2);
+    expect(beats[1]!.id).not.toBe(beats[0]!.id);
+    expect(beats[1]!.startTick).toBe(PPQ);
+    expect(editor.insertBeatsAfter(FIRST, [])).toBe(false);
+  });
+
+  it("rejects operations on missing addresses without touching history", () => {
+    const editor = new ScoreEditor(createEmptyScore({ bars: 1 }));
+    const bad = { partIndex: 5, barIndex: 0, voiceIndex: 0, beatIndex: 0 };
+    expect(editor.toggleDotted(bad)).toBe(false);
+    expect(editor.setTuplet(bad, 3)).toBe(false);
+    expect(editor.setLyric(bad, "x")).toBe(false);
+    expect(editor.setBeatPitchExact(bad, "C", 0, 4)).toBe(false);
+    // No successful edit means nothing to undo.
+    expect(editor.canUndo).toBe(false);
+  });
+
   it("keeps all operations undoable", () => {
     const editor = fresh();
     editor.toggleDotted(FIRST);

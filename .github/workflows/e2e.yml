@@ -1,12 +1,12 @@
-name: CI
+name: e2e
 
 on:
+  pull_request:
   push:
     branches: [main]
-  pull_request:
 
 jobs:
-  build-and-test:
+  playwright:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -16,7 +16,8 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm typecheck
-      - run: pnpm test
-      - run: pnpm test:coverage
-      - run: pnpm build
+      - run: pnpm --filter @openvoicing/web exec playwright install --with-deps chromium
+      - name: Run end-to-end tests
+        run: pnpm --filter @openvoicing/web e2e
+        env:
+          CI: "true"

@@ -10,3 +10,6 @@ coverage/
 apps/web/public/alphatab/
 .playwright-mcp/
 packages/*/dist/
+test-results/
+playwright-report/
+apps/web/test-results/

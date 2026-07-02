@@ -5,6 +5,7 @@ import { RecordingPlayer } from "@openvoicing/audio-engine";
 import { mediaTimeAtTick, tickAtMediaTime, type SyncPoint } from "@openvoicing/score-model";
 import { readBundle, type Bundle } from "@openvoicing/bundle";
 import soundFontUrl from "@coderline/alphatab/soundfont/sonivox.sf3?url";
+import { parseDeepLink } from "./deep-link";
 import "./embed.css";
 
 const SPEEDS = [0.5, 0.6, 0.7, 0.8, 0.9, 1, 1.1, 1.25];
@@ -21,37 +22,31 @@ function applyDeepLink(
   recording: RecordingPlayer,
   syncPoints: SyncPoint[] | undefined,
 ): { speed?: number } {
-  const applied: { speed?: number } = {};
-  const speed = Number(params.get("speed"));
-  if (speed >= 0.25 && speed <= 1.5) {
-    if (recording.duration > 0) recording.speed = speed;
-    else player.speed = speed;
-    applied.speed = speed;
+  const preset = parseDeepLink(params);
+  if (preset.speed !== undefined) {
+    if (recording.duration > 0) recording.speed = preset.speed;
+    else player.speed = preset.speed;
   }
-  const loop = params.get("loop");
-  if (loop && recording.duration > 0) {
-    const bars = /^b(\d+)-(\d+)$/.exec(loop);
-    const secs = /^([\d.]+)-([\d.]+)$/.exec(loop);
-    if (bars && syncPoints?.length) {
+  if (recording.duration > 0) {
+    if (preset.loopBars && syncPoints?.length) {
       const ticks = player.barTicks;
-      const from = ticks[Number(bars[1]) - 1]?.start;
-      const toBar = ticks[Number(bars[2]) - 1];
+      const from = ticks[preset.loopBars.fromBar - 1]?.start;
+      const toBar = ticks[preset.loopBars.toBar - 1];
       if (from !== undefined && toBar) {
         recording.setLoopRegion({
           start: mediaTimeAtTick(syncPoints, from),
           end: mediaTimeAtTick(syncPoints, toBar.start + toBar.duration),
         });
       }
-    } else if (secs) {
-      recording.setLoopRegion({ start: Number(secs[1]), end: Number(secs[2]) });
+    } else if (preset.loopSeconds) {
+      recording.setLoopRegion(preset.loopSeconds);
     }
   }
-  const start = Number(params.get("t"));
-  if (start > 0) {
-    if (recording.duration > 0) recording.seek(start);
-    else player.seekSeconds(start);
+  if (preset.start !== undefined) {
+    if (recording.duration > 0) recording.seek(preset.start);
+    else player.seekSeconds(preset.start);
   }
-  return applied;
+  return { speed: preset.speed };
 }
 
 function EmbedApp() {
