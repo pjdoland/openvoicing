@@ -31,6 +31,7 @@ export class RecordingPlayer {
   private _playing = false;
   private _position = 0;
   private _loop: LoopRegion | null = null;
+  private _pitchSemitones = 0;
   /** Silence inserted between loop repeats, with count-in clicks. */
   loopGapSeconds = 0;
   private gapTimer: ReturnType<typeof setTimeout> | null = null;
@@ -116,6 +117,16 @@ export class RecordingPlayer {
     this.emit("speedChanged", value);
   }
 
+  /** Pitch shift in semitones (fractional allowed), independent of speed. */
+  get pitchSemitones(): number {
+    return this._pitchSemitones;
+  }
+
+  set pitchSemitones(value: number) {
+    this._pitchSemitones = value;
+    if (this._playing) this.applySchedule();
+  }
+
   get loopRegion(): LoopRegion | null {
     return this._loop;
   }
@@ -142,6 +153,7 @@ export class RecordingPlayer {
       active: this._playing,
       input: this._position,
       rate: this._speed,
+      semitones: this._pitchSemitones,
       ...(autoLoop
         ? { loopStart: autoLoop.start, loopEnd: autoLoop.end }
         : { loopStart: 0, loopEnd: 0 }),

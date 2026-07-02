@@ -424,6 +424,15 @@ export class ScoreEditor {
     return true;
   }
 
+  /** Set a part's General MIDI program for playback. */
+  setInstrument(partIndex: number, midiProgram: number): boolean {
+    if (!this.doc.parts[partIndex]) return false;
+    const next = structuredClone(this.doc);
+    next.parts[partIndex]!.midiProgram = midiProgram;
+    this.commit(next);
+    return true;
+  }
+
   /** Transpose every note in the score by a number of semitones. */
   transposeScore(semitones: number): boolean {
     if (semitones === 0) return false;

@@ -18,6 +18,7 @@ export function toAlphaTex(doc: ScoreDocument): string {
 
   doc.parts.forEach((part, partIndex) => {
     lines.push(`\\track ${quote(part.name || `Part ${partIndex + 1}`)}`);
+    if (part.midiProgram !== undefined) lines.push(`\\instrument ${part.midiProgram}`);
     lines.push("\\staff {score}");
 
     const barTexts: string[] = [];

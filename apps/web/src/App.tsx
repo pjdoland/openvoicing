@@ -31,7 +31,20 @@ import { DEMO_TEX } from "./demo";
 import { RecordingPanel } from "./RecordingPanel";
 import { SpeedControl, clampSpeed } from "./SpeedControl";
 import { CheatSheet, SettingsControls, useAppSettings } from "./Settings";
+import { MicRecorder } from "./mic";
 import { storage, type RecordingMeta, type StoredFile } from "./storage";
+
+const INSTRUMENTS: Array<{ program: number; name: string }> = [
+  { program: 0, name: "Piano" },
+  { program: 24, name: "Nylon guitar" },
+  { program: 25, name: "Steel guitar" },
+  { program: 40, name: "Violin" },
+  { program: 42, name: "Cello" },
+  { program: 52, name: "Choir aah" },
+  { program: 56, name: "Trumpet" },
+  { program: 65, name: "Alto sax" },
+  { program: 73, name: "Flute" },
+];
 
 interface ScoreSource {
   name: string;
@@ -86,6 +99,9 @@ export function App() {
   const [cheatSheetOpen, setCheatSheetOpen] = useState(false);
   const [announcement, setAnnouncement] = useState("");
   const [countInNumber, setCountInNumber] = useState<number | null>(null);
+  const [micRec] = useState(() => new MicRecorder());
+  const [micRecording, setMicRecording] = useState(false);
+  const [pitchSemitones, setPitchSemitones] = useState(0);
   const containerRef = useRef<HTMLDivElement>(null);
   const playerRef = useRef<Player | null>(null);
   const [recording] = useState(() => new RecordingPlayer());
@@ -459,7 +475,13 @@ export function App() {
     if (id === activeRecId) return;
     const stored = await storage.get<StoredFile>(`recording:${id}`);
     if (!stored) return;
+    // Preserve position and play state so two takes A/B at the same spot.
+    const wasPlaying = recording.playing;
+    const position = recording.position;
     await recording.load(stored.data);
+    recording.pitchSemitones = pitchSemitones;
+    recording.seek(Math.min(position, recording.duration));
+    if (wasPlaying) void recording.play();
     setActiveRecId(id);
     await loadSavedLoops(id);
     const sync = await storage.get<SyncPoint[]>(`sync:${id}`);
@@ -540,6 +562,50 @@ export function App() {
     if (prev === undefined) return;
     setSyncPoints(prev);
     setSyncCanUndo(syncHistoryRef.current.length > 0);
+  }
+
+  async function toggleMicRecording() {
+    if (micRec.recording) {
+      const file = await micRec.stop();
+      setMicRecording(false);
+      await addRecordingFile(file);
+      showToast(`Recorded ${file.name}.`);
+    } else {
+      try {
+        await micRec.start();
+        setMicRecording(true);
+      } catch {
+        window.alert("Microphone access was denied.");
+      }
+    }
+  }
+
+  // A/B: jump between synth and recording at the same musical position.
+  function toggleSynthRecording() {
+    const player = playerRef.current;
+    if (!player || !activeRecId) return;
+    const points = syncPointsRef.current;
+    if (recording.playing) {
+      // Switch to synth at the mapped tick.
+      const tick = points ? Math.round(tickAtMediaTime(points, recording.position)) : 0;
+      recording.pause();
+      player.playFromTick(Math.max(0, tick));
+      setAnnouncement("Synth");
+    } else {
+      // Switch to recording at the mapped time.
+      const tick = player.cursorTick;
+      const time = points ? mediaTimeAtTick(points, tick) : 0;
+      if (player.playing) player.playPause();
+      recording.seek(time);
+      void recording.play();
+      setAnnouncement("Recording");
+    }
+  }
+
+  function applyPitchSemitones(value: number) {
+    const clamped = Math.max(-12, Math.min(12, value));
+    setPitchSemitones(clamped);
+    recording.pitchSemitones = clamped;
   }
 
   function autoSync() {
@@ -1098,6 +1164,12 @@ export function App() {
           dropSyncPointAtPlayhead();
           return;
         }
+        case "KeyV": {
+          if (!onRecording) return;
+          e.preventDefault();
+          toggleSynthRecording();
+          return;
+        }
       }
       // Number keys recall saved loops (outside edit mode, where they set durations).
       const digit = /^Digit([1-9])$/.exec(e.code);
@@ -1477,6 +1549,37 @@ export function App() {
           </>
         )}
 
+        {editMode && (
+          <label className="control" title="Playback instrument for this part">
+            <span className="sr-only">Instrument</span>
+            <select
+              value={editorRef.current?.doc.parts[0]?.midiProgram ?? 0}
+              onChange={(e) => {
+                if (editorRef.current?.setInstrument(0, Number(e.target.value))) rerenderScore();
+              }}
+            >
+              {INSTRUMENTS.map((inst) => (
+                <option key={inst.program} value={inst.program}>
+                  {inst.name}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
+
+        <button
+          onClick={() => void toggleMicRecording()}
+          title="Record yourself with the microphone"
+          style={micRecording ? { color: "#dc2626", fontWeight: 600 } : undefined}
+        >
+          {micRecording ? "● Stop rec" : "● Record"}
+        </button>
+        {activeRecId !== null && (
+          <button onClick={toggleSynthRecording} title="Toggle synth / recording (v)">
+            A/B
+          </button>
+        )}
+
         <button onClick={newScore}>New score</button>
         {hasEditor && (
           <>
@@ -1537,6 +1640,8 @@ export function App() {
         onSaveLoop={saveCurrentLoop}
         onRecallLoop={recallLoop}
         onDeleteLoop={deleteSavedLoop}
+        pitchSemitones={pitchSemitones}
+        onPitchChange={applyPitchSemitones}
       />
 
       {activeRecId !== null && (

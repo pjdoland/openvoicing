@@ -63,6 +63,8 @@ export interface Measure {
 export interface Part {
   id: string;
   name: string;
+  /** General MIDI program (0 = piano), for voice-appropriate playback. */
+  midiProgram?: number;
   measures: Measure[];
 }
 

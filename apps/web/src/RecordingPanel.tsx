@@ -9,6 +9,7 @@ import {
 import {
   RecordingPlayer,
   computePeaks,
+  computePeaksAsync,
   type LoopRegion,
   type WaveformPeaks,
 } from "@openvoicing/audio-engine";
@@ -51,6 +52,8 @@ interface RecordingPanelProps {
   onSaveLoop: () => void;
   onRecallLoop: (loop: SavedLoop) => void;
   onDeleteLoop: (id: string) => void;
+  pitchSemitones: number;
+  onPitchChange: (semitones: number) => void;
 }
 
 export function RecordingPanel({
@@ -70,6 +73,8 @@ export function RecordingPanel({
   onSaveLoop,
   onRecallLoop,
   onDeleteLoop,
+  pitchSemitones,
+  onPitchChange,
 }: RecordingPanelProps) {
   const hasActive = activeId !== null;
   const playerRef = useRef<RecordingPlayer | null>(player);
@@ -89,6 +94,7 @@ export function RecordingPanel({
   const [loop, setLoop] = useState<LoopRegion | null>(null);
   const [repeats, setRepeats] = useState(0);
   const [gap, setGap] = useState(0);
+  const [, setPeakVersion] = useState(0);
   const [position, setPosition] = useState(0);
   const [duration, setDuration] = useState(0);
 
@@ -104,9 +110,20 @@ export function RecordingPanel({
       }),
       player.on("loaded", ({ channels }) => {
         channelsRef.current = channels;
-        peaksRef.current = computePeaks(channels, WAVE_WIDTH);
         setZoom(1);
         setLoop(null);
+        // Long recordings compute peaks off the critical path to avoid freezing.
+        if (channels[0] && channels[0].length > 4_000_000) {
+          peaksRef.current = null;
+          void computePeaksAsync(channels, WAVE_WIDTH).then((peaks) => {
+            if (channelsRef.current === channels) {
+              peaksRef.current = peaks;
+              setPeakVersion((v) => v + 1);
+            }
+          });
+        } else {
+          peaksRef.current = computePeaks(channels, WAVE_WIDTH);
+        }
       }),
       player.on("speedChanged", setSpeed),
       player.on("loopChanged", (region) => {
@@ -328,6 +345,26 @@ export function RecordingPanel({
               {playing ? "Pause" : "Play"}
             </button>
             <SpeedControl value={speed} onChange={changeSpeed} />
+            <label className="control" title="Pitch shift in semitones">
+              Pitch
+              <button
+                aria-label="Pitch down"
+                onClick={() => onPitchChange(pitchSemitones - 1)}
+                disabled={pitchSemitones <= -12}
+              >
+                −
+              </button>
+              <span className="speed-value">
+                {pitchSemitones > 0 ? `+${pitchSemitones}` : pitchSemitones}
+              </span>
+              <button
+                aria-label="Pitch up"
+                onClick={() => onPitchChange(pitchSemitones + 1)}
+                disabled={pitchSemitones >= 12}
+              >
+                +
+              </button>
+            </label>
             <span className="control zoom-controls">
               <button onClick={() => changeZoom(Math.max(1, zoom / 2))} disabled={zoom <= 1}>
                 −

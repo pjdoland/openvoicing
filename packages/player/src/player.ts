@@ -120,6 +120,12 @@ export class Player {
     this.api.playPause();
   }
 
+  /** Move the cursor to a tick and start synth playback from there. */
+  playFromTick(tick: number): void {
+    this.api.tickPosition = tick;
+    if (this.api.playerState !== alphaTab.synth.PlayerState.Playing) this.api.playPause();
+  }
+
   stop(): void {
     this.api.stop();
   }
