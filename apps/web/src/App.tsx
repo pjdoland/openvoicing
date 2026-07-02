@@ -512,14 +512,16 @@ export function App() {
         }
         // Restore the previous session's practice state.
         const practice = await storage.get<{
-          synthSpeed?: number;
+          speed?: number;
+          synthSpeed?: number; // legacy: split synth/recording speeds
           recordingSpeed?: number;
           loop?: { start: number; end: number } | null;
           position?: number;
         }>("practice");
         if (cancelled || !practice) return;
-        if (practice.synthSpeed) setSynthSpeed(practice.synthSpeed);
-        if (practice.recordingSpeed) recording.speed = practice.recordingSpeed;
+        // One practice tempo drives both sources; fall back to the legacy fields.
+        const savedSpeed = practice.speed ?? practice.synthSpeed ?? practice.recordingSpeed;
+        if (savedSpeed) setSynthSpeed(savedSpeed);
         if (practice.loop) recording.setLoopRegion(practice.loop);
         if (practice.position) recording.seek(practice.position);
       } catch (error) {
@@ -554,8 +556,7 @@ export function App() {
     if (practiceSaveTimerRef.current) clearTimeout(practiceSaveTimerRef.current);
     practiceSaveTimerRef.current = setTimeout(() => {
       void storage.set("practice", {
-        synthSpeed: speedRef.current,
-        recordingSpeed: recording.speed,
+        speed: speedRef.current,
         loop: recording.loopRegion,
         position: recording.position,
       });
@@ -666,24 +667,30 @@ export function App() {
     });
   }, [follow, syncPoints, recording]);
 
-  // Looping a passage on the waveform brackets the first/last bars and scrolls
-  // them into view (the waveform selector stays pinned), so you see both.
+  // A loop set on the waveform (drag, saved-loop recall, [ ] keys) flows into
+  // the shared loop state, which then brackets the bars and mirrors to the
+  // synth. Ignore the echo from our own apply-effect.
   useEffect(() => {
     return recording.on("loopChanged", (region) => {
+      if (applyingLoopRef.current) return;
       const player = playerRef.current;
       const points = syncPointsRef.current;
       if (!player) return;
-      if (!region || !points?.length) {
-        player.setLoopMarkers(null);
+      if (!region) {
+        setLoop(false);
+        setLoopBars(null);
         return;
       }
+      if (!points?.length) return;
       const startTick = Math.max(0, Math.round(tickAtMediaTime(points, region.start)));
       const endTick = Math.round(tickAtMediaTime(points, region.end));
-      const startBar = player.barIndexAtTick(startTick);
-      const endBar = Math.max(startBar, player.barIndexAtTick(Math.max(startTick, endTick - 1)));
-      player.setLoopMarkers({ startBar, endBar });
+      const from = player.barIndexAtTick(startTick) + 1;
+      const to = Math.max(from, player.barIndexAtTick(Math.max(startTick, endTick - 1)) + 1);
+      setBarsInput(`${from}-${to}`);
+      setLoop(true);
+      setLoopBars({ from, to });
       player.cursorTick = startTick;
-      player.scrollBarIntoView(startBar);
+      player.scrollBarIntoView(from - 1);
     });
   }, [recording]);
 
@@ -1504,44 +1511,76 @@ export function App() {
     return () => window.removeEventListener("keydown", onKey);
   }, [recording]);
 
-  function toggleLoop() {
-    const value = !loop;
-    setLoop(value);
-    playerRef.current?.setLooping(value);
-  }
-
+  // One loop, applied to whichever source is heard. `loop` enables it; an
+  // optional `loopBars` range narrows it (whole piece otherwise).
   const [barsInput, setBarsInput] = useState("");
-  const [barLoopActive, setBarLoopActive] = useState(false);
+  const [loopBars, setLoopBars] = useState<{ from: number; to: number } | null>(null);
+  // Set while we push the loop onto the recording, so its loopChanged echo is
+  // not mistaken for a fresh user drag.
+  const applyingLoopRef = useRef(false);
+
+  function toggleLoop() {
+    setLoop((v) => !v);
+  }
 
   function applyBarLoop() {
     const match = /^(\d+)\s*-\s*(\d+)$/.exec(barsInput.trim());
     const player = playerRef.current;
-    if (!match || !player) return;
-    const bars = player.barTicks;
-    if (bars.length === 0) return;
-    const from = Math.max(1, Math.min(bars.length, parseInt(match[1]!, 10)));
-    const to = Math.max(from, Math.min(bars.length, parseInt(match[2]!, 10)));
-    const startTick = bars[from - 1]!.start;
-    const endTick = bars[to - 1]!.start + bars[to - 1]!.duration;
-    if (activeRecId && syncPoints?.length) {
-      recording.setLoopRegion({
-        start: mediaTimeAtTick(syncPoints, startTick),
-        end: mediaTimeAtTick(syncPoints, endTick),
-      });
-      recording.seek(mediaTimeAtTick(syncPoints, startTick));
-    } else {
-      player.setPlaybackRange({ startTick, endTick });
-      setLoop(true);
+    if (!player || player.barTicks.length === 0) return;
+    if (!match) {
+      setLoopBars(null);
+      return;
     }
-    setBarLoopActive(true);
+    const n = player.barTicks.length;
+    const from = Math.max(1, Math.min(n, parseInt(match[1]!, 10)));
+    const to = Math.max(from, Math.min(n, parseInt(match[2]!, 10)));
+    setLoopBars({ from, to });
+    setLoop(true);
+    player.cursorTick = player.barTicks[from - 1]!.start;
+    player.scrollBarIntoView(from - 1);
   }
 
   function clearBarLoop() {
-    setBarLoopActive(false);
+    setLoopBars(null);
+    setLoop(false);
     setBarsInput("");
-    playerRef.current?.setPlaybackRange(null);
-    if (activeRecId) recording.setLoopRegion(null);
   }
+
+  // Apply the loop to both sources so it survives an A/B switch, and keep the
+  // bracket markers in sync. Runs whenever the loop, the range, the active
+  // recording, or the sync map changes.
+  useEffect(() => {
+    const player = playerRef.current;
+    if (!player) return;
+    const bars = player.barTicks;
+    const region =
+      loop && loopBars && bars.length
+        ? {
+            startTick: bars[loopBars.from - 1]!.start,
+            endTick: bars[loopBars.to - 1]!.start + bars[loopBars.to - 1]!.duration,
+          }
+        : null;
+
+    player.setPlaybackRange(region);
+    player.setLooping(loop);
+    player.setLoopMarkers(loop && loopBars ? { startBar: loopBars.from - 1, endBar: loopBars.to - 1 } : null);
+
+    if (activeRecIdRef.current !== null) {
+      const sp = syncPointsRef.current;
+      applyingLoopRef.current = true;
+      if (region && sp?.length) {
+        recording.setLoopRegion({
+          start: mediaTimeAtTick(sp, region.startTick),
+          end: mediaTimeAtTick(sp, region.endTick),
+        });
+      } else if (loop && !loopBars && recording.duration > 0) {
+        recording.setLoopRegion({ start: 0, end: recording.duration });
+      } else {
+        recording.setLoopRegion(null);
+      }
+      applyingLoopRef.current = false;
+    }
+  }, [loop, loopBars, activeRecId, syncPoints, barCount, recording]);
 
   const barTimes = useMemo(() => {
     const player = playerRef.current;
@@ -2015,7 +2054,7 @@ export function App() {
           <Popover
             label="Loop"
             icon={<LoopIcon />}
-            active={loop || barLoopActive}
+            active={loop}
             title="Loop settings"
           >
             <label className="control">
@@ -2033,7 +2072,10 @@ export function App() {
                   if (e.key === "Enter") applyBarLoop();
                 }}
               />
-              {barLoopActive && (
+              <button className="btn-icon" onClick={applyBarLoop} title="Loop these bars" aria-label="Loop these bars">
+                ↵
+              </button>
+              {loopBars && (
                 <button className="btn-icon" onClick={clearBarLoop} title="Clear bar loop" aria-label="Clear bar loop">
                   ×
                 </button>

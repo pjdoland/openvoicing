@@ -62,6 +62,7 @@ vi.mock("@coderline/alphatab", () => ({
   }),
   PlayerMode: { EnabledAutomatic: 1 },
   ScrollMode: { Off: 0, Continuous: 1, OffScreen: 2 },
+  model: { Color: class { constructor(...args: number[]) { void args; } } },
   synth: { PlayerState: { Paused: 0, Playing: 1 } },
 }));
 

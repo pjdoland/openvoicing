@@ -66,6 +66,11 @@ export class Player {
       },
       display: {
         scale: options.scale ?? 1,
+        resources: {
+          // alphaTab greys secondary voices; a piano left hand is a second
+          // voice, so keep it solid black like the right hand.
+          secondaryGlyphColor: new alphaTab.model.Color(0, 0, 0, 255),
+        },
       },
       player: {
         playerMode: alphaTab.PlayerMode.EnabledAutomatic,
