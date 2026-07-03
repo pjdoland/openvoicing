@@ -1,8 +1,8 @@
 import { newId } from "../ids";
+import { PPQ } from "./types";
 import type {
   AccidentalKind,
   Beat,
-  DurationSpec,
   EntityId,
   Measure,
   Note,
@@ -10,8 +10,35 @@ import type {
   NoteType,
   Part,
   ScoreV1,
+  TimeSignature,
   Voice,
 } from "./types";
+
+const BEAT_UNIT_TYPE: Record<number, NoteType> = { 1: "whole", 2: "half", 4: "quarter", 8: "eighth", 16: "16th" };
+
+function effectiveTime(part: Part, barIndex: number): TimeSignature {
+  let time: TimeSignature = { beats: 4, beatUnit: 4 };
+  for (let i = 0; i <= barIndex && i < part.measures.length; i++) {
+    const t = part.measures[i]?.attributes?.time;
+    if (t) time = t;
+  }
+  return time;
+}
+
+function fillRests(time: TimeSignature): Beat[] {
+  const noteType = BEAT_UNIT_TYPE[time.beatUnit] ?? "quarter";
+  return Array.from({ length: time.beats }, () => ({
+    id: newId("beat"),
+    duration: { noteType, dots: 0 },
+    rest: true,
+    notes: [],
+  }));
+}
+
+function reindexBars(doc: ScoreV1): void {
+  doc.bars.forEach((bar, i) => (bar.index = i));
+  for (const part of doc.parts) part.measures.forEach((m, i) => (m.barIndex = i));
+}
 
 export interface NoteLocation {
   part: Part;
@@ -313,6 +340,79 @@ export class ScoreEditorV1 {
       if (!loc) return false;
       loc.beat.notes.splice(loc.noteIndex, 1);
       if (loc.beat.notes.length === 0) loc.beat.rest = true;
+      return true;
+    });
+  }
+
+  // ---------- structure ----------
+
+  /** Insert an empty measure before/after a bar, kept synced across parts. */
+  insertMeasure(barIndex: number, where: "before" | "after" = "after"): boolean {
+    return this.edit((doc) => {
+      const at = where === "after" ? barIndex + 1 : barIndex;
+      if (at < 0 || at > doc.bars.length) return false;
+      const ref = doc.bars[Math.min(Math.max(0, barIndex), doc.bars.length - 1)];
+      doc.bars.splice(at, 0, { id: newId("bar"), index: at, durationTicks: ref?.durationTicks ?? 4 * PPQ });
+      for (const part of doc.parts) {
+        const time = effectiveTime(part, at);
+        part.measures.splice(at, 0, {
+          id: newId("measure"),
+          barIndex: at,
+          voices: part.staves.map((staff) => ({
+            id: newId("voice"),
+            index: staff.index,
+            staff: staff.index,
+            beats: fillRests(time),
+          })),
+        });
+      }
+      reindexBars(doc);
+      return true;
+    });
+  }
+
+  /** Remove a measure across all parts (a score keeps at least one bar). */
+  removeMeasure(barIndex: number): boolean {
+    return this.edit((doc) => {
+      if (doc.bars.length <= 1 || barIndex < 0 || barIndex >= doc.bars.length) return false;
+      doc.bars.splice(barIndex, 1);
+      for (const part of doc.parts) part.measures.splice(barIndex, 1);
+      reindexBars(doc);
+      return true;
+    });
+  }
+
+  /** Set a bar's time signature (all parts) and its sounding duration. */
+  setTimeSignature(barIndex: number, beats: number, beatUnit: number): boolean {
+    return this.edit((doc) => {
+      const bar = doc.bars[barIndex];
+      if (!bar || beats < 1 || beatUnit < 1) return false;
+      bar.durationTicks = Math.round(beats * (4 / beatUnit) * PPQ);
+      for (const part of doc.parts) {
+        const measure = part.measures[barIndex];
+        if (measure) (measure.attributes ??= {}).time = { beats, beatUnit };
+      }
+      return true;
+    });
+  }
+
+  /** Set a bar's key signature (all parts). */
+  setKeySignature(barIndex: number, fifths: number): boolean {
+    return this.edit((doc) => {
+      if (!doc.bars[barIndex] || fifths < -7 || fifths > 7) return false;
+      for (const part of doc.parts) {
+        const measure = part.measures[barIndex];
+        if (measure) (measure.attributes ??= {}).key = { fifths };
+      }
+      return true;
+    });
+  }
+
+  /** Edit document metadata (title/composer). */
+  setWork(patch: { title?: string; composer?: string }): boolean {
+    return this.edit((doc) => {
+      if (patch.title !== undefined) doc.work.title = patch.title;
+      if (patch.composer !== undefined) doc.work.composer = patch.composer || undefined;
       return true;
     });
   }

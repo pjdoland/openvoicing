@@ -12,3 +12,4 @@ export { exportMusicXmlV1 } from "./export-musicxml";
 export { canonicalizeMusicXml, canonicalizeV1, type CanonicalScore } from "./canonical";
 export { ScoreEditorV1, chromaticValue, type NoteLocation } from "./editor";
 export { isMxl, unwrapMxl } from "./mxl";
+export { createEmptyScoreV1, type CreateScoreV1Options } from "./create";

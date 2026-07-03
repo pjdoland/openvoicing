@@ -1000,13 +1000,17 @@ export function App() {
     const player = playerRef.current;
     if (!player) return;
     setClosed(false);
-    const doc = createEmptyScore();
-    const editor = new ScoreEditor(doc);
-    editorRef.current = editor;
-    setHasEditor(true);
-    player.loadTex(toAlphaTex(doc));
-    void storage.set("scoreDoc", doc);
-    const xml = toMusicXml(doc);
+    // New scores are full-fidelity (v1): a blank canvas of per-beat rest slots
+    // to type into. (The old v0 empty-score path is retired.)
+    const doc = v1.createEmptyScoreV1({ bars: 8 });
+    const v1Editor = new v1.ScoreEditorV1(doc);
+    editorRef.current = null;
+    v1EditorRef.current = v1Editor;
+    setHasEditor(false);
+    setHasV1Editor(true);
+    player.renderV1(doc);
+    void storage.delete("scoreDoc");
+    const xml = v1.exportMusicXmlV1(doc);
     const data = new TextEncoder().encode(xml).buffer as ArrayBuffer;
     scoreSourceRef.current = { name: "score.musicxml", type: "musicxml", data };
     void storage.set("score", { name: "score.musicxml", type: "musicxml", data });
@@ -1014,9 +1018,8 @@ export function App() {
     setSyncPoints(null);
     setFollow(false);
     setEditMode(true);
-    const first: BeatAddress = { partIndex: 0, barIndex: 0, voiceIndex: 0, beatIndex: 0 };
-    selectedBeatRef.current = first;
-    setSelectedBeat(first);
+    // Select the first rest so the user can immediately start typing notes.
+    setSelectedV1({ restBeatId: doc.parts[0]!.measures[0]!.voices[0]!.beats[0]!.id });
   }
 
   function downloadBlob(blob: Blob, extension: string) {
