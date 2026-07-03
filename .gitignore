@@ -1,15 +1,35 @@
+# Dependencies
 node_modules/
+
+# Build output
 dist/
-coverage/
-*.log
-.DS_Store
-.env
-.env.*
-!.env.example
-.turbo/
-apps/web/public/alphatab/
-.playwright-mcp/
 packages/*/dist/
+*.tsbuildinfo
+.turbo/
+
+# Test / coverage / e2e artifacts
+coverage/
 test-results/
 playwright-report/
 apps/web/test-results/
+.playwright-mcp/
+
+# Vendored runtime asset (copied in at build time)
+apps/web/public/alphatab/
+
+# Env
+.env
+.env.*
+!.env.example
+
+# Editor / OS / tooling cruft
+.DS_Store
+.vscode/
+.idea/
+*.log
+
+# Local scratch: stray screenshots/scratch files at the repo root
+/*.png
+/*.jpg
+/*.jpeg
+/scratchpad/
