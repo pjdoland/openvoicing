@@ -26,6 +26,10 @@ export async function freshApp(page: Page, path = "/") {
       /* ignore */
     }
   });
+  // Default to a wide viewport so the full edit toolbar fits inline (feature
+  // groups only collapse into "More" when the screen can't hold them). Tests
+  // that care about responsive behaviour set their own viewport after this.
+  await page.setViewportSize({ width: 2300, height: 1000 });
   await page.goto(path);
   // The player boots asynchronously; wait for the score to render.
   await page.waitForFunction(() => (window as unknown as { __ovPlayer?: unknown }).__ovPlayer, {
