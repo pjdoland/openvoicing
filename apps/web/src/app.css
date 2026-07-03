@@ -391,6 +391,9 @@ body {
   font-size: 0.8125rem;
   width: 84px;
 }
+/* The Go-to field's placeholder ("bar or section") is longer than 84px; give it
+   room so it never truncates to a confusing fragment. */
+.navigate .bars-input { width: clamp(112px, 20vw, 150px); }
 
 .speed-value {
   min-width: 42px;
@@ -1293,7 +1296,8 @@ body {
   .tb-zone { padding: 0 8px; }
   /* Drop the vertical dividers when zones wrap; they look broken stacked. */
   .tb-zone:not(:last-child)::after { display: none; }
-  .tb-zone-label { width: 100%; }
+  /* Keep each zone a compact single line (label inline), so Practice / Go to /
+     Capture pack neatly instead of becoming tall two-line blocks. */
   .btn-primary { padding: 6px 12px; }
   .header { padding: 8px 12px; }
   .toolbar { padding: 8px 12px; }
