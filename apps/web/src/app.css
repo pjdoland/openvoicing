@@ -72,6 +72,8 @@
   --btn-hover: #333;
   --focus: #ffff00;
   --score-bg: #fff;
+  /* Accent is yellow here, so filled-accent buttons need black text. */
+  --on-accent: #000;
 }
 
 * {
@@ -193,7 +195,9 @@ body {
 .toolbar {
   position: sticky;
   top: 0;
-  z-index: 10;
+  /* Above the edit-toolbar (z 20) so transport dropdowns (Sections, Loop) are
+     not painted behind it; still below the header menus (z 40). */
+  z-index: 30;
   display: flex;
   align-items: center;
   flex-wrap: wrap;
@@ -1030,7 +1034,9 @@ body {
 .etb-btn[aria-pressed="true"] {
   background: var(--accent);
   border-color: var(--accent);
-  color: var(--focus, #fff);
+  /* White on the filled accent, not --focus (which is itself blue -> blue-on-
+     blue and unreadable on the active Input button). */
+  color: var(--on-accent, #fff);
 }
 /* Voice pills echo the on-score voice colors (voice 1 = default ink). */
 .etb-btn.voice-pill.v2:not(.active) { color: rgb(21, 128, 61); border-color: rgb(21, 128, 61); }
