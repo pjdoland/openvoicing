@@ -45,10 +45,12 @@
     }
 
     var iframe = document.createElement("iframe");
-    iframe.allow = "autoplay";
+    iframe.allow = "autoplay; fullscreen";
     iframe.loading = "lazy";
     iframe.style.width = "100%";
-    iframe.style.height = typeof height === "number" ? height + "px" : height;
+    // A plain number, or a numeric string from data-openvoicing-height, is px;
+    // anything else (e.g. "60vh") is used as-is.
+    iframe.style.height = /^\d+$/.test(String(height)) ? parseInt(height, 10) + "px" : String(height);
     iframe.style.border = "0";
     iframe.setAttribute("title", opts.title || "OpenVoicing interactive sheet music player");
 

@@ -65,6 +65,20 @@ function EmbedApp() {
   const [playing, setPlaying] = useState(false);
   const [speed, setSpeed] = useState(1);
   const [position, setPosition] = useState({ current: 0, total: 0 });
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
+  useEffect(() => {
+    const onFs = () => setIsFullscreen(!!document.fullscreenElement);
+    document.addEventListener("fullscreenchange", onFs);
+    return () => document.removeEventListener("fullscreenchange", onFs);
+  }, []);
+
+  function toggleFullscreen() {
+    // This component runs inside the embed iframe (which is created with
+    // allow="fullscreen"), so fullscreen its own document element.
+    if (document.fullscreenElement) void document.exitFullscreen();
+    else void document.documentElement.requestFullscreen?.();
+  }
 
   useEffect(() => {
     const container = containerRef.current;
@@ -293,7 +307,15 @@ function EmbedApp() {
           </select>
         )}
         {hasRecording && <span className="embed-badge">recording{syncRef.current ? " + sync" : ""}</span>}
-        <a className="embed-brand" href="https://github.com/openvoicing" target="_blank" rel="noreferrer">
+        <button
+          className="embed-fs"
+          onClick={toggleFullscreen}
+          title={isFullscreen ? "Exit fullscreen" : "Fullscreen"}
+          aria-label={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
+        >
+          {isFullscreen ? "✕" : "⛶"}
+        </button>
+        <a className="embed-brand" href="https://github.com/pjdoland/openvoicing" target="_blank" rel="noreferrer">
           OpenVoicing
         </a>
       </div>
