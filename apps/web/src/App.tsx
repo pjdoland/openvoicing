@@ -322,7 +322,15 @@ export function App() {
   useEffect(() => {
     editModeRef.current = editMode;
     setAnnouncement(editMode ? "Edit mode on" : "Edit mode off");
-    if (!editMode) setNoteInputMode(false);
+    if (!editMode) {
+      // Leaving edit mode: drop the note selection (and its highlight) and any
+      // open toolbar popovers, so the score returns to a clean view state.
+      setNoteInputMode(false);
+      setSelectedV1(null);
+      setMoreOpen(false);
+      setScorePanelOpen(false);
+      playerRef.current?.highlightSelection(null);
+    }
     // Re-render so voice coloring turns on/off with edit mode.
     if (v1EditorRef.current) v1Rerender();
     // eslint-disable-next-line react-hooks/exhaustive-deps
