@@ -298,6 +298,10 @@ export function App() {
   // Bumped after each v1 edit so the edit band's disabled states refresh.
   const [v1Version, setV1Version] = useState(0);
   const [saveState, setSaveState] = useState<"saved" | "saving">("saved");
+  // Touch devices lack the hardware keys our hints reference; adapt wording.
+  const [coarsePointer] = useState(
+    () => typeof window !== "undefined" && !!window.matchMedia?.("(pointer: coarse)").matches,
+  );
   const [editMode, setEditMode] = useState(false);
   const editModeRef = useRef(false);
 
@@ -1160,6 +1164,18 @@ export function App() {
   function dismissTour() {
     localStorage.setItem("ov-toured", "1");
     setShowTour(false);
+  }
+
+  // The wordmark is a "home" escape hatch (hallway test C16): return to the
+  // clean default view of the current piece. Non-destructive — edits are
+  // autosaved, so this only exits edit mode and closes transient UI.
+  function goHome() {
+    setEditMode(false);
+    setNoteInputMode(false);
+    setMoreOpen(false);
+    setScorePanelOpen(false);
+    const pane = document.querySelector<HTMLElement>(".score-surface")?.parentElement;
+    pane?.scrollTo?.({ top: 0, left: 0 });
   }
 
   // Assignment note persists with the session.
@@ -2404,7 +2420,7 @@ export function App() {
   return (
     <div className={`app${standMode ? " stand-mode" : ""}${closed ? " closed" : ""}${noteInputMode ? " note-input" : ""}`}>
       <header className="header" role="banner">
-        <h1>OpenVoicing</h1>
+        <h1><button type="button" className="wordmark-home" onClick={goHome} title="Back to the start (exit edit mode and return to the clean view)">OpenVoicing</button></h1>
         {scoreTitle && <span className="tagline">{scoreTitle}</span>}
         {hasV1Editor && (
           <span className={"save-status" + (saveState === "saving" ? " saving" : "")} aria-live="polite" title="Your work is saved automatically in this browser.">
@@ -2884,8 +2900,12 @@ export function App() {
       <footer className="footer">
         <span className="footer-tip">
           {editMode
-            ? "Tip: click a note to select it, then ↑/↓ transpose or Del delete."
-            : "Tip: click a note to jump there, drag across notes to loop a passage."}
+            ? coarsePointer
+              ? "Tip: tap a note to select it, then use the toolbar to change or delete it."
+              : "Tip: click a note to select it, then ↑/↓ transpose or Del delete."
+            : coarsePointer
+              ? "Tip: tap a note to jump there; drag across notes to loop a passage."
+              : "Tip: click a note to jump there, drag across notes to loop a passage."}
         </span>
         <span className="footer-colophon">Engraving by alphaTab</span>
       </footer>

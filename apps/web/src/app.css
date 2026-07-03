@@ -126,6 +126,19 @@ body {
   font-size: 1.125rem;
   letter-spacing: 0.5px;
 }
+/* The wordmark doubles as a home/reset button (C16). */
+.wordmark-home {
+  font: inherit;
+  letter-spacing: inherit;
+  color: inherit;
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  border-radius: 4px;
+}
+.wordmark-home:hover { opacity: 0.75; }
+.wordmark-home:focus-visible { outline: 2px solid var(--accent, #2445c6); outline-offset: 3px; }
 
 .tagline {
   font-size: 0.8125rem;
@@ -998,8 +1011,12 @@ body {
 .etb-btn.wide { min-width: auto; width: auto; gap: 4px; padding: 0 10px; font-size: 0.8125rem; white-space: nowrap; }
 /* Touch: a 44px floor on all edit controls, on coarse pointers only. */
 @media (pointer: coarse) {
-  .etb-btn { min-width: 44px; height: 44px; }
-  .etb-select select, .etb-pop-row select { min-height: 44px; }
+  /* Comfortable, not just legal-minimum, touch targets with real spacing so a
+     row of buttons stops reading as cramped (hallway test C14). */
+  .etb-btn { min-width: 48px; height: 48px; }
+  .etb-select select, .etb-pop-row select { min-height: 48px; }
+  .etb-group { gap: 6px; }
+  .etb-btn { font-size: 0.95rem; }
 }
 .etb-btn:hover:not(:disabled) { background: var(--btn-hover); }
 .etb-btn:disabled { opacity: 0.4; cursor: default; }
@@ -1312,8 +1329,9 @@ body {
 /* Score and waveform fill the available width. */
 .score, .score-surface, .wave-scroll { max-width: 100%; }
 
-@media (max-width: 900px) {
-  /* Collapse the primary menus to icons to reclaim header width. */
+@media (max-width: 600px) {
+  /* Keep File/View/Share/Help labeled as long as possible (hallway test C10:
+     bare glyphs were unguessable); only fall back to icons on true phones. */
   .menubar .menu > .menu-trigger .menu-trigger-label { display: none; }
   .menubar .menu > .menu-trigger { padding: 5px 8px; }
 }
