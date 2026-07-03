@@ -162,6 +162,8 @@ function toBeat(
     });
   }
   beatMap.set(beatModel.id, beat);
+  // Stamp the model id so a clicked alphaTab beat maps back to the v1 model.
+  (beat as unknown as { ovBeatId?: string }).ovBeatId = beatModel.id;
   return beat;
 }
 

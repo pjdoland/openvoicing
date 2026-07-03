@@ -55,6 +55,12 @@ export class ScoreEditorV1 {
     return this.redoStack.length > 0;
   }
 
+  /** The id of a beat's first note (selection is by beat; edits act on notes). */
+  firstNoteId(beatId: EntityId): EntityId | undefined {
+    const beat = findBeatById(this.doc, beatId);
+    return beat?.notes[0]?.id;
+  }
+
   findNote(noteId: EntityId): NoteLocation | undefined {
     for (const part of this.doc.parts) {
       for (const measure of part.measures) {

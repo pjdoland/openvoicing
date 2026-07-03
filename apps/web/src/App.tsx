@@ -82,28 +82,40 @@ interface ScoreSource {
  * model (which makes it editable) and everything else through alphaTab's own
  * parsers. Returns an editor when the model path succeeded.
  */
-function loadScoreIntoPlayer(player: Player, source: ScoreSource): ScoreEditor | null {
+interface LoadedScore {
+  editor: ScoreEditor | null;
+  v1Editor: v1.ScoreEditorV1 | null;
+}
+
+function loadScoreIntoPlayer(player: Player, source: ScoreSource): LoadedScore {
   if (source.type === "alphatex") {
     player.loadTex(new TextDecoder().decode(source.data));
-    return null;
+    return { editor: null, v1Editor: null };
   }
   if (source.type === "musicxml") {
     const text = new TextDecoder().decode(source.data);
-    // The v0 model is single-staff/single-voice; routing a piano or ensemble
-    // score through it would drop staves (e.g. the bass clef). Render those
-    // natively for full fidelity (read-only); keep simple scores editable.
+    // Simple scores stay on the lightweight v0 editable path. Multi-staff /
+    // multi-voice scores (piano, ensemble) go through the full-fidelity v1
+    // model, rendered via the alphaTab adapter, so they are editable too.
     if (!isMultiStaffMusicXml(text)) {
       try {
         const doc = importMusicXml(text);
         player.loadTex(toAlphaTex(doc));
-        return new ScoreEditor(doc);
+        return { editor: new ScoreEditor(doc), v1Editor: null };
       } catch {
-        // Files the v0 importer cannot handle fall back to native, read-only.
+        // Files the v0 importer cannot handle fall through to v1 / native.
       }
+    }
+    try {
+      const doc = v1.importMusicXmlV1(text);
+      player.renderV1(doc);
+      return { editor: null, v1Editor: new v1.ScoreEditorV1(doc) };
+    } catch {
+      // Anything v1 cannot parse falls back to native, read-only rendering.
     }
   }
   player.load(new Uint8Array(source.data));
-  return null;
+  return { editor: null, v1Editor: null };
 }
 
 /** True when a MusicXML has more than one part or a second staff (grand staff). */
@@ -243,6 +255,14 @@ export function App() {
   const [preferredSource, setPreferredSource] = useState<"synth" | "recording">("synth");
 
   const editorRef = useRef<ScoreEditor | null>(null);
+  // Full-fidelity editor for multi-staff scores (piano, ensemble). When set,
+  // editorRef is null and edits/selection/export route through the v1 model.
+  const v1EditorRef = useRef<v1.ScoreEditorV1 | null>(null);
+  const [hasV1Editor, setHasV1Editor] = useState(false);
+  const selectedV1BeatRef = useRef<string | null>(null);
+  const [selectedV1Beat, setSelectedV1Beat] = useState<string | null>(null);
+  // Bumped after each v1 edit so the edit band's disabled states refresh.
+  const [, setV1Version] = useState(0);
   const [hasEditor, setHasEditor] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const editModeRef = useRef(false);
@@ -281,11 +301,18 @@ export function App() {
     selectedBeatRef.current = selectedBeat;
   }, [selectedBeat]);
 
-  function adoptEditor(editor: ScoreEditor | null): void {
-    editorRef.current = editor;
-    setHasEditor(editor !== null);
+  useEffect(() => {
+    selectedV1BeatRef.current = selectedV1Beat;
+  }, [selectedV1Beat]);
+
+  function adoptEditor(loaded: LoadedScore): void {
+    editorRef.current = loaded.editor;
+    v1EditorRef.current = loaded.v1Editor;
+    setHasEditor(loaded.editor !== null);
+    setHasV1Editor(loaded.v1Editor !== null);
+    setSelectedV1Beat(null);
     setEditMode(false);
-    if (editor) void storage.set("scoreDoc", editor.doc);
+    if (loaded.editor) void storage.set("scoreDoc", loaded.editor.doc);
     else void storage.delete("scoreDoc");
   }
 
@@ -369,6 +396,11 @@ export function App() {
     });
     player.on("beatClicked", (tick, location) => {
       if (editModeRef.current) {
+        // v1-backed scores select by model beat id; v0 by structural address.
+        if (v1EditorRef.current) {
+          if (location.modelBeatId) setSelectedV1Beat(location.modelBeatId);
+          return;
+        }
         setSelectedBeat({
           partIndex: location.trackIndex,
           barIndex: location.barIndex,
@@ -386,6 +418,9 @@ export function App() {
       w.__ovPlayer = player;
       w.__ovRecording = recording;
       w.__ovEditor = () => editorRef.current;
+      w.__ovV1Editor = () => v1EditorRef.current;
+      w.__ovSelectedV1 = () => selectedV1BeatRef.current;
+      w.__ovSelectV1 = (id: string) => setSelectedV1Beat(id);
       w.__ovSelected = () => selectedBeatRef.current;
       // Dev hook: render any MusicXML through the full-fidelity v1 pipeline
       // (import -> v1 model -> alphaTab adapter), the Option C render path.
@@ -423,10 +458,12 @@ export function App() {
           data: stored.data,
         };
         scoreSourceRef.current = source;
-        const editor = loadScoreIntoPlayer(player, source);
-        editorRef.current = editor;
-        setHasEditor(editor !== null);
-        if (editor) void storage.set("scoreDoc", editor.doc);
+        const loaded = loadScoreIntoPlayer(player, source);
+        editorRef.current = loaded.editor;
+        v1EditorRef.current = loaded.v1Editor;
+        setHasEditor(loaded.editor !== null);
+        setHasV1Editor(loaded.v1Editor !== null);
+        if (loaded.editor) void storage.set("scoreDoc", loaded.editor.doc);
       } else {
         const data = new TextEncoder().encode(DEMO_TEX).buffer as ArrayBuffer;
         scoreSourceRef.current = { name: "demo.alphatex", type: "alphatex", data };
@@ -979,6 +1016,11 @@ export function App() {
       downloadBlob(new Blob([toMusicXml(editor.doc)], { type }), "musicxml");
       return;
     }
+    // Full-fidelity score: export the edited v1 model (edits included).
+    if (v1EditorRef.current) {
+      downloadBlob(new Blob([v1.exportMusicXmlV1(v1EditorRef.current.doc)], { type }), "musicxml");
+      return;
+    }
     // Read-only score: re-export the loaded MusicXML source if that is what it is.
     const source = scoreSourceRef.current;
     if (source?.type === "musicxml") {
@@ -1009,6 +1051,32 @@ export function App() {
           target.tagName === "TEXTAREA" ||
           target.isContentEditable)
       ) {
+        return;
+      }
+      // Full-fidelity (multi-staff) scores edit through the v1 model: click a
+      // note, then Arrow Up/Down transposes (Shift = octave), Delete removes,
+      // Cmd/Ctrl+Z undoes. Re-render from the model preserves notation.
+      const v1Editor = v1EditorRef.current;
+      if (v1Editor) {
+        const rerender = () => playerRef.current?.renderV1(v1Editor.doc);
+        if ((e.metaKey || e.ctrlKey) && e.code === "KeyZ") {
+          e.preventDefault();
+          if (e.shiftKey ? v1Editor.redo() : v1Editor.undo()) rerender();
+          return;
+        }
+        const beatId = selectedV1BeatRef.current;
+        const noteId = beatId ? v1Editor.firstNoteId(beatId) : undefined;
+        if (!noteId) return;
+        if (e.code === "ArrowUp") {
+          e.preventDefault();
+          if (v1Editor.transposeNote(noteId, e.shiftKey ? 12 : 1)) rerender();
+        } else if (e.code === "ArrowDown") {
+          e.preventDefault();
+          if (v1Editor.transposeNote(noteId, e.shiftKey ? -12 : -1)) rerender();
+        } else if (e.code === "Delete" || e.code === "Backspace") {
+          e.preventDefault();
+          if (v1Editor.deleteNote(noteId)) rerender();
+        }
         return;
       }
       const editor = editorRef.current;
@@ -1646,8 +1714,7 @@ export function App() {
     const buffer = await file.arrayBuffer();
     const type = scoreTypeFromFileName(file.name);
     const source: ScoreSource = { name: file.name, type, data: buffer };
-    const editor = loadScoreIntoPlayer(player, source);
-    adoptEditor(editor);
+    adoptEditor(loadScoreIntoPlayer(player, source));
     scoreSourceRef.current = source;
     void storage.set("score", { name: file.name, type, data: buffer });
     // Sync maps anchor to the old score's ticks; they do not carry over.
@@ -1661,7 +1728,11 @@ export function App() {
     const source = scoreSourceRef.current;
     if (!source) return null;
     const scorePath = `score/score.${scoreFileExtension(source.type)}`;
-    const files = new Map<string, Uint8Array>([[scorePath, new Uint8Array(source.data)]]);
+    // For v1-backed scores, bundle the edited model, not the original source.
+    const scoreBytes = v1EditorRef.current
+      ? new TextEncoder().encode(v1.exportMusicXmlV1(v1EditorRef.current.doc))
+      : new Uint8Array(source.data);
+    const files = new Map<string, Uint8Array>([[scorePath, scoreBytes]]);
     const manifestRecordings = [];
     for (const meta of recordings) {
       const rec = await storage.get<StoredFile>(`recording:${meta.id}`);
@@ -1848,8 +1919,39 @@ export function App() {
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
-  const canEdit = hasEditor && !locked;
+  const canEdit = (hasEditor || hasV1Editor) && !locked;
   const doPrint = () => playerRef.current?.print();
+
+  // v1 (multi-staff) editing: act on the clicked beat's first note, then
+  // re-render from the model so notation is preserved.
+  function v1Rerender() {
+    const ed = v1EditorRef.current;
+    if (ed) playerRef.current?.renderV1(ed.doc);
+    setV1Version((n) => n + 1);
+  }
+  function v1SelectedNoteId(): string | undefined {
+    const ed = v1EditorRef.current;
+    const beatId = selectedV1BeatRef.current;
+    return ed && beatId ? ed.firstNoteId(beatId) : undefined;
+  }
+  function v1Transpose(n: number) {
+    const ed = v1EditorRef.current;
+    const noteId = v1SelectedNoteId();
+    if (ed && noteId && ed.transposeNote(noteId, n)) v1Rerender();
+  }
+  function v1Delete() {
+    const ed = v1EditorRef.current;
+    const noteId = v1SelectedNoteId();
+    if (ed && noteId && ed.deleteNote(noteId)) v1Rerender();
+  }
+  function v1Undo() {
+    const ed = v1EditorRef.current;
+    if (ed && ed.undo()) v1Rerender();
+  }
+  function v1Redo() {
+    const ed = v1EditorRef.current;
+    if (ed && ed.redo()) v1Rerender();
+  }
   const doTranspose = (n: number) => {
     if (editorRef.current?.transposeScore(n)) rerenderScore();
   };
@@ -2190,7 +2292,23 @@ export function App() {
         </div>
       </div>
 
-      {editMode && (
+      {editMode && hasV1Editor && (
+        <div className="edit-band" role="region" aria-label="Editing tools">
+          <span className="inspector-title">Editing</span>
+          <button className="btn-icon" onClick={v1Undo} disabled={!v1EditorRef.current?.canUndo} title="Undo (Cmd+Z)" aria-label="Undo">↶</button>
+          <button className="btn-icon" onClick={v1Redo} disabled={!v1EditorRef.current?.canRedo} title="Redo (Shift+Cmd+Z)" aria-label="Redo">↷</button>
+          <span className="subgroup">
+            <span className="subgroup-label">Transpose</span>
+            <button className="btn-icon" onClick={() => v1Transpose(1)} disabled={!selectedV1Beat} aria-label="Transpose up" title="Transpose up (Up arrow)">＋</button>
+            <button className="btn-icon" onClick={() => v1Transpose(-1)} disabled={!selectedV1Beat} aria-label="Transpose down" title="Transpose down (Down arrow)">－</button>
+          </span>
+          <button className="btn-icon" onClick={v1Delete} disabled={!selectedV1Beat} aria-label="Delete note" title="Delete note (Del)">🗑</button>
+          <span className="edit-hint">
+            {selectedV1Beat ? "Note selected — ↑/↓ transpose, Del delete" : "Click a note to edit. Pitches and rhythm are editable; ornaments and slurs are preserved."}
+          </span>
+        </div>
+      )}
+      {editMode && !hasV1Editor && (
         <div className="edit-band" role="region" aria-label="Editing tools">
           <span className="inspector-title">Editing</span>
           <button className="btn-icon" onClick={doEditUndo} disabled={!editorRef.current?.canUndo} title="Undo (Cmd+Z)" aria-label="Undo">

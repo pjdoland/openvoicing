@@ -23,6 +23,8 @@ export interface BeatLocation {
   barIndex: number;
   voiceIndex: number;
   beatIndex: number;
+  /** v1 model beat id, when the score was rendered from the v1 model. */
+  modelBeatId?: string;
 }
 
 export interface PlayerEvents {
@@ -109,6 +111,7 @@ export class Player {
         barIndex: beat.voice.bar.index,
         voiceIndex: beat.voice.index,
         beatIndex: beat.index,
+        modelBeatId: (beat as unknown as { ovBeatId?: string }).ovBeatId,
       });
     });
     this.api.error.on((error) => this.emit("error", error));
