@@ -128,7 +128,7 @@ describe("NavigateControl", () => {
     const user = userEvent.setup();
     const onJumpBar = vi.fn();
     render(<NavigateControl {...base} onJumpBar={onJumpBar} />);
-    await user.type(screen.getByLabelText("Jump to bar or section"), "5{Enter}");
+    await user.type(screen.getByLabelText("Jump to a bar number or section name"), "5{Enter}");
     expect(onJumpBar).toHaveBeenCalledWith(5);
   });
 
@@ -136,7 +136,7 @@ describe("NavigateControl", () => {
     const user = userEvent.setup();
     const onJumpSection = vi.fn();
     render(<NavigateControl {...base} onJumpSection={onJumpSection} />);
-    await user.type(screen.getByLabelText("Jump to bar or section"), "chorus{Enter}");
+    await user.type(screen.getByLabelText("Jump to a bar number or section name"), "chorus{Enter}");
     expect(onJumpSection).toHaveBeenCalledWith(2);
   });
 
@@ -144,7 +144,7 @@ describe("NavigateControl", () => {
     const user = userEvent.setup();
     const onJumpBar = vi.fn();
     render(<NavigateControl {...base} onJumpBar={onJumpBar} />);
-    await user.type(screen.getByLabelText("Jump to bar or section"), "99{Enter}");
+    await user.type(screen.getByLabelText("Jump to a bar number or section name"), "99{Enter}");
     expect(onJumpBar).not.toHaveBeenCalled();
   });
 });

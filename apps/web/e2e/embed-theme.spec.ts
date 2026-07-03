@@ -43,7 +43,7 @@ test.describe("menus, themes, and shortcuts", () => {
     await expect(page.locator(".tb-zone-label", { hasText: "Practice" })).toHaveCount(0);
     await page.locator(".mode-toggle button", { hasText: "Practice" }).click();
     await expect(page.locator(".tb-zone-label", { hasText: "Practice" })).toBeVisible();
-    await expect(page.locator(".tb-zone-label", { hasText: "Capture" })).toBeVisible();
+    await expect(page.locator(".tb-zone-label", { hasText: "Record my take" })).toBeVisible();
   });
 
   test("locked mode hides the File menu and editing", async ({ page }) => {

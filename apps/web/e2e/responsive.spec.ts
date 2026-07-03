@@ -25,7 +25,9 @@ test.describe("responsive layout", () => {
     const labelWide = page.locator(".menubar .menu-trigger-label", { hasText: "File" });
     await expect(labelWide).toBeVisible();
 
-    await page.setViewportSize({ width: 700, height: 800 });
+    // Labels stay visible on tablets and only collapse to icons on true
+    // phones (<=600px), so newcomers can read them for as long as possible.
+    await page.setViewportSize({ width: 500, height: 800 });
     await page.waitForTimeout(300);
     await expect(labelWide).toBeHidden();
     // The File menu is still operable by its accessible name.
