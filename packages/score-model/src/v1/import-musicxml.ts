@@ -1,4 +1,4 @@
-import { newId } from "../ids";
+import { newId, sequentialIdGenerator, withIdGenerator } from "../ids";
 import {
   PPQ,
   SCORE_V1_FORMAT,
@@ -38,7 +38,10 @@ const XML_TO_NOTE_TYPE: Record<string, NoteType> = {
  * records staves/clefs, ties, and tuplets. Notation not yet modeled (ornaments,
  * dynamics, articulations) is dropped at this tier and belongs to a later phase.
  */
-export function importMusicXmlV1(xml: string): ScoreV1 {
+export function importMusicXmlV1(xml: string, opts: { deterministic?: boolean } = {}): ScoreV1 {
+  // Deterministic mode assigns counter-based ids, so re-importing the same
+  // source reproduces identical ids and id-keyed state survives a reopen.
+  if (opts.deterministic) return withIdGenerator(sequentialIdGenerator(), () => importMusicXmlV1(xml));
   const roots = parseXml(xml);
   const partwise = roots.find((n) => tagOf(n) === "score-partwise");
   if (!partwise) throw new Error("only score-partwise MusicXML is supported");

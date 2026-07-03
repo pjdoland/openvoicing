@@ -1,9 +1,9 @@
 import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { canonicalizeMusicXml, exportMusicXmlV1, importMusicXmlV1, validationErrors } from "../src/v1";
 
-const GOLDBERG =
-  "/private/tmp/claude-502/-Users-pjdoland-Repos-openvoicing/e5f08c59-576d-4230-a4bd-5fc892ae1c51/scratchpad/gold/score/aria.musicxml";
+const GOLDBERG = fileURLToPath(new URL("./fixtures/v1/goldberg-aria.musicxml", import.meta.url));
 
 // Real-world proof: the Goldberg aria (two-staff, 64 bars, ties, ornaments,
 // multiple voices) is exactly the kind of score the v0 model could not edit.

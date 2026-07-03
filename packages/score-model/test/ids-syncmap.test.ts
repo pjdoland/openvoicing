@@ -13,7 +13,7 @@ describe("newId", () => {
   it("prefixes and stays unique", () => {
     const a = newId("note");
     const b = newId("note");
-    expect(a).toMatch(/^note_[0-9a-f]{12}$/);
+    expect(a).toMatch(/^note_[0-9a-f]{32}$/);
     expect(a).not.toBe(b);
   });
 });
