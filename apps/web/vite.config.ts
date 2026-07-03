@@ -4,7 +4,13 @@ import react from "@vitejs/plugin-react";
 import { alphaTab } from "@coderline/alphatab-vite";
 import { VitePWA } from "vite-plugin-pwa";
 
+// Serve from the domain root by default; set OPENVOICING_BASE (with leading and
+// trailing slash) to deploy under a sub-path, e.g. GitHub project Pages at
+// "/openvoicing/". See docs/deploy-app.md.
+const base = process.env.OPENVOICING_BASE || "/";
+
 export default defineConfig({
+  base,
   plugins: [
     react(),
     alphaTab(),
@@ -42,12 +48,12 @@ export default defineConfig({
         theme_color: "#1b1f27",
         background_color: "#f4f5f7",
         display: "standalone",
-        start_url: "/",
+        start_url: base,
         icons: [
-          { src: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },
-          { src: "/icons/icon-512.png", sizes: "512x512", type: "image/png" },
+          { src: `${base}icons/icon-192.png`, sizes: "192x192", type: "image/png" },
+          { src: `${base}icons/icon-512.png`, sizes: "512x512", type: "image/png" },
           {
-            src: "/icons/icon-512.png",
+            src: `${base}icons/icon-512.png`,
             sizes: "512x512",
             type: "image/png",
             purpose: "maskable",

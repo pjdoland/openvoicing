@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>OpenVoicing — living sheet music</title>
+<meta name="description" content="Open-source interactive sheet music that plays, slows down without changing pitch, and syncs to real recordings. Try it live and see it embedded." />
+<style>
+  :root{
+    --ink:#12151b; --paper:#fbfbfd; --panel:#fff; --slate:#565c69; --faint:#828997;
+    --hair:#e6e8ee; --accent:#2445c6; --accent-soft:#eaeefb; --header:#1b1f27;
+    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    --serif:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;
+    --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:var(--sans);color:var(--ink);background:var(--paper);line-height:1.6;-webkit-font-smoothing:antialiased}
+  a{color:var(--accent)}
+  .bar{background:var(--header);color:#fff;display:flex;align-items:center;gap:14px;padding:14px clamp(16px,5vw,48px)}
+  .bar strong{font-size:1.05rem;letter-spacing:.3px}
+  .bar .spacer{flex:1}
+  .bar a{color:#d6dae2;text-decoration:none;font-size:.9rem}
+  .bar a.cta{background:var(--accent);color:#fff;padding:8px 16px;border-radius:8px;font-weight:600}
+  .wrap{max-width:1080px;margin:0 auto;padding:0 clamp(16px,5vw,48px)}
+  .hero{padding:clamp(40px,7vw,84px) 0 24px;text-align:center}
+  .hero h1{font-family:var(--serif);font-size:clamp(2.1rem,5vw,3.4rem);line-height:1.05;margin:0 0 16px;letter-spacing:-.01em;text-wrap:balance}
+  .hero p{font-size:clamp(1.05rem,2.2vw,1.3rem);color:var(--slate);max-width:60ch;margin:0 auto 28px}
+  .btns{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+  .btn{padding:12px 24px;border-radius:10px;font-weight:600;text-decoration:none;font-size:1rem}
+  .btn-primary{background:var(--accent);color:#fff}
+  .btn-ghost{background:var(--panel);color:var(--ink);border:1px solid var(--hair)}
+  .eyebrow{font-family:var(--mono);font-size:.72rem;letter-spacing:.16em;text-transform:uppercase;color:var(--accent);margin:0 0 22px}
+  .live{margin:36px 0 8px}
+  .live-cap{display:flex;align-items:baseline;gap:10px;margin:0 0 12px;flex-wrap:wrap}
+  .live-cap h2{font-family:var(--serif);font-size:1.4rem;margin:0}
+  .live-cap span{color:var(--faint);font-size:.9rem}
+  .embed-frame{background:var(--panel);border:1px solid var(--hair);border-radius:14px;padding:10px;box-shadow:0 8px 30px rgba(20,30,60,.06)}
+  .feats{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:18px;margin:44px 0}
+  .feat{background:var(--panel);border:1px solid var(--hair);border-radius:12px;padding:20px}
+  .feat h3{font-size:1.05rem;margin:0 0 6px}
+  .feat p{margin:0;color:var(--slate);font-size:.94rem}
+  .embed-how{margin:40px 0}
+  .embed-how h2{font-family:var(--serif);font-size:1.5rem;margin:0 0 6px;text-align:center}
+  .embed-how p.sub{text-align:center;color:var(--slate);margin:0 0 20px}
+  pre{background:#12151b;color:#e7e9ef;border-radius:12px;padding:18px 20px;overflow-x:auto;font-family:var(--mono);font-size:.86rem;line-height:1.6}
+  pre .t{color:#8fb3ff}.pre .a{color:#c8a2ff}
+  footer{border-top:1px solid var(--hair);margin-top:56px;padding:28px 0 48px;color:var(--faint);font-size:.9rem;text-align:center}
+  footer a{color:var(--slate)}
+</style>
+</head>
+<body>
+  <div class="bar">
+    <strong>OpenVoicing</strong>
+    <div class="spacer"></div>
+    <a href="https://github.com/pjdoland/openvoicing">GitHub</a>
+    <a href="./">Docs</a>
+    <a class="cta" href="./index.html">Launch the app</a>
+  </div>
+
+  <div class="wrap">
+    <section class="hero">
+      <p class="eyebrow">Open-source living sheet music</p>
+      <h1>Sheet music that plays, slows down, and syncs to real recordings.</h1>
+      <p>An open alternative to Soundslice, built around a portable file format instead of a hosted service. Practice with the tools that matter, then embed any piece on your own site.</p>
+      <div class="btns">
+        <a class="btn btn-primary" href="./index.html">Try it live</a>
+        <a class="btn btn-ghost" href="https://github.com/pjdoland/openvoicing">View on GitHub</a>
+      </div>
+    </section>
+
+    <section class="live">
+      <div class="live-cap">
+        <h2>See it embedded</h2>
+        <span>This is a real OpenVoicing player, embedded on this page with one line of HTML.</span>
+      </div>
+      <div class="embed-frame">
+        <div data-openvoicing-bundle="./goldberg-aria.ovb" data-openvoicing-height="500"></div>
+      </div>
+    </section>
+
+    <section class="feats">
+      <div class="feat"><h3>Practice, not just playback</h3><p>Slow a passage down without changing pitch, loop it, add a count-in, and follow a metronome.</p></div>
+      <div class="feat"><h3>Sync to real recordings</h3><p>Line a real performance up with the score so playback follows the notation, bar by bar.</p></div>
+      <div class="feat"><h3>Own your files</h3><p>Every piece exports as a self-contained <code>.ovb</code> bundle. No account, no lock-in — host it anywhere.</p></div>
+      <div class="feat"><h3>Editable notation</h3><p>Import MusicXML or Guitar Pro, edit the notes, and export. It's a real editor, not a viewer.</p></div>
+    </section>
+
+    <section class="embed-how">
+      <h2>Embed a piece in one line</h2>
+      <p class="sub">Host a bundle anywhere, drop in the script, and point a div at it.</p>
+      <pre>&lt;script src="https://your-host/openvoicing-embed.js"&gt;&lt;/script&gt;
+&lt;div data-openvoicing-bundle="https://example.com/tune.ovb"&gt;&lt;/div&gt;</pre>
+      <p class="sub" style="margin-top:14px">Full options, methods, and events are in the <a href="https://github.com/pjdoland/openvoicing/blob/main/docs/embed-api.md">embed API reference</a>.</p>
+    </section>
+  </div>
+
+  <footer>
+    OpenVoicing is free and open source ·
+    <a href="https://github.com/pjdoland/openvoicing">github.com/pjdoland/openvoicing</a><br />
+    Libraries MPL-2.0 · app AGPL-3.0 · Engraving by alphaTab
+  </footer>
+
+  <script src="./openvoicing-embed.js"></script>
+</body>
+</html>
