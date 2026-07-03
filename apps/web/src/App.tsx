@@ -2,19 +2,9 @@ import { useEffect, useMemo, useRef, useState, type ChangeEvent } from "react";
 import { Player, type EditSelection, type TrackInfo } from "@openvoicing/player";
 import { alignBarsToOnsets, detectOnsets, RecordingPlayer } from "@openvoicing/audio-engine";
 import {
-  createEmptyScore,
-  importMusicXml,
   mediaTimeAtTick,
-  neighborBeatAddress,
-  ScoreEditor,
   tickAtMediaTime,
-  toAlphaTex,
-  toMidi,
-  toMusicXml,
   v1,
-  type Beat,
-  type BeatAddress,
-  type ScoreDocument,
   type SyncPoint,
 } from "@openvoicing/score-model";
 import {
@@ -59,18 +49,6 @@ import {
 import { MicRecorder } from "./mic";
 import { storage, type RecordingMeta, type StoredFile } from "./storage";
 
-const INSTRUMENTS: Array<{ program: number; name: string }> = [
-  { program: 0, name: "Piano" },
-  { program: 24, name: "Nylon guitar" },
-  { program: 25, name: "Steel guitar" },
-  { program: 40, name: "Violin" },
-  { program: 42, name: "Cello" },
-  { program: 52, name: "Choir aah" },
-  { program: 56, name: "Trumpet" },
-  { program: 65, name: "Alto sax" },
-  { program: 73, name: "Flute" },
-];
-
 interface ScoreSource {
   name: string;
   type: ScoreType;
@@ -83,14 +61,13 @@ interface ScoreSource {
  * parsers. Returns an editor when the model path succeeded.
  */
 interface LoadedScore {
-  editor: ScoreEditor | null;
   v1Editor: v1.ScoreEditorV1 | null;
 }
 
 function loadScoreIntoPlayer(player: Player, source: ScoreSource): LoadedScore {
   if (source.type === "alphatex") {
     player.loadTex(new TextDecoder().decode(source.data));
-    return { editor: null, v1Editor: null };
+    return { v1Editor: null };
   }
   if (source.type === "musicxml") {
     const bytes = new Uint8Array(source.data);
@@ -101,13 +78,13 @@ function loadScoreIntoPlayer(player: Player, source: ScoreSource): LoadedScore {
     try {
       const doc = v1.importMusicXmlV1(text);
       player.renderV1(doc);
-      return { editor: null, v1Editor: new v1.ScoreEditorV1(doc) };
+      return { v1Editor: new v1.ScoreEditorV1(doc) };
     } catch {
       // Anything v1 cannot parse falls back to native, read-only rendering.
     }
   }
   player.load(new Uint8Array(source.data));
-  return { editor: null, v1Editor: null };
+  return { v1Editor: null };
 }
 
 /** True when a MusicXML has more than one part or a second staff (grand staff). */
@@ -119,10 +96,6 @@ function isMultiStaffMusicXml(xml: string): boolean {
 
 function newRecordingId(): string {
   return globalThis.crypto.randomUUID().slice(0, 8);
-}
-
-function structuredCloneBeat(beat: Beat): Beat {
-  return structuredClone(beat);
 }
 
 const KEY_OPTIONS: Array<{ fifths: number; label: string }> = [
@@ -137,26 +110,6 @@ const DURATION_KEYS: Record<number, v1.NoteType> = {
   1: "whole", 2: "half", 3: "quarter", 4: "eighth", 5: "16th",
   6: "32nd", 7: "64th", 8: "128th", 9: "256th",
 };
-
-const MIDI_STEPS: Array<{ step: "C" | "D" | "E" | "F" | "G" | "A" | "B"; alter: number }> = [
-  { step: "C", alter: 0 },
-  { step: "C", alter: 1 },
-  { step: "D", alter: 0 },
-  { step: "D", alter: 1 },
-  { step: "E", alter: 0 },
-  { step: "F", alter: 0 },
-  { step: "F", alter: 1 },
-  { step: "G", alter: 0 },
-  { step: "G", alter: 1 },
-  { step: "A", alter: 0 },
-  { step: "A", alter: 1 },
-  { step: "B", alter: 0 },
-];
-
-function midiToPitchLocal(midi: number) {
-  const p = MIDI_STEPS[((midi % 12) + 12) % 12]!;
-  return { step: p.step, alter: p.alter, octave: Math.floor(midi / 12) - 1 };
-}
 
 function sanitizeName(name: string): string {
   return name.replace(/[^\w.-]+/g, "_");
@@ -259,9 +212,7 @@ export function App() {
   const [position, setPosition] = useState({ current: 0, total: 0 });
   const [preferredSource, setPreferredSource] = useState<"synth" | "recording">("synth");
 
-  const editorRef = useRef<ScoreEditor | null>(null);
-  // Full-fidelity editor for multi-staff scores (piano, ensemble). When set,
-  // editorRef is null and edits/selection/export route through the v1 model.
+  // Full-fidelity editor. Edits/selection/export route through the v1 model.
   const v1EditorRef = useRef<v1.ScoreEditorV1 | null>(null);
   const [hasV1Editor, setHasV1Editor] = useState(false);
   const selectedV1Ref = useRef<EditSelection | null>(null);
@@ -269,28 +220,12 @@ export function App() {
   const v1ClipboardRef = useRef<v1.CopiedBeat | null>(null);
   // Bumped after each v1 edit so the edit band's disabled states refresh.
   const [, setV1Version] = useState(0);
-  const [hasEditor, setHasEditor] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const editModeRef = useRef(false);
-  const selectedBeatRef = useRef<BeatAddress | null>(null);
-  const [selectedBeat, setSelectedBeat] = useState<BeatAddress | null>(null);
-  const clipboardRef = useRef<Beat[] | null>(null);
-  // Range anchor for Shift+Arrow selection within a bar; null when single-beat.
-  const rangeAnchorRef = useRef<number | null>(null);
-  const rangeEndRef = useRef<number | null>(null);
-  const [, setRangeEnd] = useState<number | null>(null);
-  function updateRangeEnd(value: number | null) {
-    rangeEndRef.current = value;
-    setRangeEnd(value);
-  }
 
   useEffect(() => {
     editModeRef.current = editMode;
     setAnnouncement(editMode ? "Edit mode on" : "Edit mode off");
-    if (!editMode) {
-      selectedBeatRef.current = null;
-      setSelectedBeat(null);
-    }
   }, [editMode]);
 
   useEffect(() => {
@@ -304,23 +239,16 @@ export function App() {
   }, [recording]);
 
   useEffect(() => {
-    selectedBeatRef.current = selectedBeat;
-  }, [selectedBeat]);
-
-  useEffect(() => {
     selectedV1Ref.current = selectedV1;
     playerRef.current?.highlightSelection(selectedV1);
   }, [selectedV1]);
 
   function adoptEditor(loaded: LoadedScore): void {
-    editorRef.current = loaded.editor;
     v1EditorRef.current = loaded.v1Editor;
-    setHasEditor(loaded.editor !== null);
     setHasV1Editor(loaded.v1Editor !== null);
     setSelectedV1(null);
     setEditMode(false);
-    if (loaded.editor) void storage.set("scoreDoc", loaded.editor.doc);
-    else void storage.delete("scoreDoc");
+    void storage.delete("scoreDoc");
   }
 
   const [recordings, setRecordings] = useState<RecordingMeta[]>([]);
@@ -401,20 +329,11 @@ export function App() {
         return prev.current === next.current && prev.total === next.total ? prev : next;
       });
     });
-    player.on("beatClicked", (tick, location) => {
-      if (editModeRef.current) {
-        // v1-backed scores select the exact clicked note (see noteClicked);
-        // beat clicks are ignored here so a click near a beat doesn't pick the
-        // top note. v0 scores still select by structural beat address.
-        if (v1EditorRef.current) return;
-        setSelectedBeat({
-          partIndex: location.trackIndex,
-          barIndex: location.barIndex,
-          voiceIndex: location.voiceIndex,
-          beatIndex: location.beatIndex,
-        });
-        return;
-      }
+    player.on("beatClicked", (tick) => {
+      // In edit mode, v1-backed scores select the exact clicked note (see
+      // noteClicked); beat clicks are ignored so a click near a beat doesn't
+      // pick the top note.
+      if (editModeRef.current) return;
       const points = syncPointsRef.current;
       if (points) recording.seek(mediaTimeAtTick(points, tick));
     });
@@ -432,41 +351,23 @@ export function App() {
       const w = window as unknown as Record<string, unknown>;
       w.__ovPlayer = player;
       w.__ovRecording = recording;
-      w.__ovEditor = () => editorRef.current;
       w.__ovV1Editor = () => v1EditorRef.current;
       w.__ovSelectedV1 = () => selectedV1Ref.current?.noteId ?? selectedV1Ref.current?.restBeatId ?? null;
       w.__ovSelectV1 = (id: string) => setSelectedV1({ noteId: id });
-      w.__ovSelected = () => selectedBeatRef.current;
       // Dev hook: render any MusicXML through the full-fidelity v1 pipeline
       // (import -> v1 model -> alphaTab adapter), the Option C render path.
       w.__ovRenderV1 = (xml: string) => player.renderV1(v1.importMusicXmlV1(xml));
     }
     let disposed = false;
     void (async () => {
-      let doc: ScoreDocument | undefined;
       let stored: (StoredFile & { type?: ScoreType }) | undefined;
       try {
-        doc = await storage.get<ScoreDocument>("scoreDoc");
         stored = await storage.get<StoredFile & { type?: ScoreType }>("score");
       } catch {
-        doc = undefined;
         stored = undefined;
       }
       if (disposed) return;
-      if (doc) {
-        // An editing session in progress restores from the canonical document.
-        const tex = toAlphaTex(doc);
-        player.loadTex(tex);
-        editorRef.current = new ScoreEditor(doc);
-        setHasEditor(true);
-        if (stored) {
-          scoreSourceRef.current = {
-            name: stored.name,
-            type: stored.type ?? scoreTypeFromFileName(stored.name),
-            data: stored.data,
-          };
-        }
-      } else if (stored) {
+      if (stored) {
         const source: ScoreSource = {
           name: stored.name,
           type: stored.type ?? scoreTypeFromFileName(stored.name),
@@ -474,11 +375,8 @@ export function App() {
         };
         scoreSourceRef.current = source;
         const loaded = loadScoreIntoPlayer(player, source);
-        editorRef.current = loaded.editor;
         v1EditorRef.current = loaded.v1Editor;
-        setHasEditor(loaded.editor !== null);
         setHasV1Editor(loaded.v1Editor !== null);
-        if (loaded.editor) void storage.set("scoreDoc", loaded.editor.doc);
       } else {
         const data = new TextEncoder().encode(DEMO_TEX).buffer as ArrayBuffer;
         scoreSourceRef.current = { name: "demo.alphatex", type: "alphatex", data };
@@ -981,19 +879,6 @@ export function App() {
     return () => window.removeEventListener("keydown", onKey);
   });
 
-  function rerenderScore() {
-    const editor = editorRef.current;
-    const player = playerRef.current;
-    if (!editor || !player) return;
-    player.loadTex(toAlphaTex(editor.doc));
-    void storage.set("scoreDoc", editor.doc);
-    // Bundles must carry the edited score, re-importable as MusicXML.
-    const xml = toMusicXml(editor.doc);
-    const data = new TextEncoder().encode(xml).buffer as ArrayBuffer;
-    scoreSourceRef.current = { name: "score.musicxml", type: "musicxml", data };
-    void storage.set("score", { name: "score.musicxml", type: "musicxml", data });
-  }
-
   function newScore() {
     const player = playerRef.current;
     if (!player) return;
@@ -1002,9 +887,7 @@ export function App() {
     // to type into. (The old v0 empty-score path is retired.)
     const doc = v1.createEmptyScoreV1({ bars: 8 });
     const v1Editor = new v1.ScoreEditorV1(doc);
-    editorRef.current = null;
     v1EditorRef.current = v1Editor;
-    setHasEditor(false);
     setHasV1Editor(true);
     player.renderV1(doc);
     void storage.delete("scoreDoc");
@@ -1029,12 +912,7 @@ export function App() {
   }
 
   function exportMusicXml() {
-    const editor = editorRef.current;
     const type = "application/vnd.recordare.musicxml+xml";
-    if (editor) {
-      downloadBlob(new Blob([toMusicXml(editor.doc)], { type }), "musicxml");
-      return;
-    }
     // Full-fidelity score: export the edited v1 model (edits included).
     if (v1EditorRef.current) {
       downloadBlob(new Blob([v1.exportMusicXmlV1(v1EditorRef.current.doc)], { type }), "musicxml");
@@ -1050,12 +928,7 @@ export function App() {
   }
 
   function exportMidi() {
-    const editor = editorRef.current;
-    if (editor) {
-      downloadBlob(new Blob([toMidi(editor.doc) as BlobPart], { type: "audio/midi" }), "mid");
-      return;
-    }
-    // Read-only score: alphaTab generates MIDI from the rendered score.
+    // alphaTab generates MIDI from the rendered score.
     playerRef.current?.downloadMidi();
   }
 
@@ -1079,212 +952,6 @@ export function App() {
       if (v1Editor) {
         v1KeyHandler(e, v1Editor);
         return;
-      }
-      const editor = editorRef.current;
-      if (!editor) return;
-      if ((e.metaKey || e.ctrlKey) && e.code === "KeyZ") {
-        e.preventDefault();
-        const changed = e.shiftKey ? editor.redo() : editor.undo();
-        if (changed) rerenderScore();
-        return;
-      }
-      const selectedForClip = selectedBeatRef.current;
-      if ((e.metaKey || e.ctrlKey) && (e.code === "KeyC" || e.code === "KeyX") && selectedForClip) {
-        e.preventDefault();
-        const beats =
-          editor.doc.parts[selectedForClip.partIndex]?.measures[selectedForClip.barIndex]?.voices[
-            selectedForClip.voiceIndex
-          ]?.beats ?? [];
-        const anchor = rangeAnchorRef.current;
-        const lo = anchor === null ? selectedForClip.beatIndex : Math.min(anchor, rangeEndRef.current ?? anchor);
-        const hi = anchor === null ? selectedForClip.beatIndex : Math.max(anchor, rangeEndRef.current ?? anchor);
-        clipboardRef.current = beats.slice(lo, hi + 1).map(structuredCloneBeat);
-        if (e.code === "KeyX") {
-          // Delete from the end so indices stay valid.
-          let changed = false;
-          for (let i = hi; i >= lo; i--) {
-            changed = editor.deleteBeat({ ...selectedForClip, beatIndex: i }) || changed;
-          }
-          if (changed) {
-            const remaining =
-              editor.doc.parts[selectedForClip.partIndex]?.measures[selectedForClip.barIndex]
-                ?.voices[selectedForClip.voiceIndex]?.beats ?? [];
-            const sel =
-              remaining.length === 0
-                ? null
-                : { ...selectedForClip, beatIndex: Math.min(lo, remaining.length - 1) };
-            selectedBeatRef.current = sel;
-            setSelectedBeat(sel);
-            rerenderScore();
-          }
-        }
-        rangeAnchorRef.current = null;
-        updateRangeEnd(null);
-        return;
-      }
-      if ((e.metaKey || e.ctrlKey) && e.code === "KeyV" && selectedForClip && clipboardRef.current) {
-        e.preventDefault();
-        if (editor.insertBeatsAfter(selectedForClip, clipboardRef.current)) {
-          const next = { ...selectedForClip, beatIndex: selectedForClip.beatIndex + 1 };
-          selectedBeatRef.current = next;
-          setSelectedBeat(next);
-          rerenderScore();
-        }
-        return;
-      }
-      const selected = selectedBeatRef.current;
-      if (!selected || e.metaKey || e.ctrlKey || e.altKey) return;
-      // Shift+Arrow extends a selection range within the current bar.
-      if ((e.code === "ArrowLeft" || e.code === "ArrowRight") && e.shiftKey) {
-        e.preventDefault();
-        const beats =
-          editor.doc.parts[selected.partIndex]?.measures[selected.barIndex]?.voices[
-            selected.voiceIndex
-          ]?.beats ?? [];
-        if (rangeAnchorRef.current === null) rangeAnchorRef.current = selected.beatIndex;
-        const delta = e.code === "ArrowRight" ? 1 : -1;
-        const nextEnd = Math.min(
-          beats.length - 1,
-          Math.max(0, (rangeEndRef.current ?? selected.beatIndex) + delta),
-        );
-        updateRangeEnd(nextEnd);
-        return;
-      }
-      if (e.code === "ArrowLeft" || e.code === "ArrowRight") {
-        e.preventDefault();
-        rangeAnchorRef.current = null;
-        updateRangeEnd(null);
-        const next = neighborBeatAddress(
-          editor.doc,
-          selected,
-          e.code === "ArrowRight" ? 1 : -1,
-        );
-        if (next) {
-          selectedBeatRef.current = next;
-          setSelectedBeat(next);
-          const player = playerRef.current;
-          const beat =
-            editor.doc.parts[next.partIndex]?.measures[next.barIndex]?.voices[next.voiceIndex]
-              ?.beats[next.beatIndex];
-          const barStart = player?.barTicks[next.barIndex]?.start;
-          if (player && beat && barStart !== undefined) {
-            player.cursorTick = barStart + beat.startTick;
-          }
-        }
-        return;
-      }
-      if (e.code === "KeyJ") {
-        e.preventDefault();
-        if (editor.respellBeat(selected)) rerenderScore();
-        return;
-      }
-      if (e.code === "KeyT") {
-        e.preventDefault();
-        if (editor.toggleTie(selected)) rerenderScore();
-        return;
-      }
-      if (e.code === "Period") {
-        e.preventDefault();
-        if (editor.toggleDotted(selected)) rerenderScore();
-        return;
-      }
-      if (e.code === "Equal" || e.code === "Minus") {
-        e.preventDefault();
-        if (editor.cycleAccidental(selected, e.code === "Equal" ? 1 : -1)) rerenderScore();
-        return;
-      }
-      if (e.code === "KeyB") {
-        e.preventDefault();
-        if (editor.repeatPreviousBar(selected)) rerenderScore();
-        return;
-      }
-      // Shift + a-g adds a note to the chord.
-      const chordMatch = e.shiftKey ? /^Key([A-G])$/.exec(e.code) : null;
-      if (chordMatch) {
-        e.preventDefault();
-        if (editor.addNoteToChord(selected, chordMatch[1] as "A")) rerenderScore();
-        return;
-      }
-      if (e.code === "Digit3" && e.shiftKey) {
-        e.preventDefault();
-        const beat =
-          editor.doc.parts[selected.partIndex]?.measures[selected.barIndex]?.voices[
-            selected.voiceIndex
-          ]?.beats[selected.beatIndex];
-        if (editor.setTuplet(selected, beat?.tuplet ? null : 3)) rerenderScore();
-        return;
-      }
-      if (e.code === "KeyL") {
-        e.preventDefault();
-        const beat =
-          editor.doc.parts[selected.partIndex]?.measures[selected.barIndex]?.voices[
-            selected.voiceIndex
-          ]?.beats[selected.beatIndex];
-        const lyric = window.prompt("Lyric syllable", beat?.lyric ?? "");
-        if (lyric !== null && editor.setLyric(selected, lyric)) rerenderScore();
-        return;
-      }
-      if (e.code === "Escape") {
-        e.preventDefault();
-        selectedBeatRef.current = null;
-        setSelectedBeat(null);
-        return;
-      }
-      if (e.code === "ArrowUp" || e.code === "ArrowDown") {
-        e.preventDefault();
-        const delta = (e.code === "ArrowUp" ? 1 : -1) * (e.shiftKey ? 12 : 1);
-        if (editor.transposeBeat(selected, delta)) rerenderScore();
-        return;
-      }
-      const pitchMatch = /^Key([A-G])$/.exec(e.code);
-      if (pitchMatch) {
-        e.preventDefault();
-        if (editor.setBeatPitch(selected, pitchMatch[1] as "A")) rerenderScore();
-        return;
-      }
-      const DURATIONS: Record<string, number> = {
-        Digit1: 3840,
-        Digit2: 1920,
-        Digit4: 960,
-        Digit8: 480,
-        Digit6: 240,
-        Digit3: 120,
-      };
-      if (e.code in DURATIONS) {
-        e.preventDefault();
-        if (editor.setBeatDuration(selected, DURATIONS[e.code]!)) rerenderScore();
-        return;
-      }
-      if (e.code === "KeyR") {
-        e.preventDefault();
-        if (editor.setBeatRest(selected)) rerenderScore();
-        return;
-      }
-      if (e.code === "KeyI" || e.code === "Enter") {
-        e.preventDefault();
-        const inserted = editor.insertBeatAfter(selected);
-        if (inserted) {
-          selectedBeatRef.current = inserted;
-          setSelectedBeat(inserted);
-          rerenderScore();
-        }
-        return;
-      }
-      if (e.code === "KeyX" || e.code === "Delete") {
-        e.preventDefault();
-        if (editor.deleteBeat(selected)) {
-          const beats =
-            editor.doc.parts[selected.partIndex]?.measures[selected.barIndex]?.voices[
-              selected.voiceIndex
-            ]?.beats ?? [];
-          const nextSelection =
-            beats.length === 0
-              ? null
-              : { ...selected, beatIndex: Math.min(selected.beatIndex, beats.length - 1) };
-          selectedBeatRef.current = nextSelection;
-          setSelectedBeat(nextSelection);
-          rerenderScore();
-        }
       }
     };
     window.addEventListener("keydown", onKey);
@@ -1372,48 +1039,6 @@ export function App() {
     setAssignment(text);
     if (text) void storage.set("assignment", text);
     else void storage.delete("assignment");
-  }
-
-  // Web MIDI step entry: in edit mode, a played note sets the selected beat's
-  // pitch and advances (insert), so a MIDI keyboard drives note entry.
-  useEffect(() => {
-    const nav = navigator as Navigator & {
-      requestMIDIAccess?: () => Promise<{ inputs: Map<string, { onmidimessage: ((e: { data: Uint8Array | null }) => void) | null }> }>;
-    };
-    if (!nav.requestMIDIAccess) return;
-    let cancelled = false;
-    void nav.requestMIDIAccess().then((access) => {
-      if (cancelled) return;
-      for (const input of access.inputs.values()) {
-        const existing = input.onmidimessage;
-        input.onmidimessage = function (this: unknown, e) {
-          const data = e.data;
-          if (data && (data[0]! & 0xf0) === 0x90 && (data[2] ?? 0) > 0 && editModeRef.current) {
-            stepEnterMidiNote(data[1]!);
-            return;
-          }
-          (existing as ((ev: typeof e) => void) | null)?.(e);
-        };
-      }
-    }).catch(() => {});
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  function stepEnterMidiNote(midi: number) {
-    const editor = editorRef.current;
-    const selected = selectedBeatRef.current;
-    if (!editor || !selected) return;
-    const pitch = midiToPitchLocal(midi);
-    if (editor.setBeatPitchExact(selected, pitch.step, pitch.alter, pitch.octave)) {
-      const inserted = editor.insertBeatAfter(selected);
-      if (inserted) {
-        selectedBeatRef.current = inserted;
-        setSelectedBeat(inserted);
-      }
-      rerenderScore();
-    }
   }
 
   // Music-stand mode: full-screen score, wake lock to keep the screen on.
@@ -1920,7 +1545,7 @@ export function App() {
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
-  const canEdit = (hasEditor || hasV1Editor) && !locked;
+  const canEdit = hasV1Editor && !locked;
   const doPrint = () => playerRef.current?.print();
 
   // v1 (multi-staff) editing: act on the clicked beat's first note, then
@@ -2159,15 +1784,7 @@ export function App() {
   })();
   const v1TimeValue = v1EffectiveAttrs.time;
   const v1KeyValue = v1EffectiveAttrs.key;
-  const doTranspose = (n: number) => {
-    if (editorRef.current?.transposeScore(n)) rerenderScore();
-  };
-  const doEditUndo = () => {
-    if (editorRef.current?.undo()) rerenderScore();
-  };
-  const doEditRedo = () => {
-    if (editorRef.current?.redo()) rerenderScore();
-  };
+  const doTranspose = (n: number) => v1Transpose(n);
 
   // Every action, for the command palette (Cmd-K) and, where sensible, menus.
   const commands: Command[] = [
@@ -2554,60 +2171,6 @@ export function App() {
           </span>
         </div>
       )}
-      {editMode && !hasV1Editor && (
-        <div className="edit-band" role="region" aria-label="Editing tools">
-          <span className="inspector-title">Editing</span>
-          <button className="btn-icon" onClick={doEditUndo} disabled={!editorRef.current?.canUndo} title="Undo (Cmd+Z)" aria-label="Undo">
-            ↶
-          </button>
-          <button className="btn-icon" onClick={doEditRedo} disabled={!editorRef.current?.canRedo} title="Redo (Shift+Cmd+Z)" aria-label="Redo">
-            ↷
-          </button>
-          <span className="subgroup">
-            <span className="subgroup-label">Transpose</span>
-            <button className="btn-icon" onClick={() => doTranspose(1)} aria-label="Transpose up" title="Transpose up">＋</button>
-            <button className="btn-icon" onClick={() => doTranspose(-1)} aria-label="Transpose down" title="Transpose down">－</button>
-          </span>
-          <label className="control" title="Playback instrument for this part">
-            Instrument
-            <select
-              value={editorRef.current?.doc.parts[0]?.midiProgram ?? 0}
-              onChange={(e) => {
-                if (editorRef.current?.setInstrument(0, Number(e.target.value))) rerenderScore();
-              }}
-            >
-              {INSTRUMENTS.map((inst) => (
-                <option key={inst.program} value={inst.program}>
-                  {inst.name}
-                </option>
-              ))}
-            </select>
-          </label>
-          <span className="inspector">
-            {selectedBeat ? (
-              <span className="hint">Bar {selectedBeat.barIndex + 1} selected</span>
-            ) : (
-              <span className="hint">Click a note to select</span>
-            )}
-            <Popover label="Shortcuts" title="Editing shortcuts">
-              <div className="hint" style={{ maxWidth: 280 }}>
-                a-g pitch · Shift+a-g chord · ←→ move · ↑↓ transpose · 1-8 duration · . dot ·
-                +/− accidental · Shift+3 triplet · r rest · b repeat bar · l lyric · t tie ·
-                i insert · x delete
-              </div>
-            </Popover>
-          </span>
-          <label className="control assignment-inline" title="A note shown to students">
-            Assignment
-            <input
-              className="assignment-input"
-              placeholder="Add a note for students…"
-              value={assignment}
-              onChange={(e) => saveAssignment(e.target.value)}
-            />
-          </label>
-        </div>
-      )}
       {locked && assignment && (
         <div className="edit-band" role="region" aria-label="Assignment">
           <span className="inspector-title">Assignment</span>
@@ -2769,9 +2332,6 @@ export function App() {
       <p className="sr-only" id="score-summary">
         {scoreTitle}
         {scoreArtist ? ` by ${scoreArtist}` : ""}. {barCount} bars.
-        {editorRef.current?.doc.bars[0]
-          ? ` Time signature ${editorRef.current.doc.bars[0].timeSignature.beats}/${editorRef.current.doc.bars[0].timeSignature.beatUnit}.`
-          : ""}
       </p>
       <main className="score" aria-label="Score" aria-describedby="score-summary">
         <div ref={containerRef} className="score-surface" role="img" aria-label="Musical notation" />
