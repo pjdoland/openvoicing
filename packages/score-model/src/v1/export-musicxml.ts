@@ -104,6 +104,16 @@ function exportMeasure(
     out.push("      </attributes>");
   }
 
+  // Left barline: forward repeat and ending start (only on the first part).
+  const prevEnding = doc.bars[barIndex - 1]?.ending;
+  const endingStarts = bar.ending && !sameEnding(bar.ending, prevEnding);
+  if (bar.repeat?.start || endingStarts) {
+    out.push('      <barline location="left">');
+    if (endingStarts) out.push(`        <ending number="${bar.ending!.join(",")}" type="start"/>`);
+    if (bar.repeat?.start) out.push('        <repeat direction="forward"/>');
+    out.push("      </barline>");
+  }
+
   if (barIndex === 0 && bar.tempoBpm) {
     out.push("      <direction placement=\"above\">");
     out.push(`        <sound tempo="${bar.tempoBpm}"/>`);
@@ -128,8 +138,26 @@ function exportMeasure(
     prevAdvance = advance;
   });
 
+  // Right barline: bar-style, ending stop, and backward repeat.
+  const nextEnding = doc.bars[barIndex + 1]?.ending;
+  const endingStops = bar.ending && !sameEnding(bar.ending, nextEnding);
+  if (bar.barlineStyleRight || bar.repeat?.end || endingStops) {
+    out.push('      <barline location="right">');
+    if (bar.barlineStyleRight) out.push(`        <bar-style>${bar.barlineStyleRight}</bar-style>`);
+    if (endingStops) out.push(`        <ending number="${bar.ending!.join(",")}" type="stop"/>`);
+    if (bar.repeat?.end) {
+      out.push(`        <repeat direction="backward"${bar.repeat.times ? ` times="${bar.repeat.times}"` : ""}/>`);
+    }
+    out.push("      </barline>");
+  }
+
   out.push("    </measure>");
   return out;
+}
+
+function sameEnding(a: number[] | undefined, b: number[] | undefined): boolean {
+  if (!a || !b) return false;
+  return a.length === b.length && a.every((n, i) => n === b[i]);
 }
 
 function attributeLines(part: Part, measure: Measure, barIndex: number): string[] {

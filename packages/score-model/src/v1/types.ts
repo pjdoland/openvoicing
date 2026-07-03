@@ -86,6 +86,8 @@ export interface BarSpec {
   implicit?: boolean;
   repeat?: RepeatSpec;
   barlineStyleRight?: BarlineStyle;
+  /** Volta numbers active at this bar (e.g. [1] for a first ending). */
+  ending?: number[];
   /** Original printed measure number (may be non-numeric, e.g. "38a"). */
   printedNumber?: string;
 }

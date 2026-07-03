@@ -135,6 +135,7 @@ function buildBarGrid(part0: XmlNode | undefined, barCount: number): BarSpec[] {
   const bars: BarSpec[] = [];
   let time: TimeSignature = { beats: 4, beatUnit: 4 };
   let divisions = 1;
+  let openEnding: number[] | undefined;
   const measures = part0 ? children(childrenOf(part0), "measure") : [];
   for (let i = 0; i < barCount; i++) {
     const measureNode = measures[i];
@@ -150,6 +151,10 @@ function buildBarGrid(part0: XmlNode | undefined, barCount: number): BarSpec[] {
     const nominal = Math.round(time.beats * (4 / time.beatUnit) * PPQ);
     const implicit = measureNode ? attr(measureNode, "implicit") === "yes" : false;
     const printedNumber = measureNode ? attr(measureNode, "number") : undefined;
+    const bl = readBarlines(mc);
+    if (bl.endingStart) openEnding = bl.endingStart;
+    const ending = openEnding;
+    if (bl.endingStop) openEnding = undefined;
     bars.push({
       id: newId("bar"),
       index: i,
@@ -157,9 +162,56 @@ function buildBarGrid(part0: XmlNode | undefined, barCount: number): BarSpec[] {
       tempoBpm: findTempo(mc),
       ...(implicit ? { implicit: true } : {}),
       ...(printedNumber ? { printedNumber } : {}),
+      ...(bl.repeat ? { repeat: bl.repeat } : {}),
+      ...(bl.barlineStyleRight ? { barlineStyleRight: bl.barlineStyleRight } : {}),
+      ...(ending ? { ending } : {}),
     });
   }
   return bars;
+}
+
+const BAR_STYLES: ReadonlySet<string> = new Set([
+  "regular", "dashed", "dotted", "heavy", "light-light", "light-heavy", "heavy-light", "heavy-heavy", "none", "final",
+]);
+
+/** Read <barline> repeats, endings, and bar-style from a measure. */
+function readBarlines(mc: XmlNode[]): {
+  repeat?: { start?: boolean; end?: boolean; times?: number };
+  barlineStyleRight?: BarSpec["barlineStyleRight"];
+  endingStart?: number[];
+  endingStop?: boolean;
+} {
+  const out: ReturnType<typeof readBarlines> = {};
+  for (const barline of children(mc, "barline")) {
+    const bc = childrenOf(barline);
+    const location = attr(barline, "location") ?? "right";
+    const repeat = child(bc, "repeat");
+    if (repeat) {
+      const dir = attr(repeat, "direction");
+      const times = Number(attr(repeat, "times"));
+      if (dir === "forward") (out.repeat ??= {}).start = true;
+      else if (dir === "backward") {
+        out.repeat ??= {};
+        out.repeat.end = true;
+        if (Number.isFinite(times)) out.repeat.times = times;
+      }
+    }
+    const ending = child(bc, "ending");
+    if (ending) {
+      const type = attr(ending, "type");
+      if (type === "start") {
+        out.endingStart = (attr(ending, "number") ?? "1")
+          .split(",")
+          .map((n) => Number(n.trim()))
+          .filter((n) => Number.isFinite(n));
+      } else if (type === "stop" || type === "discontinue") out.endingStop = true;
+    }
+    const style = childText(bc, "bar-style");
+    if (style && location === "right" && BAR_STYLES.has(style)) {
+      out.barlineStyleRight = style as BarSpec["barlineStyleRight"];
+    }
+  }
+  return out;
 }
 
 /** Longest voice reach (in ticks) across a measure's cursor moves. */

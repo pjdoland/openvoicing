@@ -23,6 +23,9 @@ export function toAlphaTabScore(doc: v1.ScoreV1): alphaTab.model.Score {
     mb.timeSignatureDenominator = ts.beatUnit;
     // Score.tempo is read-only; tempo lives on master-bar automations.
     if (bar.tempoBpm) mb.tempoAutomations = [m.Automation.buildTempoAutomation(false, 0, bar.tempoBpm, 2, true)];
+    if (bar.repeat?.start) mb.isRepeatStart = true;
+    if (bar.repeat?.end) mb.repeatCount = bar.repeat.times && bar.repeat.times > 1 ? bar.repeat.times : 2;
+    if (bar.ending?.length) mb.alternateEndings = bar.ending.reduce((mask, n) => mask | (1 << (n - 1)), 0);
     score.addMasterBar(mb);
   });
 
