@@ -246,13 +246,19 @@ export function App() {
     void storage.set("sections", next);
     showToast(`Section "${label}" added at bar ${currentBarIndex() + 1}.`);
   }
-  function jumpToSection(barIndex: number) {
+  function jumpToBarIndex(barIndex: number) {
     const player = playerRef.current;
     const bar = player?.barTicks[barIndex];
-    if (player && bar) {
-      player.cursorTick = bar.start;
-      player.scrollBarIntoView(barIndex);
-    }
+    if (!player || !bar) return;
+    player.cursorTick = bar.start;
+    player.scrollBarIntoView(barIndex);
+    // Move the recording playhead to the same spot so pressing Play starts
+    // here whichever source is active (synth follows cursorTick already).
+    const points = syncPointsRef.current;
+    if (points) recording.seek(mediaTimeAtTick(points, bar.start));
+  }
+  function jumpToSection(barIndex: number) {
+    jumpToBarIndex(barIndex);
   }
   function renameSection(barIndex: number) {
     const existing = sections.find((s) => s.barIndex === barIndex);
@@ -2642,10 +2648,7 @@ export function App() {
             locked={locked}
             onJumpBar={(n) => {
               const player = playerRef.current;
-              if (player && n >= 1 && n <= player.barTicks.length) {
-                player.cursorTick = player.barTicks[n - 1]!.start;
-                player.scrollBarIntoView(n - 1);
-              }
+              if (player && n >= 1 && n <= player.barTicks.length) jumpToBarIndex(n - 1);
             }}
             onJumpSection={jumpToSection}
             onAddSection={addSection}
