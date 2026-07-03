@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type ChangeEvent } from "react";
-import { Player, type TrackInfo } from "@openvoicing/player";
+import { Player, type EditSelection, type TrackInfo } from "@openvoicing/player";
 import { alignBarsToOnsets, detectOnsets, RecordingPlayer } from "@openvoicing/audio-engine";
 import {
   createEmptyScore,
@@ -261,8 +261,8 @@ export function App() {
   // editorRef is null and edits/selection/export route through the v1 model.
   const v1EditorRef = useRef<v1.ScoreEditorV1 | null>(null);
   const [hasV1Editor, setHasV1Editor] = useState(false);
-  const selectedV1NoteRef = useRef<string | null>(null);
-  const [selectedV1Note, setSelectedV1Note] = useState<string | null>(null);
+  const selectedV1Ref = useRef<EditSelection | null>(null);
+  const [selectedV1, setSelectedV1] = useState<EditSelection | null>(null);
   // Bumped after each v1 edit so the edit band's disabled states refresh.
   const [, setV1Version] = useState(0);
   const [hasEditor, setHasEditor] = useState(false);
@@ -304,16 +304,16 @@ export function App() {
   }, [selectedBeat]);
 
   useEffect(() => {
-    selectedV1NoteRef.current = selectedV1Note;
-    playerRef.current?.highlightModelNote(selectedV1Note);
-  }, [selectedV1Note]);
+    selectedV1Ref.current = selectedV1;
+    playerRef.current?.highlightSelection(selectedV1);
+  }, [selectedV1]);
 
   function adoptEditor(loaded: LoadedScore): void {
     editorRef.current = loaded.editor;
     v1EditorRef.current = loaded.v1Editor;
     setHasEditor(loaded.editor !== null);
     setHasV1Editor(loaded.v1Editor !== null);
-    setSelectedV1Note(null);
+    setSelectedV1(null);
     setEditMode(false);
     if (loaded.editor) void storage.set("scoreDoc", loaded.editor.doc);
     else void storage.delete("scoreDoc");
@@ -419,8 +419,8 @@ export function App() {
     // one you aimed at (alphaTab's noteMouseDown only fires on an exact hit).
     const onScoreClick = (e: MouseEvent) => {
       if (!editModeRef.current || !v1EditorRef.current) return;
-      const id = playerRef.current?.noteAtPosition(e.clientX, e.clientY);
-      if (id) setSelectedV1Note(id);
+      const el = playerRef.current?.elementAtPosition(e.clientX, e.clientY);
+      if (el) setSelectedV1(el);
     };
     container.addEventListener("click", onScoreClick);
     player.on("error", (error) => console.error("[openvoicing]", error));
@@ -430,8 +430,8 @@ export function App() {
       w.__ovRecording = recording;
       w.__ovEditor = () => editorRef.current;
       w.__ovV1Editor = () => v1EditorRef.current;
-      w.__ovSelectedV1 = () => selectedV1NoteRef.current;
-      w.__ovSelectV1 = (id: string) => setSelectedV1Note(id);
+      w.__ovSelectedV1 = () => selectedV1Ref.current?.noteId ?? selectedV1Ref.current?.restBeatId ?? null;
+      w.__ovSelectV1 = (id: string) => setSelectedV1({ noteId: id });
       w.__ovSelected = () => selectedBeatRef.current;
       // Dev hook: render any MusicXML through the full-fidelity v1 pipeline
       // (import -> v1 model -> alphaTab adapter), the Option C render path.
@@ -1080,16 +1080,20 @@ export function App() {
         // even when nothing is selected yet (then just show a nudge to select).
         if (["ArrowUp", "ArrowDown", "Delete", "Backspace"].includes(e.code)) {
           e.preventDefault();
-          const noteId = selectedV1NoteRef.current;
-          if (!noteId) {
+          const sel = selectedV1Ref.current;
+          if (!sel) {
             setAnnouncement("Click a note to select it first");
             return;
           }
+          if (!sel.noteId) {
+            setAnnouncement("Rests have no pitch to change");
+            return;
+          }
           if (e.code === "ArrowUp") {
-            if (v1Editor.transposeNote(noteId, e.shiftKey ? 12 : 1)) rerender();
+            if (v1Editor.transposeNote(sel.noteId, e.shiftKey ? 12 : 1)) rerender();
           } else if (e.code === "ArrowDown") {
-            if (v1Editor.transposeNote(noteId, e.shiftKey ? -12 : -1)) rerender();
-          } else if (v1Editor.deleteNote(noteId)) {
+            if (v1Editor.transposeNote(sel.noteId, e.shiftKey ? -12 : -1)) rerender();
+          } else if (v1Editor.deleteNote(sel.noteId)) {
             rerender();
           }
         }
@@ -1946,7 +1950,7 @@ export function App() {
     setV1Version((n) => n + 1);
   }
   function v1SelectedNoteId(): string | undefined {
-    return selectedV1NoteRef.current ?? undefined;
+    return selectedV1Ref.current?.noteId ?? undefined;
   }
   function v1Transpose(n: number) {
     const ed = v1EditorRef.current;
@@ -2313,12 +2317,16 @@ export function App() {
           <button className="btn-icon" onClick={v1Redo} disabled={!v1EditorRef.current?.canRedo} title="Redo (Shift+Cmd+Z)" aria-label="Redo">↷</button>
           <span className="subgroup">
             <span className="subgroup-label">Transpose</span>
-            <button className="btn-icon" onClick={() => v1Transpose(1)} disabled={!selectedV1Note} aria-label="Transpose up" title="Transpose up (Up arrow)">＋</button>
-            <button className="btn-icon" onClick={() => v1Transpose(-1)} disabled={!selectedV1Note} aria-label="Transpose down" title="Transpose down (Down arrow)">－</button>
+            <button className="btn-icon" onClick={() => v1Transpose(1)} disabled={!selectedV1?.noteId} aria-label="Transpose up" title="Transpose up (Up arrow)">＋</button>
+            <button className="btn-icon" onClick={() => v1Transpose(-1)} disabled={!selectedV1?.noteId} aria-label="Transpose down" title="Transpose down (Down arrow)">－</button>
           </span>
-          <button className="btn-icon" onClick={v1Delete} disabled={!selectedV1Note} aria-label="Delete note" title="Delete note (Del)">🗑</button>
+          <button className="btn-icon" onClick={v1Delete} disabled={!selectedV1?.noteId} aria-label="Delete note" title="Delete note (Del)">🗑</button>
           <span className="edit-hint">
-            {selectedV1Note ? "Note selected — ↑/↓ transpose, Del delete" : "Click a note to edit. Pitches are editable; ornaments and slurs are preserved."}
+            {selectedV1?.noteId
+              ? "Note selected — ↑/↓ transpose, Del delete"
+              : selectedV1?.restBeatId
+                ? "Rest selected — rests have no pitch to edit yet"
+                : "Click a note to edit. Pitches are editable; ornaments and slurs are preserved."}
           </span>
         </div>
       )}

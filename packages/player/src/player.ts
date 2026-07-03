@@ -27,6 +27,19 @@ export interface BeatLocation {
   modelBeatId?: string;
 }
 
+/** A selected editable element: a specific note, or a rest (by its beat). */
+export interface EditSelection {
+  noteId?: string;
+  restBeatId?: string;
+}
+
+interface Bounds {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+}
+
 export interface PlayerEvents {
   scoreLoaded: (info: { title: string; artist: string; tracks: TrackInfo[] }) => void;
   playerStateChanged: (playing: boolean) => void;
@@ -56,7 +69,7 @@ export class Player {
   private loopMarkerLayer: HTMLDivElement | null = null;
   private loopRange: { startBar: number; endBar: number } | null = null;
   private highlightLayer: HTMLDivElement | null = null;
-  private highlightNoteId: string | null = null;
+  private selection: EditSelection | null = null;
   private pendingScrollTop: number | null = null;
   private readonly listeners: { [K in keyof PlayerEvents]: Set<PlayerEvents[K]> } = {
     scoreLoaded: new Set(),
@@ -330,40 +343,37 @@ export class Player {
    * cursor, then its note closest in the vertical (pitch) axis. This makes a
    * click select the note the user aimed at even between stacked noteheads.
    */
-  noteAtPosition(clientX: number, clientY: number): string | undefined {
+  elementAtPosition(clientX: number, clientY: number): EditSelection | undefined {
     const rect = this.container.getBoundingClientRect();
     const x = clientX - rect.left;
     const y = clientY - rect.top;
-    let best: string | undefined;
+    let best: EditSelection | undefined;
     let bestDist = Infinity;
-    // Nearest notehead across every voice/staff (overlapping voices share an x
-    // column, so a per-beat search would pick the wrong voice's note).
-    this.forEachNoteBounds((noteId, b) => {
+    // Nearest notehead or rest across every voice/staff (overlapping voices
+    // share an x column, so a per-beat search would pick the wrong voice).
+    this.forEachSelectable((sel, b) => {
       const dx = b.x + b.w / 2 - x;
       const dy = b.y + b.h / 2 - y;
       const dist = dx * dx + dy * dy;
       if (dist < bestDist) {
         bestDist = dist;
-        best = noteId;
+        best = sel;
       }
     });
-    // Ignore clicks far from any note so empty-staff clicks don't grab one.
+    // Ignore clicks far from any element so empty-staff clicks don't grab one.
     return Math.sqrt(bestDist) <= 48 ? best : undefined;
   }
 
-  private forEachNoteBounds(
-    cb: (noteId: string, bounds: { x: number; y: number; w: number; h: number }) => void,
-  ): void {
+  private forEachSelectable(cb: (sel: EditSelection, bounds: Bounds) => void): void {
     const bl = this.api.renderer?.boundsLookup as
       | {
           staffSystems?: Array<{
             bars: Array<{
               bars: Array<{
                 beats: Array<{
-                  notes?: Array<{
-                    note?: { ovNoteId?: string };
-                    noteHeadBounds?: { x: number; y: number; w: number; h: number };
-                  }> | null;
+                  beat?: { isRest?: boolean; ovBeatId?: string };
+                  visualBounds?: Bounds;
+                  notes?: Array<{ note?: { ovNoteId?: string }; noteHeadBounds?: Bounds }> | null;
                 }>;
               }>;
             }>;
@@ -374,48 +384,32 @@ export class Player {
     for (const sys of bl.staffSystems)
       for (const mb of sys.bars)
         for (const bar of mb.bars)
-          for (const bb of bar.beats)
-            for (const nb of bb.notes ?? []) {
-              if (nb.note?.ovNoteId && nb.noteHeadBounds) cb(nb.note.ovNoteId, nb.noteHeadBounds);
+          for (const bb of bar.beats) {
+            if (bb.notes?.length) {
+              for (const nb of bb.notes) {
+                if (nb.note?.ovNoteId && nb.noteHeadBounds) cb({ noteId: nb.note.ovNoteId }, nb.noteHeadBounds);
+              }
+            } else if (bb.beat?.isRest && bb.beat.ovBeatId && bb.visualBounds) {
+              cb({ restBeatId: bb.beat.ovBeatId }, bb.visualBounds);
             }
+          }
   }
 
-  /** Highlight the selected note (by v1 model note id), or clear with null. */
-  highlightModelNote(noteId: string | null): void {
-    this.highlightNoteId = noteId;
+  /** Highlight the selected note or rest, or clear with null. */
+  highlightSelection(selection: EditSelection | null): void {
+    this.selection = selection;
     this.renderHighlight();
   }
 
-  private noteHeadBoundsById(noteId: string): { x: number; y: number; w: number; h: number } | null {
-    const bl = this.api.renderer?.boundsLookup as
-      | {
-          staffSystems?: Array<{
-            bars: Array<{
-              bars: Array<{
-                beats: Array<{
-                  notes?: Array<{
-                    note?: { ovNoteId?: string };
-                    noteHeadBounds?: { x: number; y: number; w: number; h: number };
-                  }> | null;
-                }>;
-              }>;
-            }>;
-          }>;
-        }
-      | undefined;
-    if (!bl?.staffSystems) return null;
-    for (const sys of bl.staffSystems) {
-      for (const mb of sys.bars) {
-        for (const bar of mb.bars) {
-          for (const bb of bar.beats) {
-            for (const nb of bb.notes ?? []) {
-              if (nb.note?.ovNoteId === noteId && nb.noteHeadBounds) return nb.noteHeadBounds;
-            }
-          }
-        }
+  private selectionBounds(selection: EditSelection): Bounds | null {
+    let found: Bounds | null = null;
+    this.forEachSelectable((sel, bounds) => {
+      if ((selection.noteId && sel.noteId === selection.noteId) ||
+          (selection.restBeatId && sel.restBeatId === selection.restBeatId)) {
+        found = bounds;
       }
-    }
-    return null;
+    });
+    return found;
   }
 
   private renderHighlight(): void {
@@ -428,12 +422,12 @@ export class Player {
       this.highlightLayer = layer;
     }
     layer.textContent = "";
-    if (!this.highlightNoteId) return;
-    const b = this.noteHeadBoundsById(this.highlightNoteId);
+    if (!this.selection) return;
+    const b = this.selectionBounds(this.selection);
     if (!b) return;
     const el = document.createElement("div");
     el.className = "ov-note-highlight";
-    // Pad around the single notehead so the selection reads clearly.
+    // Pad around the notehead/rest so the selection reads clearly.
     el.style.left = `${b.x - 4}px`;
     el.style.top = `${b.y - 4}px`;
     el.style.width = `${b.w + 8}px`;
