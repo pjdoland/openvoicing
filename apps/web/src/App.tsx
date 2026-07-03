@@ -297,6 +297,7 @@ export function App() {
   const [noteInputMode, setNoteInputMode] = useState(false);
   // Bumped after each v1 edit so the edit band's disabled states refresh.
   const [v1Version, setV1Version] = useState(0);
+  const [saveState, setSaveState] = useState<"saved" | "saving">("saved");
   const [editMode, setEditMode] = useState(false);
   const editModeRef = useRef(false);
 
@@ -504,6 +505,8 @@ export function App() {
         const loaded = loadScoreIntoPlayer(player, source);
         v1EditorRef.current = loaded.v1Editor;
         setHasV1Editor(loaded.v1Editor !== null);
+        // Prove autosave by demonstration: the piece you left is back.
+        showToast("Restored your last session");
       } else {
         const data = new TextEncoder().encode(DEMO_TEX).buffer as ArrayBuffer;
         scoreSourceRef.current = { name: "demo.alphatex", type: "alphatex", data };
@@ -1684,6 +1687,7 @@ export function App() {
     const ed = v1EditorRef.current;
     if (ed) {
       playerRef.current?.renderV1(ed.doc, { preserveScroll: true, colorVoices: editModeRef.current });
+      setSaveState("saving");
       schedulePersist();
     }
     setV1Version((n) => n + 1);
@@ -1698,7 +1702,7 @@ export function App() {
       if (!ed) return;
       const data = new TextEncoder().encode(v1.exportMusicXmlV1(ed.doc)).buffer as ArrayBuffer;
       scoreSourceRef.current = { name: "score.musicxml", type: "musicxml", data };
-      void storage.set("score", { name: "score.musicxml", type: "musicxml", data });
+      void storage.set("score", { name: "score.musicxml", type: "musicxml", data }).then(() => setSaveState("saved"));
     }, 300);
   }
   function v1SelectedNoteId(): string | undefined {
@@ -1712,7 +1716,12 @@ export function App() {
   function v1Delete() {
     const ed = v1EditorRef.current;
     const noteId = v1SelectedNoteId();
-    if (ed && noteId && ed.deleteNote(noteId)) v1Rerender();
+    if (ed && noteId && ed.deleteNote(noteId)) {
+      v1Rerender();
+      // Reassure on scope + reversibility (hallway test: users feared the
+      // trash wiped the whole piece with no undo).
+      showToast("Note cleared to a rest", () => v1Undo());
+    }
   }
   function v1Undo() {
     const ed = v1EditorRef.current;
@@ -1788,6 +1797,7 @@ export function App() {
         if (ed.transposeNote(sel.noteId, e.shiftKey ? -12 : -1)) v1Rerender();
       } else if (ed.deleteNote(sel.noteId)) {
         v1Rerender();
+        showToast("Note cleared to a rest", () => v1Undo());
       }
       return;
     }
@@ -2134,7 +2144,7 @@ export function App() {
       <div className="etb-group" role="group" aria-label="History" key="history">
         <button className="etb-btn" onClick={v1Undo} disabled={!v1EditorRef.current?.canUndo} title="Undo (Cmd+Z)" aria-label="Undo">↶</button>
         <button className="etb-btn" onClick={v1Redo} disabled={!v1EditorRef.current?.canRedo} title="Redo (Shift+Cmd+Z)" aria-label="Redo">↷</button>
-        <button className="etb-btn" onClick={v1Delete} disabled={!note} title="Delete (Del)" aria-label="Delete note"><TrashIcon /></button>
+        <button className="etb-btn" onClick={v1Delete} disabled={!note} title="Delete note — clears the selected note to a rest (Del; undo with Cmd+Z)" aria-label="Delete note"><TrashIcon /></button>
       </div>
     );
     const modeGroup = (
@@ -2396,6 +2406,11 @@ export function App() {
       <header className="header" role="banner">
         <h1>OpenVoicing</h1>
         {scoreTitle && <span className="tagline">{scoreTitle}</span>}
+        {hasV1Editor && (
+          <span className={"save-status" + (saveState === "saving" ? " saving" : "")} aria-live="polite" title="Your work is saved automatically in this browser.">
+            {saveState === "saving" ? "Saving…" : "All changes saved"}
+          </span>
+        )}
         {/* Hidden file inputs driven by File-menu items and the palette. */}
         <input
           ref={scoreInputRef}

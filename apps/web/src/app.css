@@ -131,6 +131,24 @@ body {
   font-size: 0.8125rem;
   color: var(--header-tag);
 }
+/* Autosave reassurance: quiet, with a check; brief "Saving…" on each edit. */
+.save-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.75rem;
+  color: var(--header-tag);
+  opacity: 0.85;
+  white-space: nowrap;
+}
+.save-status::before {
+  content: "✓";
+  font-size: 0.72rem;
+  color: #4a9e63;
+}
+.save-status.saving { opacity: 0.6; }
+.save-status.saving::before { content: "⟳"; color: var(--header-tag); }
+@media (max-width: 640px) { .save-status { display: none; } }
 
 .header-actions {
   margin-left: auto;
