@@ -243,6 +243,7 @@ export function App() {
   const selectedV1Ref = useRef<EditSelection | null>(null);
   const [selectedV1, setSelectedV1] = useState<EditSelection | null>(null);
   const v1ClipboardRef = useRef<v1.CopiedBeat | null>(null);
+  const persistTimerRef = useRef<number | null>(null);
   const [scorePanelOpen, setScorePanelOpen] = useState(false);
   // Bumped after each v1 edit so the edit band's disabled states refresh.
   const [v1Version, setV1Version] = useState(0);
@@ -1580,12 +1581,22 @@ export function App() {
     const ed = v1EditorRef.current;
     if (ed) {
       playerRef.current?.renderV1(ed.doc, { preserveScroll: true });
-      // Persist the edited model as its source so edits survive reload/bundle.
+      schedulePersist();
+    }
+    setV1Version((n) => n + 1);
+  }
+  // Export + persist is O(whole score); debounce it so a burst of keystrokes
+  // does one export after typing settles, not one per key (matters on big scores).
+  function schedulePersist() {
+    if (persistTimerRef.current !== null) clearTimeout(persistTimerRef.current);
+    persistTimerRef.current = window.setTimeout(() => {
+      persistTimerRef.current = null;
+      const ed = v1EditorRef.current;
+      if (!ed) return;
       const data = new TextEncoder().encode(v1.exportMusicXmlV1(ed.doc)).buffer as ArrayBuffer;
       scoreSourceRef.current = { name: "score.musicxml", type: "musicxml", data };
       void storage.set("score", { name: "score.musicxml", type: "musicxml", data });
-    }
-    setV1Version((n) => n + 1);
+    }, 300);
   }
   function v1SelectedNoteId(): string | undefined {
     return selectedV1Ref.current?.noteId ?? undefined;
