@@ -12,6 +12,8 @@ export function toAlphaTabScore(doc: v1.ScoreV1): alphaTab.model.Score {
   const score = new m.Score();
   score.title = doc.work.title;
   if (doc.work.composer) score.artist = doc.work.composer;
+  // Model beat id -> built alphaTab beat, for wiring slur spanners afterward.
+  const beatMap = new Map<string, alphaTab.model.Beat>();
   // Effective per-bar time signature comes from any part's measure attributes.
   const timeByBar = effectiveTimes(doc);
   doc.bars.forEach((bar, i) => {
@@ -56,7 +58,7 @@ export function toAlphaTabScore(doc: v1.ScoreV1): alphaTab.model.Score {
           bar.addVoice(voice);
           const vm = voices[vi];
           if (vm && vm.beats.length > 0) {
-            for (const beatModel of vm.beats) voice.addBeat(toBeat(beatModel, tupletOf));
+            for (const beatModel of vm.beats) voice.addBeat(toBeat(beatModel, tupletOf, beatMap));
           } else {
             voice.addBeat(fullBarRest(barTicks));
           }
@@ -65,8 +67,27 @@ export function toAlphaTabScore(doc: v1.ScoreV1): alphaTab.model.Score {
     });
   }
 
+  // Wire slur spanners as beat-level effect slurs once all beats exist.
+  for (const spanner of doc.spanners) {
+    if (spanner.kind !== "slur") continue;
+    const from = beatMap.get(spanner.fromBeat);
+    const to = beatMap.get(spanner.toBeat);
+    if (from && to) {
+      from.isEffectSlurOrigin = true;
+      from.effectSlurDestination = to;
+      to.effectSlurOrigin = from;
+    }
+  }
+
   return score;
 }
+
+const NOTE_ORNAMENT: Record<string, number> = {
+  mordent: 4, // LowerMordent
+  "inverted-mordent": 3, // UpperMordent
+  turn: 2, // Turn
+  "inverted-turn": 1, // InvertedTurn
+};
 
 function effectiveTimes(doc: v1.ScoreV1): v1.TimeSignature[] {
   const out: v1.TimeSignature[] = [];
@@ -113,7 +134,11 @@ const DURATION_MAP: Record<string, number> = {
 
 const STEP_SEMITONE: Record<string, number> = { C: 0, D: 2, E: 4, F: 5, G: 7, A: 9, B: 11 };
 
-function toBeat(beatModel: v1.Beat, tupletOf: (id: string) => v1.Tuplet | undefined): alphaTab.model.Beat {
+function toBeat(
+  beatModel: v1.Beat,
+  tupletOf: (id: string) => v1.Tuplet | undefined,
+  beatMap: Map<string, alphaTab.model.Beat>,
+): alphaTab.model.Beat {
   const m = alphaTab.model;
   const beat = new m.Beat();
   beat.duration = DURATION_MAP[beatModel.duration.noteType] ?? 4;
@@ -126,10 +151,17 @@ function toBeat(beatModel: v1.Beat, tupletOf: (id: string) => v1.Tuplet | undefi
   if (beatModel.grace) {
     beat.graceType = beatModel.grace.kind === "acciaccatura" ? m.GraceType.OnBeat : m.GraceType.BeforeBeat;
   }
+  if (beatModel.fermata) beat.fermata = new m.Fermata();
   // A beat with no notes renders as a rest.
   if (!beatModel.rest) {
-    for (const noteModel of beatModel.notes) beat.addNote(toNote(noteModel));
+    const ornament = beatModel.ornaments?.map((o) => NOTE_ORNAMENT[o]).find((v) => v !== undefined);
+    beatModel.notes.forEach((noteModel, i) => {
+      const note = toNote(noteModel);
+      if (i === 0 && ornament !== undefined) note.ornament = ornament;
+      beat.addNote(note);
+    });
   }
+  beatMap.set(beatModel.id, beat);
   return beat;
 }
 

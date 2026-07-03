@@ -82,4 +82,37 @@ test.describe("programmatic render adapter", () => {
     expect(r.isReady).toBe(true);
     expect(r.rendered).toBe(true);
   });
+
+  test("renders tier-1 notation (ornament, fermata, slur) through the adapter", async ({ page }) => {
+    await freshApp(page);
+    await page.waitForFunction(() => (window as any).__ovRenderV1);
+    const xml = `<?xml version="1.0"?>
+<score-partwise version="4.0">
+  <part-list><score-part id="P1"><part-name>M</part-name></score-part></part-list>
+  <part id="P1">
+    <measure number="1">
+      <attributes><divisions>4</divisions><key><fifths>0</fifths></key>
+        <time><beats>4</beats><beat-type>4</beat-type></time><clef><sign>G</sign><line>2</line></clef>
+      </attributes>
+      <note><pitch><step>C</step><octave>5</octave></pitch><duration>8</duration><voice>1</voice><type>half</type>
+        <notations><slur type="start" number="1"/><ornaments><mordent/></ornaments></notations></note>
+      <note><pitch><step>D</step><octave>5</octave></pitch><duration>8</duration><voice>1</voice><type>half</type>
+        <notations><slur type="stop" number="1"/><fermata/></notations></note>
+    </measure>
+  </part>
+</score-partwise>`;
+    await page.evaluate((x) => (window as any).__ovRenderV1(x), xml);
+    await page.waitForTimeout(1200);
+    const r = await page.evaluate(() => {
+      const beats = (window as any).__ovPlayer.api.score.tracks[0].staves[0].bars[0].voices[0].beats;
+      return {
+        ornament: beats[0].notes[0].ornament, // LowerMordent === 4
+        fermata: !!beats[1].fermata,
+        slurOrigin: beats[0].isEffectSlurOrigin,
+      };
+    });
+    expect(r.ornament).toBe(4);
+    expect(r.fermata).toBe(true);
+    expect(r.slurOrigin).toBe(true);
+  });
 });
