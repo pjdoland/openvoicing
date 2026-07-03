@@ -276,6 +276,9 @@ export function App() {
     editModeRef.current = editMode;
     setAnnouncement(editMode ? "Edit mode on" : "Edit mode off");
     if (!editMode) setNoteInputMode(false);
+    // Re-render so voice coloring turns on/off with edit mode.
+    if (v1EditorRef.current) v1Rerender();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editMode]);
 
   useEffect(() => {
@@ -1615,7 +1618,7 @@ export function App() {
   function v1Rerender() {
     const ed = v1EditorRef.current;
     if (ed) {
-      playerRef.current?.renderV1(ed.doc, { preserveScroll: true });
+      playerRef.current?.renderV1(ed.doc, { preserveScroll: true, colorVoices: editModeRef.current });
       schedulePersist();
     }
     setV1Version((n) => n + 1);
@@ -1794,6 +1797,12 @@ export function App() {
       if (ed.toggleSlur(beatId)) v1Rerender();
       return;
     }
+    // Cycle which stacked voice is selected at this position.
+    if (e.code === "KeyV" && beatId) {
+      e.preventDefault();
+      v1CycleVoice();
+      return;
+    }
     // Grace note before the selected beat. "/" (the grace slash), not a letter,
     // since A-G are pitches.
     if (e.code === "Slash" && beatId) {
@@ -1889,20 +1898,27 @@ export function App() {
     dotted: boolean;
     marks: Set<string>;
     tab: boolean;
+    voiceIndex: number;
+    voiceCount: number;
   } => {
     void v1Version;
+    const empty = { dotted: false, marks: new Set<string>(), tab: false, voiceIndex: 0, voiceCount: 1 };
     const ed = v1EditorRef.current;
-    if (!ed || !selectedV1) return { kind: "none", desc: "Nothing selected", dotted: false, marks: new Set(), tab: false };
+    if (!ed || !selectedV1) return { kind: "none", desc: "Nothing selected", ...empty };
     const beatId = selectedV1.noteId ? ed.findNote(selectedV1.noteId)?.beat.id : selectedV1.restBeatId;
     const loc = beatId ? ed.findBeat(beatId) : undefined;
-    if (!loc) return { kind: "none", desc: "Nothing selected", dotted: false, marks: new Set(), tab: false };
+    if (!loc) return { kind: "none", desc: "Nothing selected", ...empty };
     const { beat, measure, beatIndex } = loc;
+    const staffVoices = measure.voices.filter((v) => v.staff === loc.voice.staff);
+    const voiceIndex = Math.max(0, staffVoices.indexOf(loc.voice));
+    const voiceCount = staffVoices.length;
     const marks = new Set<string>(beat.articulations ?? []);
     for (const o of beat.ornaments ?? []) marks.add(o);
     if (beat.grace) marks.add("grace");
     if (beat.fermata) marks.add("fermata");
     if (ed.doc.spanners.some((s) => s.kind === "slur" && s.fromBeat === beat.id)) marks.add("slur");
-    const where = `bar ${measure.barIndex + 1}, beat ${beatIndex + 1}`;
+    const voiceTag = voiceCount > 1 ? ` · voice ${voiceIndex + 1} of ${voiceCount}` : "";
+    const where = `bar ${measure.barIndex + 1}, beat ${beatIndex + 1}${voiceTag}`;
     const dur = (beat.duration.dots ? "dotted " : "") + NOTE_TYPE_LABEL[beat.duration.noteType];
     if (selectedV1.noteId) {
       const note = ed.findNote(selectedV1.noteId)?.note;
@@ -1913,9 +1929,9 @@ export function App() {
           ? `string ${note.string}, fret ${note.fret ?? 0}`
           : `${note.step}${accSym(note.alter)}${note.octave}`
         : "";
-      return { kind: "note", desc: `${cap(dur)} note · ${pitch} · ${where}`, noteType: beat.duration.noteType, dotted: beat.duration.dots > 0, marks, tab };
+      return { kind: "note", desc: `${cap(dur)} note · ${pitch} · ${where}`, noteType: beat.duration.noteType, dotted: beat.duration.dots > 0, marks, tab, voiceIndex, voiceCount };
     }
-    return { kind: "rest", desc: `${cap(dur)} rest · ${where}`, noteType: beat.duration.noteType, dotted: beat.duration.dots > 0, marks, tab: false };
+    return { kind: "rest", desc: `${cap(dur)} rest · ${where}`, noteType: beat.duration.noteType, dotted: beat.duration.dots > 0, marks, tab: false, voiceIndex, voiceCount };
   })();
 
   // A brand-new / all-rests score, for empty-state coaching.
@@ -2024,6 +2040,20 @@ export function App() {
       v1Rerender();
       setSelectedV1(null);
     }
+  };
+  // Move the selection to another voice at the same metric position, so a
+  // stacked voice can be picked without a pixel-perfect click.
+  const v1SelectVoice = (voiceIndex: number) => {
+    const ed = v1EditorRef.current;
+    const b = v1SelectedBeatId();
+    const target = ed && b ? ed.voiceBeat(b, voiceIndex) : undefined;
+    if (target) setSelectedV1(target.noteId ? { noteId: target.noteId } : { restBeatId: target.beatId });
+  };
+  const v1CycleVoice = () => {
+    const ed = v1EditorRef.current;
+    const b = v1SelectedBeatId();
+    const info = ed && b ? ed.voiceInfo(b) : undefined;
+    if (info && info.count > 1) v1SelectVoice((info.index + 1) % info.count);
   };
 
   // Every action, for the command palette (Cmd-K) and, where sensible, menus.
@@ -2378,6 +2408,26 @@ export function App() {
                 {noteInputMode ? "✎ Input" : "Select"}
               </button>
             </div>
+
+            {/* Voice picker: appears only where a bar has stacked voices, so a
+                specific voice can be selected without a pixel-perfect click. */}
+            {v1Sel.voiceCount > 1 && (
+              <div className="etb-group" role="group" aria-label="Voice">
+                <span className="etb-label">Voice</span>
+                {Array.from({ length: v1Sel.voiceCount }, (_, i) => (
+                  <button
+                    key={i}
+                    className={"etb-btn voice-pill v" + (i + 1) + (v1Sel.voiceIndex === i ? " active" : "")}
+                    aria-pressed={v1Sel.voiceIndex === i}
+                    aria-label={`Voice ${i + 1}`}
+                    title={`Select voice ${i + 1} (v cycles)`}
+                    onClick={() => v1SelectVoice(i)}
+                  >
+                    {i + 1}
+                  </button>
+                ))}
+              </div>
+            )}
 
             {/* Note value (when a note or rest is selected). */}
             {v1Sel.kind !== "none" && (

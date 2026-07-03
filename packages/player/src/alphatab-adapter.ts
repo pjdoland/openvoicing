@@ -7,7 +7,20 @@ import { v1 } from "@openvoicing/score-model";
  * the source of truth; alphaTab is a (re-buildable) render target. Pass the
  * result to Player.renderScore, which runs the finish pipeline.
  */
-export function toAlphaTabScore(doc: v1.ScoreV1): alphaTab.model.Score {
+// Distinct hues for stacked voices (voice 1 keeps the default ink). Used only
+// in edit mode to disambiguate which voice a stacked note/rest belongs to.
+const VOICE_COLORS: Array<[number, number, number] | null> = [
+  null, // voice 1: default
+  [21, 128, 61], // green
+  [180, 83, 9], // amber
+  [126, 34, 206], // purple
+  [15, 118, 110], // teal
+];
+
+export function toAlphaTabScore(
+  doc: v1.ScoreV1,
+  options: { colorVoices?: boolean } = {},
+): alphaTab.model.Score {
   const m = alphaTab.model;
   const score = new m.Score();
   score.title = doc.work.title;
@@ -106,8 +119,11 @@ export function toAlphaTabScore(doc: v1.ScoreV1): alphaTab.model.Score {
           const voice = new m.Voice();
           bar.addVoice(voice);
           const vm = voices[vi];
+          // Color a real (non-padding) voice when the bar actually stacks more
+          // than one and coloring is requested (edit mode).
+          const rgb = options.colorVoices && voices.length > 1 && vi > 0 ? VOICE_COLORS[vi] ?? [100, 100, 100] : null;
           if (vm && vm.beats.length > 0) {
-            for (const beatModel of vm.beats) voice.addBeat(toBeat(beatModel, tupletOf, beatMap));
+            for (const beatModel of vm.beats) voice.addBeat(toBeat(beatModel, tupletOf, beatMap, rgb));
           } else {
             voice.addBeat(fullBarRest(barTicks));
           }
@@ -187,6 +203,7 @@ function toBeat(
   beatModel: v1.Beat,
   tupletOf: (id: string) => v1.Tuplet | undefined,
   beatMap: Map<string, alphaTab.model.Beat>,
+  voiceColor: [number, number, number] | null = null,
 ): alphaTab.model.Beat {
   const m = alphaTab.model;
   const beat = new m.Beat();
@@ -217,10 +234,33 @@ function toBeat(
       beat.addNote(note);
     });
   }
+  if (voiceColor) applyVoiceColor(beat, voiceColor);
   beatMap.set(beatModel.id, beat);
   // Stamp the model id so a clicked alphaTab beat maps back to the v1 model.
   (beat as unknown as { ovBeatId?: string }).ovBeatId = beatModel.id;
   return beat;
+}
+
+/** Tint a beat's noteheads, stems, flags, beams, and rest a voice color. */
+function applyVoiceColor(beat: alphaTab.model.Beat, rgb: [number, number, number]): void {
+  const m = alphaTab.model;
+  const color = new m.Color(rgb[0], rgb[1], rgb[2]);
+  const bs = new m.BeatStyle();
+  for (const el of [
+    m.BeatSubElement.StandardNotationStem,
+    m.BeatSubElement.StandardNotationFlags,
+    m.BeatSubElement.StandardNotationBeams,
+    m.BeatSubElement.StandardNotationRests,
+  ]) {
+    bs.colors.set(el, color);
+  }
+  beat.style = bs;
+  for (const note of beat.notes) {
+    const ns = new m.NoteStyle();
+    ns.colors.set(m.NoteSubElement.StandardNotationNoteHead, color);
+    ns.colors.set(m.NoteSubElement.StandardNotationAccidentals, color);
+    note.style = ns;
+  }
 }
 
 function toNote(noteModel: v1.Note): alphaTab.model.Note {

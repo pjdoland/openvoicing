@@ -54,6 +54,23 @@ describe("grace notes, ornaments, and voices (entry)", () => {
     expect(editor.removeVoice(0, editor.doc.parts[0]!.measures[0]!.voices[0]!.index)).toBe(false);
   });
 
+  it("reports voice index/count and finds the same position in another voice", () => {
+    const doc = createEmptyScoreV1({ bars: 1, beats: 4 });
+    const editor = new ScoreEditorV1(doc);
+    const v0Beat2 = doc.parts[0]!.measures[0]!.voices[0]!.beats[2]!.id; // beat 3, voice 1
+    expect(editor.voiceInfo(v0Beat2)).toEqual({ index: 0, count: 1 });
+
+    editor.addVoice(0);
+    expect(editor.voiceInfo(v0Beat2)).toEqual({ index: 0, count: 2 });
+
+    // The same metric position (beat 3) resolves in the new voice.
+    const inV1 = editor.voiceBeat(v0Beat2, 1);
+    expect(inV1).toBeTruthy();
+    const loc = editor.findBeat(inV1!.beatId)!;
+    expect(loc.beatIndex).toBe(2);
+    expect(loc.voice.index).not.toBe(0);
+  });
+
   it("round-trips grace notes and ornaments through MusicXML", () => {
     const doc = createEmptyScoreV1({ bars: 1, beats: 4 });
     const editor = new ScoreEditorV1(doc);

@@ -497,10 +497,10 @@ export class Player {
    * `preserveScroll` for edit re-renders so the view stays put instead of
    * jumping to the cursor at the top of the score.
    */
-  renderV1(doc: v1.ScoreV1, opts: { preserveScroll?: boolean } = {}): void {
+  renderV1(doc: v1.ScoreV1, opts: { preserveScroll?: boolean; colorVoices?: boolean } = {}): void {
     const pane = this.container.parentElement;
     this.pendingScrollTop = opts.preserveScroll && pane ? pane.scrollTop : null;
-    this.renderScore(toAlphaTabScore(doc));
+    this.renderScore(toAlphaTabScore(doc, { colorVoices: opts.colorVoices }));
   }
 
   /**

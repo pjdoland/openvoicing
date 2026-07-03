@@ -105,4 +105,35 @@ test.describe("edit mode UX (redesigned toolbar)", () => {
     expect(state.voices).toBe(2);
     expect(state.secondVoiceHasNote).toBe(true);
   });
+
+  test("stacked voices are addressable: pills, v-cycle, and the status indicator", async ({ page }) => {
+    await freshApp(page);
+    await newScore(page);
+    await page.locator('.edit-toolbar button[aria-label="Pitch C"]').click();
+    await page.locator(".edit-toolbar button", { hasText: "Score" }).click();
+    await page.locator(".etb-popover button", { hasText: "Voice" }).first().click();
+    await page.waitForTimeout(300);
+    await page.keyboard.press("E"); // into the new voice
+    await page.waitForTimeout(200);
+
+    // Voice pills appear and the status names the voice.
+    await expect(page.locator(".voice-pill")).toHaveCount(2);
+    await expect(page.locator(".edit-status-what")).toContainText("voice 2 of 2");
+
+    // "v" cycles back to voice 1 without a precise click.
+    await page.keyboard.press("v");
+    await expect(page.locator(".edit-status-what")).toContainText("voice 1 of 2");
+
+    // Clicking a pill selects that voice.
+    await page.locator('.voice-pill[aria-label="Voice 2"]').click();
+    await expect(page.locator(".edit-status-what")).toContainText("voice 2 of 2");
+
+    // The second voice is color-styled on the score (edit-mode disambiguation).
+    const colored = await page.evaluate(() => {
+      const sc = (window as unknown as { __ovPlayer: any }).__ovPlayer.api.score;
+      const b = sc.tracks[0].staves[0].bars[0].voices[1]?.beats?.find((x: any) => x.notes?.length);
+      return !!b?.style && !!b?.notes?.[0]?.style;
+    });
+    expect(colored).toBe(true);
+  });
 });

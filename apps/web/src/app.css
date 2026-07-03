@@ -947,6 +947,12 @@ body {
   border-color: var(--accent);
   color: var(--focus, #fff);
 }
+/* Voice pills echo the on-score voice colors (voice 1 = default ink). */
+.etb-btn.voice-pill.v2:not(.active) { color: rgb(21, 128, 61); border-color: rgb(21, 128, 61); }
+.etb-btn.voice-pill.v3:not(.active) { color: rgb(180, 83, 9); border-color: rgb(180, 83, 9); }
+.etb-btn.voice-pill.v4:not(.active) { color: rgb(126, 34, 206); border-color: rgb(126, 34, 206); }
+.etb-btn.voice-pill.v5:not(.active) { color: rgb(15, 118, 110); border-color: rgb(15, 118, 110); }
+
 .etb-select { display: inline-flex; align-items: center; gap: 4px; font-size: 0.75rem; color: var(--muted-2); }
 .etb-select select, .etb-pop-row select { height: 32px; }
 

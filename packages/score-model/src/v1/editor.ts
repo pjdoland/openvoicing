@@ -216,6 +216,33 @@ export class ScoreEditorV1 {
     return findBeat(this.doc, beatId);
   }
 
+  /** Which voice (index) of how many the selected beat is in, on its staff. */
+  voiceInfo(beatId: EntityId): { index: number; count: number } | undefined {
+    const loc = findBeat(this.doc, beatId);
+    if (!loc) return undefined;
+    const voices = loc.measure.voices.filter((v) => v.staff === loc.voice.staff);
+    return { index: Math.max(0, voices.indexOf(loc.voice)), count: voices.length };
+  }
+
+  /** The beat at the same metric position in another voice on the same staff,
+   * for switching which stacked voice is selected without a precise click. */
+  voiceBeat(beatId: EntityId, voiceIndex: number): { beatId: EntityId; noteId?: EntityId } | undefined {
+    const loc = findBeat(this.doc, beatId);
+    if (!loc) return undefined;
+    const voices = loc.measure.voices.filter((v) => v.staff === loc.voice.staff);
+    const target = voices[((voiceIndex % voices.length) + voices.length) % voices.length];
+    if (!target || target === loc.voice) return undefined;
+    const tick = beatTick(loc.voice.beats, loc.beatIndex);
+    let acc = 0;
+    let best = target.beats[0];
+    for (const b of target.beats) {
+      if (acc <= tick) best = b;
+      else break;
+      acc += Math.round(playedTicks(b));
+    }
+    return best ? { beatId: best.id, noteId: best.notes[0]?.id } : undefined;
+  }
+
   /** The previous/next beat in reading order within a voice (crossing bars). */
   neighbor(beatId: EntityId, direction: 1 | -1): { beatId: EntityId; noteId?: EntityId } | undefined {
     const loc = findBeat(this.doc, beatId);
