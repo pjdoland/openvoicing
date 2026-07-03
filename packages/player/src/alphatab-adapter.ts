@@ -26,16 +26,36 @@ export function toAlphaTabScore(doc: v1.ScoreV1): alphaTab.model.Score {
     score.addMasterBar(mb);
   });
 
+  let nextChannel = 0;
+  const allocChannel = (unpitched: boolean) => {
+    if (unpitched) return 9; // percussion is always MIDI channel 9
+    while (nextChannel === 9) nextChannel++;
+    return nextChannel < 16 ? nextChannel++ : 0;
+  };
+
   for (const part of doc.parts) {
     const track = new m.Track();
     track.name = part.name;
-    const program = part.instruments[0]?.midiProgram;
-    if (program !== undefined) track.playbackInfo.program = program;
+    if (part.abbreviation) track.shortName = part.abbreviation;
+    const inst = part.instruments[0];
+    if (inst?.midiProgram !== undefined) track.playbackInfo.program = inst.midiProgram;
+    // Distinct channels per track so parts don't collide on channel 0.
+    const primary = inst?.midiChannel ?? allocChannel(!!inst?.unpitched);
+    track.playbackInfo.primaryChannel = primary;
+    track.playbackInfo.secondaryChannel = inst?.unpitched ? 9 : allocChannel(false);
+    if (inst?.volume !== undefined) track.playbackInfo.volume = Math.round((inst.volume / 127) * 16);
+    if (inst?.pan !== undefined) track.playbackInfo.balance = Math.round((inst.pan / 127) * 16);
     score.addTrack(track);
+
+    // Transposing instruments: shift playback so written pitch sounds correctly.
+    const transposePitch = part.transpose
+      ? part.transpose.chromatic + (part.transpose.octaveChange ?? 0) * 12
+      : 0;
 
     const tupletOf = v1.tupletIndex(doc.spanners.filter((s): s is v1.Tuplet => s.kind === "tuplet"));
     part.staves.forEach((staffModel, staffIndex) => {
       const staff = new m.Staff();
+      if (transposePitch) staff.transpositionPitch = transposePitch;
       track.addStaff(staff);
       // alphaTab chains voices by index across bars, so every bar on a staff
       // must carry the same number of voices (consolidate() normally does this,
@@ -45,11 +65,21 @@ export function toAlphaTabScore(doc: v1.ScoreV1): alphaTab.model.Score {
         ...part.measures.map((me) => me.voices.filter((v) => v.staff === staffIndex).length),
       );
       let currentClef = staffModel.clef;
+      let currentKeyFifths = 0;
+      let currentKeyMinor = false;
       part.measures.forEach((measure, barIndex) => {
         const change = measure.attributes?.clefs?.find((c) => c.staffIndex === staffModel.index);
         if (change) currentClef = change.clef;
+        const key = measure.attributes?.key;
+        if (key) {
+          currentKeyFifths = key.fifths;
+          currentKeyMinor = key.mode === "minor";
+        }
         const bar = new m.Bar();
         bar.clef = toAlphaClef(currentClef);
+        // KeySignature enum values are the fifths (-7..7); carry forward like clef.
+        bar.keySignature = currentKeyFifths as alphaTab.model.KeySignature;
+        bar.keySignatureType = currentKeyMinor ? m.KeySignatureType.Minor : m.KeySignatureType.Major;
         staff.addBar(bar);
         const voices = measure.voices.filter((v) => v.staff === staffIndex);
         const barTicks = doc.bars[barIndex]?.durationTicks ?? 4 * v1.PPQ;

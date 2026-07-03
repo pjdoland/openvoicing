@@ -20,9 +20,19 @@ import {
   type Spanner,
   type Staff,
   type TimeSignature,
+  type Transpose,
   type Tuplet,
   type Voice,
 } from "./types";
+
+interface PartMeta {
+  name: string;
+  abbreviation?: string;
+  midiProgram?: number;
+  midiChannel?: number;
+  volume?: number;
+  pan?: number;
+}
 import { attr, child, childText, children, childrenOf, parseXml, tagOf, textOf, type XmlNode } from "./xml";
 
 const XML_TO_NOTE_TYPE: Record<string, NoteType> = {
@@ -54,16 +64,28 @@ export function importMusicXmlV1(xml: string, opts: { deterministic?: boolean } 
     "Untitled";
   const composer = findComposer(pw);
 
-  const partMeta = new Map<string, { name: string; midiProgram?: number }>();
+  const partMeta = new Map<string, PartMeta>();
   const partList = child(pw, "part-list");
   if (partList) {
     for (const sp of children(childrenOf(partList), "score-part")) {
       const id = attr(sp, "id") ?? "";
       const spc = childrenOf(sp);
       const name = childText(spc, "part-name") ?? id;
+      const abbreviation = childText(spc, "part-abbreviation");
       const midi = child(spc, "midi-instrument");
-      const program = midi ? Number(childText(childrenOf(midi), "midi-program")) : NaN;
-      partMeta.set(id, { name, midiProgram: Number.isFinite(program) ? program - 1 : undefined });
+      const mc = midi ? childrenOf(midi) : [];
+      const program = Number(childText(mc, "midi-program"));
+      const channel = Number(childText(mc, "midi-channel"));
+      const volume = Number(childText(mc, "volume"));
+      const pan = Number(childText(mc, "pan"));
+      partMeta.set(id, {
+        name,
+        abbreviation,
+        midiProgram: Number.isFinite(program) ? program - 1 : undefined,
+        midiChannel: Number.isFinite(channel) ? channel - 1 : undefined,
+        volume: Number.isFinite(volume) ? Math.round((volume / 100) * 127) : undefined,
+        pan: Number.isFinite(pan) ? Math.round(((pan + 90) / 180) * 127) : undefined,
+      });
     }
   }
 
@@ -76,11 +98,21 @@ export function importMusicXmlV1(xml: string, opts: { deterministic?: boolean } 
   for (const xmlPart of xmlParts) {
     const partId = attr(xmlPart, "id") ?? newId("part");
     const meta = partMeta.get(partId) ?? { name: partId };
-    const { measures, staves } = importPart(xmlPart, spanners);
+    const { measures, staves, transpose } = importPart(xmlPart, spanners);
     parts.push({
       id: newId("part"),
       name: meta.name,
-      instruments: [{ id: newId("inst"), midiProgram: meta.midiProgram }],
+      ...(meta.abbreviation ? { abbreviation: meta.abbreviation } : {}),
+      instruments: [
+        {
+          id: newId("inst"),
+          midiProgram: meta.midiProgram,
+          ...(meta.midiChannel !== undefined ? { midiChannel: meta.midiChannel } : {}),
+          ...(meta.volume !== undefined ? { volume: meta.volume } : {}),
+          ...(meta.pan !== undefined ? { pan: meta.pan } : {}),
+        },
+      ],
+      ...(transpose ? { transpose } : {}),
       staves,
       measures,
     });
@@ -174,10 +206,14 @@ const ARTICULATION_TAGS: Record<string, ArticulationOrnament["art"]> = {
 };
 type ArticulationOrnament = { orn: NonNullable<Beat["ornaments"]>[number]; art: NonNullable<Beat["articulations"]>[number] };
 
-function importPart(xmlPart: XmlNode, spanners: Spanner[]): { measures: Measure[]; staves: Staff[] } {
+function importPart(
+  xmlPart: XmlNode,
+  spanners: Spanner[],
+): { measures: Measure[]; staves: Staff[]; transpose?: Transpose } {
   const measures: Measure[] = [];
   const staffClefs = new Map<number, Clef>();
   let staffCount = 1;
+  let transpose: Transpose | undefined;
   const state: PartState = {
     divisions: 1, spanners, openTies: new Map(), openTuplet: null, openSlurs: new Map(),
   };
@@ -185,6 +221,7 @@ function importPart(xmlPart: XmlNode, spanners: Spanner[]): { measures: Measure[
   for (const [barIndex, xmlMeasure] of children(childrenOf(xmlPart), "measure").entries()) {
     const mc = childrenOf(xmlMeasure);
     const measureAttrs = readMeasureAttributes(mc, state, staffClefs, (n) => (staffCount = n));
+    transpose ??= readTranspose(mc);
 
     const voices = new Map<string, VoiceState>();
     const voiceOrder: string[] = [];
@@ -230,7 +267,21 @@ function importPart(xmlPart: XmlNode, spanners: Spanner[]): { measures: Measure[
       clef: staffClefs.get(i) ?? (i === 1 ? { sign: "F", line: 4 } : { sign: "G", line: 2 }),
     });
   }
-  return { measures, staves };
+  return { measures, staves, transpose };
+}
+
+/** Read a part's <attributes><transpose> (written->sounding pitch offset). */
+function readTranspose(mc: XmlNode[]): Transpose | undefined {
+  const attrs = child(mc, "attributes");
+  if (!attrs) return undefined;
+  const t = child(childrenOf(attrs), "transpose");
+  if (!t) return undefined;
+  const tc = childrenOf(t);
+  const chromatic = Number(childText(tc, "chromatic") ?? 0);
+  const diatonic = Number(childText(tc, "diatonic") ?? 0);
+  const octaveChange = Number(childText(tc, "octave-change") ?? 0);
+  if (!chromatic && !diatonic && !octaveChange) return undefined;
+  return { diatonic, chromatic, ...(octaveChange ? { octaveChange } : {}) };
 }
 
 function readMeasureAttributes(

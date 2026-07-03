@@ -51,10 +51,14 @@ export function exportMusicXmlV1(doc: ScoreV1): string {
     const pid = `P${i + 1}`;
     lines.push(`    <score-part id="${pid}">`);
     lines.push(`      <part-name>${esc(part.name)}</part-name>`);
-    const program = part.instruments[0]?.midiProgram;
-    if (program !== undefined) {
+    if (part.abbreviation) lines.push(`      <part-abbreviation>${esc(part.abbreviation)}</part-abbreviation>`);
+    const inst = part.instruments[0];
+    if (inst && (inst.midiProgram !== undefined || inst.volume !== undefined || inst.pan !== undefined)) {
       lines.push(`      <midi-instrument id="${pid}-I1">`);
-      lines.push(`        <midi-program>${program + 1}</midi-program>`);
+      if (inst.midiChannel !== undefined) lines.push(`        <midi-channel>${inst.midiChannel + 1}</midi-channel>`);
+      if (inst.midiProgram !== undefined) lines.push(`        <midi-program>${inst.midiProgram + 1}</midi-program>`);
+      if (inst.volume !== undefined) lines.push(`        <volume>${Math.round((inst.volume / 127) * 100)}</volume>`);
+      if (inst.pan !== undefined) lines.push(`        <pan>${Math.round((inst.pan / 127) * 180 - 90)}</pan>`);
       lines.push("      </midi-instrument>");
     }
     lines.push("    </score-part>");
@@ -149,6 +153,13 @@ function attributeLines(part: Part, measure: Measure, barIndex: number): string[
   }
   for (const change of a?.clefs ?? []) {
     out.push(...clefLines(change.clef, part.staves.length > 1 ? change.staffIndex + 1 : undefined));
+  }
+  if (barIndex === 0 && part.transpose) {
+    out.push("<transpose>");
+    if (part.transpose.diatonic) out.push(`  <diatonic>${part.transpose.diatonic}</diatonic>`);
+    out.push(`  <chromatic>${part.transpose.chromatic}</chromatic>`);
+    if (part.transpose.octaveChange) out.push(`  <octave-change>${part.transpose.octaveChange}</octave-change>`);
+    out.push("</transpose>");
   }
   return out;
 }

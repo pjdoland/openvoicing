@@ -115,6 +115,9 @@ export interface Instrument {
   /** General MIDI program (0 = piano). */
   midiProgram?: number;
   midiChannel?: number;
+  /** 0-127 playback volume and 0-127 pan (64 = center), from MusicXML. */
+  volume?: number;
+  pan?: number;
   unpitched?: boolean;
 }
 
