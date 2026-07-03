@@ -1,0 +1,49 @@
+# Changelog
+
+All notable changes to OpenVoicing are recorded here. The format is based on
+[Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
+
+## Versioning policy
+
+OpenVoicing is **pre-1.0 and unstable**. Until a `1.0.0` release:
+
+- Any release may contain breaking changes to APIs, the embed SDK, and the app.
+- The `@openvoicing/*` packages are versioned together and share this changelog.
+- The **`.ovb` bundle format** carries its own `formatVersion`; readers reject
+  unknown major versions. Format changes are called out under a **Format** heading
+  so integrators can tell when stored bundles are affected.
+
+Once the format and embed API stabilize, the project will adopt
+[Semantic Versioning](https://semver.org/) and tagged releases.
+
+## [Unreleased]
+
+Work in progress on `main`. Notable recent changes:
+
+### Added
+
+- Project license files (AGPL-3.0 for the app, MPL-2.0 for the libraries),
+  `SECURITY.md`, `THIRD-PARTY-NOTICES.md`, and contributor issue/PR templates.
+- Documentation set: user guide, architecture overview, self-hosting and embed
+  references, and a `docs/` index.
+- Autosave status ("All changes saved") and a "Restored your last session" toast.
+- A first-run welcome card describing Play / Practice / Edit.
+
+### Changed
+
+- Renamed the mode toggle to **Listen / Practice** and the audio source to
+  **Performance / Notes** for clarity.
+- WCAG AA contrast pass across the light, dark, and high-contrast themes.
+- Jumping to a bar or section now moves the recording playhead too, so pressing
+  Play starts at that bar.
+
+### Fixed
+
+- The edit toolbar no longer clips its essential controls (Voice/Value/Pitch)
+  on smaller screens; feature groups collapse into "More" instead.
+- Safari audio playback (AudioContext resume within the user gesture).
+
+---
+
+Entries above predate formal releases and are summarized rather than exhaustive.
+Detailed history is in the Git log.
