@@ -57,6 +57,7 @@ export class Player {
   private loopRange: { startBar: number; endBar: number } | null = null;
   private highlightLayer: HTMLDivElement | null = null;
   private highlightNoteId: string | null = null;
+  private pendingScrollTop: number | null = null;
   private readonly listeners: { [K in keyof PlayerEvents]: Set<PlayerEvents[K]> } = {
     scoreLoaded: new Set(),
     playerStateChanged: new Set(),
@@ -134,6 +135,25 @@ export class Player {
     this.api.renderFinished.on(() => {
       this.renderLoopMarkers();
       this.renderHighlight();
+      // Undo alphaTab's auto-scroll-to-cursor after an edit re-render so the
+      // view stays where the user was working. alphaTab scrolls a few frames
+      // later (its cursor update), so pin the position across that window.
+      if (this.pendingScrollTop !== null) {
+        const pane = this.container.parentElement;
+        const top = this.pendingScrollTop;
+        this.pendingScrollTop = null;
+        if (pane) {
+          pane.scrollTop = top;
+          let frames = 0;
+          const pin = () => {
+            pane.scrollTop = top;
+            if (++frames < 20) requestAnimationFrame(pin);
+          };
+          requestAnimationFrame(pin);
+          setTimeout(() => (pane.scrollTop = top), 60);
+          setTimeout(() => (pane.scrollTop = top), 180);
+        }
+      }
     });
   }
 
@@ -478,8 +498,14 @@ export class Player {
     this.api.renderScore(score, undefined);
   }
 
-  /** Render a full-fidelity v1 document via the model→alphaTab adapter. */
-  renderV1(doc: v1.ScoreV1): void {
+  /**
+   * Render a full-fidelity v1 document via the model→alphaTab adapter. Pass
+   * `preserveScroll` for edit re-renders so the view stays put instead of
+   * jumping to the cursor at the top of the score.
+   */
+  renderV1(doc: v1.ScoreV1, opts: { preserveScroll?: boolean } = {}): void {
+    const pane = this.container.parentElement;
+    this.pendingScrollTop = opts.preserveScroll && pane ? pane.scrollTop : null;
     this.renderScore(toAlphaTabScore(doc));
   }
 

@@ -1070,7 +1070,7 @@ export function App() {
       // Cmd/Ctrl+Z undoes. Re-render from the model preserves notation.
       const v1Editor = v1EditorRef.current;
       if (v1Editor) {
-        const rerender = () => playerRef.current?.renderV1(v1Editor.doc);
+        const rerender = () => playerRef.current?.renderV1(v1Editor.doc, { preserveScroll: true });
         if ((e.metaKey || e.ctrlKey) && e.code === "KeyZ") {
           e.preventDefault();
           if (e.shiftKey ? v1Editor.redo() : v1Editor.undo()) rerender();
@@ -1942,7 +1942,7 @@ export function App() {
   // re-render from the model so notation is preserved.
   function v1Rerender() {
     const ed = v1EditorRef.current;
-    if (ed) playerRef.current?.renderV1(ed.doc);
+    if (ed) playerRef.current?.renderV1(ed.doc, { preserveScroll: true });
     setV1Version((n) => n + 1);
   }
   function v1SelectedNoteId(): string | undefined {
