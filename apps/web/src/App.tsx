@@ -135,6 +135,12 @@ function structuredCloneBeat(beat: Beat): Beat {
   return structuredClone(beat);
 }
 
+// Number keys 1-9 map to note values (whole through 256th) for v1 duration entry.
+const DURATION_KEYS: Record<number, v1.NoteType> = {
+  1: "whole", 2: "half", 3: "quarter", 4: "eighth", 5: "16th",
+  6: "32nd", 7: "64th", 8: "128th", 9: "256th",
+};
+
 const MIDI_STEPS: Array<{ step: "C" | "D" | "E" | "F" | "G" | "A" | "B"; alter: number }> = [
   { step: "C", alter: 0 },
   { step: "C", alter: 1 },
@@ -1070,33 +1076,7 @@ export function App() {
       // Cmd/Ctrl+Z undoes. Re-render from the model preserves notation.
       const v1Editor = v1EditorRef.current;
       if (v1Editor) {
-        const rerender = () => playerRef.current?.renderV1(v1Editor.doc, { preserveScroll: true });
-        if ((e.metaKey || e.ctrlKey) && e.code === "KeyZ") {
-          e.preventDefault();
-          if (e.shiftKey ? v1Editor.redo() : v1Editor.undo()) rerender();
-          return;
-        }
-        // Claim the edit keys while in edit mode so they never scroll the page,
-        // even when nothing is selected yet (then just show a nudge to select).
-        if (["ArrowUp", "ArrowDown", "Delete", "Backspace"].includes(e.code)) {
-          e.preventDefault();
-          const sel = selectedV1Ref.current;
-          if (!sel) {
-            setAnnouncement("Click a note to select it first");
-            return;
-          }
-          if (!sel.noteId) {
-            setAnnouncement("Rests have no pitch to change");
-            return;
-          }
-          if (e.code === "ArrowUp") {
-            if (v1Editor.transposeNote(sel.noteId, e.shiftKey ? 12 : 1)) rerender();
-          } else if (e.code === "ArrowDown") {
-            if (v1Editor.transposeNote(sel.noteId, e.shiftKey ? -12 : -1)) rerender();
-          } else if (v1Editor.deleteNote(sel.noteId)) {
-            rerender();
-          }
-        }
+        v1KeyHandler(e, v1Editor);
         return;
       }
       const editor = editorRef.current;
@@ -1970,6 +1950,97 @@ export function App() {
     const ed = v1EditorRef.current;
     if (ed && ed.redo()) v1Rerender();
   }
+  function v1SelectedBeatId(): string | undefined {
+    const sel = selectedV1Ref.current;
+    if (!sel) return undefined;
+    return sel.noteId ? v1EditorRef.current?.findNote(sel.noteId)?.beat.id : sel.restBeatId;
+  }
+  // The full v1 input keymap: A-G pitch (Shift = add to chord), 1-9 duration,
+  // "." dot, +/- accidental, r rest, Up/Down transpose, Left/Right navigate,
+  // Delete remove, Cmd+Z undo.
+  function v1KeyHandler(e: KeyboardEvent, ed: v1.ScoreEditorV1) {
+    if ((e.metaKey || e.ctrlKey) && e.code === "KeyZ") {
+      e.preventDefault();
+      if (e.shiftKey ? ed.redo() : ed.undo()) v1Rerender();
+      return;
+    }
+    if (e.metaKey || e.ctrlKey || e.altKey) return;
+    const sel = selectedV1Ref.current;
+    const beatId = v1SelectedBeatId();
+
+    if (e.code === "ArrowLeft" || e.code === "ArrowRight") {
+      e.preventDefault();
+      if (!beatId) return;
+      const n = ed.neighbor(beatId, e.code === "ArrowRight" ? 1 : -1);
+      if (n) setSelectedV1(n.noteId ? { noteId: n.noteId } : { restBeatId: n.beatId });
+      return;
+    }
+    if (["ArrowUp", "ArrowDown", "Delete", "Backspace"].includes(e.code)) {
+      e.preventDefault();
+      if (!sel?.noteId) {
+        setAnnouncement(sel ? "This is a rest — type A–G to make it a note" : "Click a note to select it first");
+        return;
+      }
+      if (e.code === "ArrowUp") {
+        if (ed.transposeNote(sel.noteId, e.shiftKey ? 12 : 1)) v1Rerender();
+      } else if (e.code === "ArrowDown") {
+        if (ed.transposeNote(sel.noteId, e.shiftKey ? -12 : -1)) v1Rerender();
+      } else if (ed.deleteNote(sel.noteId)) {
+        v1Rerender();
+      }
+      return;
+    }
+    const letter = /^Key([A-G])$/.exec(e.code);
+    if (letter) {
+      e.preventDefault();
+      if (!beatId) {
+        setAnnouncement("Click a note or rest first");
+        return;
+      }
+      const step = letter[1] as v1.NoteStep;
+      const ok = e.shiftKey
+        ? ed.addNoteToBeatByName(beatId, step)
+        : sel?.noteId
+          ? ed.setPitchByName(sel.noteId, step)
+          : ed.restToNoteByName(beatId, step);
+      if (ok) {
+        v1Rerender();
+        const top = ed.findBeat(beatId)?.beat.notes[0];
+        if (top) setSelectedV1({ noteId: top.id });
+      }
+      return;
+    }
+    const digit = /^Digit([1-9])$/.exec(e.code);
+    if (digit && beatId) {
+      e.preventDefault();
+      const type = DURATION_KEYS[Number(digit[1])];
+      if (type && ed.setDuration(beatId, type)) v1Rerender();
+      return;
+    }
+    if (e.code === "Period" && beatId) {
+      e.preventDefault();
+      if (ed.toggleDot(beatId)) v1Rerender();
+      return;
+    }
+    if ((e.code === "Equal" || e.key === "+") && sel?.noteId) {
+      e.preventDefault();
+      if (ed.cycleAccidental(sel.noteId, 1)) v1Rerender();
+      return;
+    }
+    if (e.code === "Minus" && sel?.noteId) {
+      e.preventDefault();
+      if (ed.cycleAccidental(sel.noteId, -1)) v1Rerender();
+      return;
+    }
+    if (e.code === "KeyR" && beatId) {
+      e.preventDefault();
+      if (ed.makeRest(beatId)) {
+        v1Rerender();
+        setSelectedV1({ restBeatId: beatId });
+      }
+      return;
+    }
+  }
   const doTranspose = (n: number) => {
     if (editorRef.current?.transposeScore(n)) rerenderScore();
   };
@@ -2323,10 +2394,10 @@ export function App() {
           <button className="btn-icon" onClick={v1Delete} disabled={!selectedV1?.noteId} aria-label="Delete note" title="Delete note (Del)">🗑</button>
           <span className="edit-hint">
             {selectedV1?.noteId
-              ? "Note selected — ↑/↓ transpose, Del delete"
+              ? "A–G pitch · 1–9 value · . dot · +/− accidental · Shift+A–G chord · ↑/↓ transpose · ←/→ move · Del"
               : selectedV1?.restBeatId
-                ? "Rest selected — rests have no pitch to edit yet"
-                : "Click a note to edit. Pitches are editable; ornaments and slurs are preserved."}
+                ? "Rest selected — type A–G to make it a note, 1–9 sets the value"
+                : "Click a note or rest, then type A–G to set pitch, 1–9 for the value."}
           </span>
         </div>
       )}

@@ -142,6 +142,21 @@ export class ScoreEditorV1 {
     return findBeat(this.doc, beatId);
   }
 
+  /** The previous/next beat in reading order within a voice (crossing bars). */
+  neighbor(beatId: EntityId, direction: 1 | -1): { beatId: EntityId; noteId?: EntityId } | undefined {
+    const loc = findBeat(this.doc, beatId);
+    if (!loc) return undefined;
+    let target = loc.voice.beats[loc.beatIndex + direction];
+    if (!target) {
+      const voiceIndex = loc.measure.voices.indexOf(loc.voice);
+      const nextMeasure = loc.part.measures[loc.measure.barIndex + direction];
+      const nextVoice = nextMeasure?.voices[voiceIndex] ?? nextMeasure?.voices[0];
+      target = direction > 0 ? nextVoice?.beats[0] : nextVoice?.beats[(nextVoice?.beats.length ?? 0) - 1];
+    }
+    if (!target) return undefined;
+    return { beatId: target.id, noteId: target.notes[0]?.id };
+  }
+
   /** Effective key signature (fifths) at a bar, carried forward per part. */
   private keyFifthsAt(part: Part, barIndex: number): number {
     let fifths = 0;
@@ -275,6 +290,13 @@ export class ScoreEditorV1 {
     });
   }
 
+  /** Add a note by letter name to a beat (chord), near the current top note. */
+  addNoteToBeatByName(beatId: EntityId, step: NoteStep): boolean {
+    const beat = findBeat(this.doc, beatId)?.beat;
+    const ref = beat?.notes[0] ? chromaticValue(beat.notes[0]) : 4 * 12 + STEP_SEMITONE.B;
+    return this.addNoteToBeat(beatId, { step, alter: 0, octave: nearestOctave(step, ref) });
+  }
+
   /** Add a note a given interval (in semitones) above the beat's top note. */
   addInterval(beatId: EntityId, semitones: number): boolean {
     const beat = findBeat(this.doc, beatId)?.beat;
@@ -347,7 +369,7 @@ function previousPitchChromatic(voice: Voice, beatIndex: number): number | undef
 /** Restore a document's contents in place, keeping its object identity stable
  * so callers holding `editor.doc` see the restored state after undo/redo. */
 function replaceDocInPlace(target: ScoreV1, source: ScoreV1): void {
-  for (const key of Object.keys(target)) delete (target as Record<string, unknown>)[key];
+  for (const key of Object.keys(target)) delete (target as unknown as Record<string, unknown>)[key];
   Object.assign(target, source);
 }
 
