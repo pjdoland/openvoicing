@@ -1,0 +1,54 @@
+name: Bug report
+description: Something is broken or behaves incorrectly.
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report a bug. Please do not report security
+        vulnerabilities here — see [SECURITY.md](../blob/main/SECURITY.md).
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: What went wrong, and what did you expect instead?
+      placeholder: When I ..., the app ...; I expected ...
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Open ...
+        2. Load ...
+        3. Click ...
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Browser and OS
+      placeholder: "e.g. Chrome 126 on macOS 14, or Firefox 128 on Windows 11"
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version / commit
+      description: The app footer or the commit you built from, if you self-host.
+      placeholder: "main @ abc1234, or the hosted demo"
+  - type: textarea
+    id: files
+    attributes:
+      label: Sample file
+      description: >
+        If a specific score or bundle triggers it, attach the .ovb, .musicxml,
+        or .mxl file (drag it into this box). This is the single most helpful
+        thing for reproducing notation/sync bugs.
+  - type: textarea
+    id: console
+    attributes:
+      label: Console errors
+      description: Anything in the browser devtools Console (F12), if present.
+      render: text
