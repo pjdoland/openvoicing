@@ -1,10 +1,10 @@
-# OpenVoicing: Plan for an Open Source Soundslice Competitor
+# OpenVoicing: Plan for an Open Source Living-Sheet-Music Platform
 
 ## 1. Vision
 
 OpenVoicing is an open source platform for interactive sheet music: notation
 that plays, follows along with real recordings, and comes with serious practice
-tools. Its architecture is deliberately different from Soundslice's: instead of
+tools. Its architecture is deliberately different from the typical hosted, commercial service: instead of
 a hosted service with accounts and a database, OpenVoicing is an **open file
 format plus tools that read and write it**.
 

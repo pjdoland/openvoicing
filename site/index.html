@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>OpenVoicing — living sheet music</title>
+<meta name="description" content="OpenVoicing is open-source living sheet music: interactive notation that plays, slows down without changing pitch, syncs to real recordings, and embeds anywhere. Built on an open file format, not a hosted service." />
+<meta property="og:title" content="OpenVoicing — living sheet music" />
+<meta property="og:description" content="Interactive notation that plays, slows down without changing pitch, and syncs to real recordings. Open-source and self-hostable." />
+<style>
+  :root{
+    --ink:#14171d; --ink-2:#33404f; --paper:#fbfbf9; --panel:#fff; --slate:#4f5763; --faint:#727a86;
+    --hair:#e7e6e0; --accent:#2445c6; --accent-soft:#eaeefb; --pencil:#b23b32; --header:#161a20;
+    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    --serif:"Iowan Old Style","Palatino Linotype",Palatino,"Book Antiqua",Georgia,serif;
+    --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:var(--sans);color:var(--ink);background:var(--paper);line-height:1.62;-webkit-font-smoothing:antialiased}
+  a{color:var(--accent);text-decoration:none}
+  a:hover{text-decoration:underline}
+  .wrap{max-width:1060px;margin:0 auto;padding:0 clamp(18px,5vw,48px)}
+
+  /* nav */
+  .nav{position:sticky;top:0;z-index:10;background:rgba(22,26,32,.96);backdrop-filter:saturate(1.4) blur(6px);color:#fff}
+  .nav .wrap{display:flex;align-items:center;gap:20px;padding:13px clamp(18px,5vw,48px)}
+  .nav strong{font-size:1.05rem;letter-spacing:.3px}
+  .nav .sp{flex:1}
+  .nav a{color:#cdd2db;font-size:.9rem}
+  .nav a:hover{color:#fff;text-decoration:none}
+  .nav a.launch{background:var(--accent);color:#fff;padding:8px 16px;border-radius:8px;font-weight:600}
+
+  /* hero */
+  .hero{padding:clamp(48px,8vw,96px) 0 20px;text-align:center}
+  .eyebrow{font-family:var(--mono);font-size:.72rem;letter-spacing:.18em;text-transform:uppercase;color:var(--accent);margin:0 0 20px}
+  .hero h1{font-family:var(--serif);font-size:clamp(2.2rem,5.6vw,3.7rem);line-height:1.04;letter-spacing:-.015em;margin:0 auto 18px;max-width:16ch;text-wrap:balance}
+  .hero .lede{font-size:clamp(1.08rem,2.3vw,1.35rem);color:var(--slate);max-width:60ch;margin:0 auto 30px}
+  .btns{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+  .btn{padding:13px 26px;border-radius:11px;font-weight:600;font-size:1rem;display:inline-flex;align-items:center;gap:8px}
+  .btn-primary{background:var(--accent);color:#fff}.btn-primary:hover{text-decoration:none;filter:brightness(1.06)}
+  .btn-ghost{background:var(--panel);color:var(--ink);border:1px solid var(--hair)}.btn-ghost:hover{text-decoration:none;border-color:#cfcfc7}
+
+  /* live demo */
+  .demo{margin:44px 0 8px}
+  .demo-cap{display:flex;align-items:baseline;gap:12px;margin:0 0 12px;flex-wrap:wrap}
+  .demo-cap h2{font-family:var(--serif);font-size:1.45rem;margin:0}
+  .demo-cap span{color:var(--faint);font-size:.92rem}
+  .demo-frame{background:var(--panel);border:1px solid var(--hair);border-radius:16px;padding:10px;box-shadow:0 12px 40px rgba(20,30,60,.07)}
+  .demo-note{color:var(--faint);font-size:.86rem;margin:10px 2px 0;text-align:center}
+
+  /* concept sections */
+  .idea{margin:64px 0 8px;text-align:center}
+  .idea h2{font-family:var(--serif);font-size:clamp(1.6rem,3.4vw,2.2rem);margin:0 0 12px;text-wrap:balance}
+  .idea p{color:var(--slate);max-width:64ch;margin:0 auto;font-size:1.05rem}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:20px;margin:40px 0}
+  .card{background:var(--panel);border:1px solid var(--hair);border-radius:14px;padding:24px}
+  .card .n{font-family:var(--mono);font-size:.7rem;color:var(--accent);letter-spacing:.1em}
+  .card h3{font-family:var(--serif);font-size:1.2rem;margin:.4rem 0 .5rem}
+  .card p{margin:0;color:var(--slate);font-size:.96rem}
+  .card code{font-family:var(--mono);font-size:.85em;background:var(--accent-soft);padding:1px 5px;border-radius:4px;color:var(--ink-2)}
+
+  /* embed pitch */
+  .embed-pitch{margin:64px 0;background:var(--header);color:#eef0f4;border-radius:18px;padding:clamp(28px,5vw,48px);text-align:center}
+  .embed-pitch h2{font-family:var(--serif);color:#fff;font-size:clamp(1.5rem,3.2vw,2rem);margin:0 0 10px}
+  .embed-pitch p{color:#b9c0cc;max-width:56ch;margin:0 auto 22px}
+  pre{background:#0c0f14;color:#dfe4ec;border:1px solid #262c36;border-radius:12px;padding:18px 20px;overflow-x:auto;font-family:var(--mono);font-size:.85rem;line-height:1.6;text-align:left;max-width:640px;margin:0 auto}
+  .embed-pitch a{color:#9fb6ff}
+
+  /* audiences */
+  .who{margin:60px 0;display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:18px}
+  .who .card h3{font-size:1.05rem;font-family:var(--sans);font-weight:650}
+  .who .card a{font-weight:600}
+
+  footer{border-top:1px solid var(--hair);margin-top:40px;padding:32px 0 56px;color:var(--faint);font-size:.9rem;text-align:center}
+  footer a{color:var(--slate)}
+  footer .fine{margin-top:8px;font-size:.82rem}
+</style>
+</head>
+<body>
+  <nav class="nav">
+    <div class="wrap">
+      <strong>OpenVoicing</strong>
+      <a href="#idea">The idea</a>
+      <a href="#embed">Embed</a>
+      <a href="https://github.com/pjdoland/openvoicing/blob/main/docs/index.md">Docs</a>
+      <span class="sp"></span>
+      <a href="https://github.com/pjdoland/openvoicing">GitHub</a>
+      <a class="launch" href="./app/">Launch the app</a>
+    </div>
+  </nav>
+
+  <header class="hero wrap">
+    <p class="eyebrow">Open-source living sheet music</p>
+    <h1>Sheet music that plays, slows down, and syncs to real recordings.</h1>
+    <p class="lede">OpenVoicing turns a score into something you can practice with and share &mdash; built on an open file format you own, not a service you rent.</p>
+    <div class="btns">
+      <a class="btn btn-primary" href="./app/">Try it live &rarr;</a>
+      <a class="btn btn-ghost" href="https://github.com/pjdoland/openvoicing">View source</a>
+    </div>
+  </header>
+
+  <section class="wrap demo" id="demo">
+    <div class="demo-cap">
+      <h2>See it for yourself</h2>
+      <span>The player below is a real OpenVoicing embed &mdash; Bach's Goldberg Aria, notation synced to a recording.</span>
+    </div>
+    <div class="demo-frame">
+      <div data-openvoicing-bundle="./app/goldberg-aria.ovb" data-openvoicing-height="520"></div>
+    </div>
+    <p class="demo-note">Press play, then drop the speed to 50% &mdash; the pitch stays put. Every piece works exactly like this.</p>
+  </section>
+
+  <section class="wrap idea" id="idea">
+    <h2>An open format, not a hosted service</h2>
+    <p>Most interactive-notation tools keep your music on their servers. OpenVoicing does the opposite: every piece is a self-contained <code>.ovb</code> file holding the score, its recordings, and the sync map. You own it, you can host it anywhere, and the player is just static files. No account, no lock-in.</p>
+  </section>
+
+  <section class="wrap">
+    <div class="grid">
+      <div class="card"><p class="n">01</p><h3>Practice, not just playback</h3><p>Slow a passage down without changing pitch, loop it, add a count-in, and follow a metronome. The tools you actually reach for when learning a piece.</p></div>
+      <div class="card"><p class="n">02</p><h3>Sync to real recordings</h3><p>Line a real performance up with the score, bar by bar, so playback of the audio follows the notation and you can loop and slow the real thing.</p></div>
+      <div class="card"><p class="n">03</p><h3>A real editor</h3><p>Import MusicXML or Guitar Pro and edit the notes, voices, ornaments, dynamics, and lyrics. Autosaves as you go; export MusicXML or a bundle.</p></div>
+      <div class="card"><p class="n">04</p><h3>Yours to keep</h3><p>Export a <code>.ovb</code> bundle and it's a single portable file. Share it, archive it, or embed it &mdash; it plays the same everywhere, forever.</p></div>
+    </div>
+  </section>
+
+  <section class="wrap embed-pitch" id="embed">
+    <h2>Put any piece on your own site</h2>
+    <p>Host a bundle anywhere static, drop in the script, and point a div at it. That's the whole integration &mdash; the same player you see above.</p>
+    <pre>&lt;script src="https://your-host/openvoicing-embed.js"&gt;&lt;/script&gt;
+&lt;div data-openvoicing-bundle="https://example.com/tune.ovb"&gt;&lt;/div&gt;</pre>
+    <p style="margin-top:20px"><a href="https://github.com/pjdoland/openvoicing/blob/main/docs/embed-api.md">Embed API reference &rarr;</a></p>
+  </section>
+
+  <section class="wrap">
+    <div class="who">
+      <div class="card"><h3>For musicians</h3><p>Load a piece, practice it, edit it.</p><a href="./app/">Open the app &rarr;</a></div>
+      <div class="card"><h3>For self-hosters</h3><p>Deploy the app and host bundles.</p><a href="https://github.com/pjdoland/openvoicing/blob/main/docs/deploy-app.md">Deployment guide &rarr;</a></div>
+      <div class="card"><h3>For developers</h3><p>Open source, MPL-2.0 / AGPL-3.0.</p><a href="https://github.com/pjdoland/openvoicing/blob/main/CONTRIBUTING.md">Contribute &rarr;</a></div>
+    </div>
+  </section>
+
+  <footer>
+    <a href="https://github.com/pjdoland/openvoicing">github.com/pjdoland/openvoicing</a> &middot;
+    <a href="https://github.com/pjdoland/openvoicing/blob/main/docs/index.md">Documentation</a> &middot;
+    <a href="./app/">Launch the app</a>
+    <div class="fine">Free and open source. Libraries MPL-2.0, app AGPL-3.0. Engraving by alphaTab.</div>
+  </footer>
+
+  <script src="./app/openvoicing-embed.js"></script>
+</body>
+</html>

@@ -7,12 +7,12 @@
 ![Node](https://img.shields.io/badge/node-%E2%89%A522-brightgreen)
 ![Status: early development](https://img.shields.io/badge/status-early%20development-orange)
 
-OpenVoicing is an open alternative to Soundslice, built around an **open file
+OpenVoicing is an open alternative to commercial, hosted tools, built around an **open file
 format instead of a hosted service**. The editor exports self-contained bundles
 (`.ovb`) holding a score, its recordings, and the sync map that aligns them, and
 the embeddable player plays those bundles from any static URL.
 
-**[▶ Try the live demo](https://pjdoland.github.io/openvoicing/)** · [User guide](docs/user-guide.md) · [Docs](docs/index.md)
+**[▶ Try the live demo](https://pjdoland.github.io/openvoicing/app/)** · [User guide](docs/user-guide.md) · [Docs](docs/index.md)
 
 ![The OpenVoicing app: a Goldberg Variations score synced to a real recording, with the waveform, sync flags, and practice tools](docs/assets/hero.png)
 
@@ -28,7 +28,7 @@ the embeddable player plays those bundles from any static URL.
 
 ## Who are you?
 
-- **A musician?** → [Try the demo](https://pjdoland.github.io/openvoicing/), then the
+- **A musician?** → [Try the demo](https://pjdoland.github.io/openvoicing/app/), then the
   [user guide](docs/user-guide.md).
 - **Hosting or embedding it?** → the [deployment & self-hosting guide](docs/deploy-app.md)
   and the [embed API](docs/embed-api.md).

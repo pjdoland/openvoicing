@@ -1,4 +1,4 @@
-name: Deploy showcase to GitHub Pages
+name: Deploy site to GitHub Pages
 
 on:
   push:
@@ -25,14 +25,20 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      # Build the libraries the app depends on, then the app itself under the
-      # project-pages sub-path (https://<user>.github.io/openvoicing/).
+      # Build the libraries, then the app under /openvoicing/app/. The promo
+      # site (site/index.html) is the Pages root; the app lives one level down.
       - run: pnpm -r build
-      - run: OPENVOICING_BASE=/openvoicing/ pnpm --filter @openvoicing/web build
+      - run: OPENVOICING_BASE=/openvoicing/app/ pnpm --filter @openvoicing/web build
+      - name: Assemble Pages site (promo at root, app under /app/)
+        run: |
+          rm -rf _site
+          mkdir -p _site/app
+          cp -R apps/web/dist/. _site/app/
+          cp site/index.html _site/index.html
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: apps/web/dist
+          path: _site
 
   deploy:
     needs: build
