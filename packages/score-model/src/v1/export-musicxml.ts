@@ -3,6 +3,7 @@ import {
   PPQ,
   type Beat,
   type Clef,
+  type Direction,
   type EntityId,
   type Measure,
   type Note,
@@ -123,6 +124,10 @@ function exportMeasure(
   // Return the cursor to the measure start before each subsequent voice by
   // backing up exactly the previous voice's advance. A fixed bar-length backup
   // would misalign when a source voice is over- or under-full.
+  // Chord symbols and directions ride the first voice's stream at their tick.
+  const barDirs = doc.directions
+    .filter((d) => d.barIndex === barIndex)
+    .sort((a, b) => a.tick - b.tick);
   let prevAdvance = 0;
   measure.voices.forEach((voice, vi) => {
     if (vi > 0 && prevAdvance > 0) {
@@ -131,9 +136,23 @@ function exportMeasure(
       out.push("      </backup>");
     }
     let advance = 0;
+    let dirCursor = 0;
     for (const beat of voice.beats) {
+      if (vi === 0) {
+        while (dirCursor < barDirs.length && barDirs[dirCursor]!.tick <= advance) {
+          out.push(...directionLines(barDirs[dirCursor]!));
+          dirCursor++;
+        }
+        if (beat.chordSymbol) out.push(...harmonyLines(beat.chordSymbol));
+      }
       out.push(...exportBeat(beat, voice.index + 1, voice.staff, ctx));
       if (!beat.grace) advance += Math.round(playedTicks(beat, ctx.tupletOf));
+    }
+    if (vi === 0) {
+      while (dirCursor < barDirs.length) {
+        out.push(...directionLines(barDirs[dirCursor]!));
+        dirCursor++;
+      }
     }
     prevAdvance = advance;
   });
@@ -352,6 +371,61 @@ function tupletEdges(tuplets: Tuplet[]): Map<EntityId, "start" | "stop"> {
     if (last) map.set(last, "stop");
   }
   return map;
+}
+
+// Reverse of the importer's KIND_SUFFIX: a chord-symbol suffix -> MusicXML kind.
+const SUFFIX_KIND: Record<string, string> = {
+  "": "major", m: "minor", aug: "augmented", dim: "diminished", "7": "dominant",
+  maj7: "major-seventh", m7: "minor-seventh", dim7: "diminished-seventh",
+  m7b5: "half-diminished", "6": "major-sixth", m6: "minor-sixth",
+  "9": "dominant-ninth", maj9: "major-ninth", m9: "minor-ninth",
+  sus4: "suspended-fourth", sus2: "suspended-second", "5": "power",
+};
+
+function accToAlter(acc: string | undefined): number {
+  if (!acc) return 0;
+  return acc[0] === "#" ? acc.length : -acc.length;
+}
+
+/** Emit a chord-symbol string as a <harmony> element. */
+function harmonyLines(text: string): string[] {
+  const m = /^([A-G])(#*|b*)([^/]*)(?:\/([A-G])(#*|b*))?$/.exec(text);
+  if (!m) return [];
+  const [, rootStep, rootAcc, suffix = "", bassStep, bassAcc] = m;
+  const rootAlter = accToAlter(rootAcc);
+  const out = ["      <harmony>", "        <root>", `          <root-step>${rootStep}</root-step>`];
+  if (rootAlter) out.push(`          <root-alter>${rootAlter}</root-alter>`);
+  out.push("        </root>");
+  out.push(`        <kind text="${esc(suffix)}">${SUFFIX_KIND[suffix] ?? "other"}</kind>`);
+  if (bassStep) {
+    out.push("        <bass>", `          <bass-step>${bassStep}</bass-step>`);
+    const ba = accToAlter(bassAcc);
+    if (ba) out.push(`          <bass-alter>${ba}</bass-alter>`);
+    out.push("        </bass>");
+  }
+  out.push("      </harmony>");
+  return out;
+}
+
+/** Emit a Direction (dynamics / words / metronome / rehearsal) as <direction>. */
+function directionLines(d: Direction): string[] {
+  const inner: string[] = [];
+  const c = d.content;
+  if (c.kind === "dynamics") inner.push(`          <dynamics><${c.value}/></dynamics>`);
+  else if (c.kind === "words") inner.push(`          <words>${esc(c.text)}</words>`);
+  else if (c.kind === "rehearsal") inner.push(`          <rehearsal>${esc(c.text)}</rehearsal>`);
+  else if (c.kind === "metronome") {
+    inner.push("          <metronome>");
+    inner.push(`            <beat-unit>${NOTE_TYPE_XML[c.noteType] ?? "quarter"}</beat-unit>`);
+    for (let i = 0; i < c.dots; i++) inner.push("            <beat-unit-dot/>");
+    inner.push(`            <per-minute>${c.perMinute}</per-minute>`);
+    inner.push("          </metronome>");
+  } else return [];
+  const placement = d.placement ? ` placement="${d.placement}"` : "";
+  const out = [`      <direction${placement}>`, "        <direction-type>", ...inner, "        </direction-type>"];
+  if (d.staff !== undefined) out.push(`        <staff>${d.staff + 1}</staff>`);
+  out.push("      </direction>");
+  return out;
 }
 
 // writtenTicks re-exported for callers that need pre-tuplet ticks.

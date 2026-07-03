@@ -7,6 +7,7 @@ import {
   type Beat,
   type Clef,
   type ClefSign,
+  type Direction,
   type DurationSpec,
   type EntityId,
   type KeySignature,
@@ -95,10 +96,11 @@ export function importMusicXmlV1(xml: string, opts: { deterministic?: boolean } 
 
   const parts: Part[] = [];
   const spanners: Spanner[] = [];
+  const directions: Direction[] = [];
   for (const xmlPart of xmlParts) {
     const partId = attr(xmlPart, "id") ?? newId("part");
     const meta = partMeta.get(partId) ?? { name: partId };
-    const { measures, staves, transpose } = importPart(xmlPart, spanners);
+    const { measures, staves, transpose } = importPart(xmlPart, spanners, directions);
     parts.push({
       id: newId("part"),
       name: meta.name,
@@ -126,7 +128,7 @@ export function importMusicXmlV1(xml: string, opts: { deterministic?: boolean } 
     bars,
     parts,
     spanners,
-    directions: [],
+    directions,
     unknown: [],
   };
 }
@@ -246,6 +248,7 @@ interface PartState {
   openTies: Map<string, { beatId: EntityId; noteId: EntityId }>;
   openTuplet: Tuplet | null;
   openSlurs: Map<number, EntityId>;
+  pendingChord?: string;
 }
 
 const ORNAMENT_TAGS: Record<string, ArticulationOrnament["orn"]> = {
@@ -261,6 +264,7 @@ type ArticulationOrnament = { orn: NonNullable<Beat["ornaments"]>[number]; art: 
 function importPart(
   xmlPart: XmlNode,
   spanners: Spanner[],
+  directions: Direction[],
 ): { measures: Measure[]; staves: Staff[]; transpose?: Transpose } {
   const measures: Measure[] = [];
   const staffClefs = new Map<number, Clef>();
@@ -301,6 +305,11 @@ function importPart(
       if (tag === "backup") cursor -= Number(childText(nc, "duration") ?? 0);
       else if (tag === "forward") cursor += Number(childText(nc, "duration") ?? 0);
       else if (tag === "note") cursor = importNote(nc, cursor, state, ensureVoice);
+      else if (tag === "harmony") state.pendingChord = readHarmony(nc);
+      else if (tag === "direction") {
+        const dir = readDirection(nc, barIndex, Math.round((cursor * PPQ) / state.divisions));
+        if (dir) directions.push(dir);
+      }
     }
 
     measures.push({
@@ -468,6 +477,10 @@ function importNote(
       beat.notes.push(note);
       linkTie(nc, note, beat.id, state, staff, voiceKey);
     }
+  }
+  if (!isChord && !isGrace && state.pendingChord) {
+    beat.chordSymbol = state.pendingChord;
+    state.pendingChord = undefined;
   }
   vs.voice.beats.push(beat);
   registerTuplet(nc, beat.id, state);
@@ -641,6 +654,72 @@ function readClef(node: XmlNode): Clef {
   const line = Number(childText(c, "line") ?? (sign === "F" ? 4 : sign === "C" ? 3 : 2));
   const oct = childText(c, "clef-octave-change");
   return { sign, line, ...(oct ? { octaveChange: Number(oct) } : {}) };
+}
+
+const KIND_SUFFIX: Record<string, string> = {
+  major: "", minor: "m", augmented: "aug", diminished: "dim", dominant: "7",
+  "major-seventh": "maj7", "minor-seventh": "m7", "diminished-seventh": "dim7",
+  "half-diminished": "m7b5", "major-sixth": "6", "minor-sixth": "m6",
+  "dominant-ninth": "9", "major-ninth": "maj9", "minor-ninth": "m9",
+  "suspended-fourth": "sus4", "suspended-second": "sus2", power: "5", none: "",
+};
+
+function alterSym(alter: number): string {
+  return alter > 0 ? "#".repeat(alter) : alter < 0 ? "b".repeat(-alter) : "";
+}
+
+/** Read a <harmony> into a chord-symbol string (e.g. "Cmaj7", "G/B"). */
+function readHarmony(nc: XmlNode[]): string | undefined {
+  const root = child(nc, "root");
+  if (!root) return undefined;
+  const rc = childrenOf(root);
+  let text = (childText(rc, "root-step") ?? "C") + alterSym(Number(childText(rc, "root-alter") ?? 0));
+  const kindNode = child(nc, "kind");
+  const kindText = kindNode ? attr(kindNode, "text") : undefined;
+  const kindVal = kindNode ? textOf(kindNode) ?? "major" : "major";
+  text += kindText ?? KIND_SUFFIX[kindVal] ?? "";
+  const bass = child(nc, "bass");
+  if (bass) {
+    const bc = childrenOf(bass);
+    text += "/" + (childText(bc, "bass-step") ?? "") + alterSym(Number(childText(bc, "bass-alter") ?? 0));
+  }
+  return text;
+}
+
+/** Read a <direction> (dynamics / words / metronome / rehearsal) into a Direction. */
+function readDirection(nc: XmlNode[], barIndex: number, tick: number): Direction | undefined {
+  const dt = child(nc, "direction-type");
+  if (!dt) return undefined;
+  const dtc = childrenOf(dt);
+  const id = newId("dir");
+  const staffText = childText(nc, "staff");
+  const staff = staffText ? Number(staffText) - 1 : undefined;
+  const base = { id, barIndex, tick, ...(staff !== undefined ? { staff } : {}) };
+  const dynamics = child(dtc, "dynamics");
+  if (dynamics) {
+    const value = childrenOf(dynamics).map(tagOf).find((t) => t !== "#text");
+    if (value) return { ...base, placement: "below", content: { kind: "dynamics", value } };
+  }
+  const words = child(dtc, "words");
+  if (words) {
+    const text = textOf(words);
+    if (text) return { ...base, placement: "above", content: { kind: "words", text } };
+  }
+  const rehearsal = child(dtc, "rehearsal");
+  if (rehearsal) {
+    const text = textOf(rehearsal);
+    if (text) return { ...base, placement: "above", content: { kind: "rehearsal", text } };
+  }
+  const metronome = child(dtc, "metronome");
+  if (metronome) {
+    const mc = childrenOf(metronome);
+    const noteType = XML_TO_NOTE_TYPE[childText(mc, "beat-unit") ?? "quarter"] ?? "quarter";
+    const perMinute = Number(childText(mc, "per-minute") ?? 0);
+    if (perMinute) {
+      return { ...base, placement: "above", content: { kind: "metronome", noteType, dots: children(mc, "beat-unit-dot").length, perMinute } };
+    }
+  }
+  return undefined;
 }
 
 function findTempo(mc: XmlNode[]): number | undefined {
