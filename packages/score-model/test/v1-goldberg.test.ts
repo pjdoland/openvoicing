@@ -23,7 +23,15 @@ describe("v1 on the Goldberg aria", () => {
     expect(errors).toEqual([]);
   });
 
-  it("round-trips its structure through export", () => {
+  it("captures tier-1 notation (slurs, ornaments, fermatas)", () => {
+    const doc = importMusicXmlV1(xml);
+    expect(doc.spanners.filter((s) => s.kind === "slur").length).toBeGreaterThan(30);
+    const beats = doc.parts.flatMap((p) => p.measures.flatMap((me) => me.voices.flatMap((v) => v.beats)));
+    expect(beats.some((b) => b.ornaments?.includes("mordent"))).toBe(true);
+    expect(beats.some((b) => b.fermata)).toBe(true);
+  });
+
+  it("round-trips its structure AND notation through export (tier-1)", () => {
     const source = canonicalizeMusicXml(xml);
     const roundtrip = canonicalizeMusicXml(exportMusicXmlV1(importMusicXmlV1(xml)));
     expect(roundtrip).toEqual(source);

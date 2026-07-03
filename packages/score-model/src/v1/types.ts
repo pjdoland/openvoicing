@@ -174,6 +174,12 @@ export interface Voice {
 
 export type GraceKind = "acciaccatura" | "appoggiatura";
 
+export type OrnamentType =
+  | "trill-mark" | "mordent" | "inverted-mordent" | "turn" | "inverted-turn" | "schleifer" | "tremolo";
+
+export type ArticulationType =
+  | "staccato" | "staccatissimo" | "accent" | "strong-accent" | "tenuto" | "detached-legato";
+
 export interface Beat {
   id: EntityId;
   duration: DurationSpec;
@@ -184,6 +190,9 @@ export interface Beat {
   lyrics?: Lyric[];
   /** Explicit staff for a whole-beat cross-staff move (notes may still override). */
   staff?: number;
+  ornaments?: OrnamentType[];
+  articulations?: ArticulationType[];
+  fermata?: boolean;
 }
 
 export interface Lyric {

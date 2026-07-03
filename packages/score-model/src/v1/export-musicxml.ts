@@ -8,6 +8,7 @@ import {
   type Note,
   type Part,
   type ScoreV1,
+  type Slur,
   type Tie,
   type Tuplet,
 } from "./types";
@@ -32,6 +33,7 @@ export function exportMusicXmlV1(doc: ScoreV1): string {
   const tuplets = doc.spanners.filter((s): s is Tuplet => s.kind === "tuplet");
   const tupletOf = tupletIndex(tuplets);
   const tupletEdge = tupletEdges(tuplets);
+  const slurEdge = slurEdges(doc.spanners.filter((s): s is Slur => s.kind === "slur"));
 
   const lines: string[] = [];
   lines.push('<?xml version="1.0" encoding="UTF-8"?>');
@@ -62,7 +64,7 @@ export function exportMusicXmlV1(doc: ScoreV1): string {
   doc.parts.forEach((part, i) => {
     lines.push(`  <part id="P${i + 1}">`);
     part.measures.forEach((measure, barIndex) => {
-      lines.push(...exportMeasure(part, measure, doc, barIndex, { tieByNote, tupletOf, tupletEdge }));
+      lines.push(...exportMeasure(part, measure, doc, barIndex, { tieByNote, tupletOf, tupletEdge, slurEdge }));
     });
     lines.push("  </part>");
   });
@@ -75,6 +77,7 @@ interface ExportCtx {
   tieByNote: Map<EntityId, { start: boolean; stop: boolean }>;
   tupletOf: (beatId: string) => Tuplet | undefined;
   tupletEdge: Map<EntityId, "start" | "stop">;
+  slurEdge: Map<EntityId, Array<{ type: "start" | "stop"; number: number }>>;
 }
 
 function exportMeasure(
@@ -210,11 +213,29 @@ function exportNoteElement(
   const staff = note?.staff ?? beat.staff ?? defaultStaff;
   if (staff > 0) out.push(`        <staff>${staff + 1}</staff>`);
   const edge = ctx.tupletEdge.get(beat.id);
-  if ((tie?.start || tie?.stop) || edge) {
+  // Beat-level notations (slurs, ornaments, articulations, fermata) attach to
+  // the first note of a chord only; ties/tuplets are per note/edge.
+  const slurs = isChord ? [] : ctx.slurEdge.get(beat.id) ?? [];
+  const ornaments = isChord ? undefined : beat.ornaments;
+  const articulations = isChord ? undefined : beat.articulations;
+  const fermata = isChord ? false : beat.fermata;
+  if (tie?.start || tie?.stop || edge || slurs.length || ornaments?.length || articulations?.length || fermata) {
     out.push("        <notations>");
     if (tie?.stop) out.push('          <tied type="stop"/>');
     if (tie?.start) out.push('          <tied type="start"/>');
+    for (const s of slurs) out.push(`          <slur type="${s.type}" number="${s.number}"/>`);
     if (edge) out.push(`          <tuplet type="${edge}"/>`);
+    if (ornaments?.length) {
+      out.push("          <ornaments>");
+      for (const o of ornaments) out.push(`            <${o}/>`);
+      out.push("          </ornaments>");
+    }
+    if (articulations?.length) {
+      out.push("          <articulations>");
+      for (const a of articulations) out.push(`            <${a}/>`);
+      out.push("          </articulations>");
+    }
+    if (fermata) out.push("          <fermata/>");
     out.push("        </notations>");
   }
   out.push("      </note>");
@@ -227,6 +248,20 @@ function indexTies(ties: Tie[]): Map<EntityId, { start: boolean; stop: boolean }
   for (const t of ties) {
     map.set(t.from.noteId, { ...get(t.from.noteId), start: true });
     map.set(t.to.noteId, { ...get(t.to.noteId), stop: true });
+  }
+  return map;
+}
+
+function slurEdges(slurs: Slur[]): Map<EntityId, Array<{ type: "start" | "stop"; number: number }>> {
+  const map = new Map<EntityId, Array<{ type: "start" | "stop"; number: number }>>();
+  const add = (beatId: EntityId, type: "start" | "stop", number: number) => {
+    const list = map.get(beatId) ?? [];
+    list.push({ type, number });
+    map.set(beatId, list);
+  };
+  for (const s of slurs) {
+    add(s.fromBeat, "start", s.number);
+    add(s.toBeat, "stop", s.number);
   }
   return map;
 }

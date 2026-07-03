@@ -20,6 +20,13 @@ export interface CanonEvent {
   rest: boolean;
   staff: number;
   pitches: string[];
+  // Tier-1 notation (present only when non-empty, so tier-0 comparisons are
+  // unaffected): ornaments, articulations, fermata, and slur edges.
+  orn?: string[];
+  art?: string[];
+  fer?: true;
+  slurStart?: number[];
+  slurStop?: number[];
 }
 export interface CanonVoice {
   voice: number;
@@ -101,7 +108,40 @@ function canonPart(part: XmlNode): CanonPart {
       .map(([voice, events]) => ({ voice, events }));
     measures.push({ ...(time ? { time } : {}), ...(key !== undefined ? { key } : {}), voices });
   }
+  pruneDanglingSlurs(measures);
   return { measures };
+}
+
+/**
+ * Keep only matched slur start/stop pairs, mirroring how the importer builds
+ * slur spanners. Malformed sources (e.g. freedots) can emit a stop with no
+ * matching start; dropping it is correct, not a fidelity loss, so the oracle
+ * must not record it either.
+ */
+function pruneDanglingSlurs(measures: CanonMeasure[]): void {
+  const byVoice = new Map<number, CanonEvent[]>();
+  for (const m of measures)
+    for (const v of m.voices) {
+      const arr = byVoice.get(v.voice) ?? [];
+      arr.push(...v.events);
+      byVoice.set(v.voice, arr);
+    }
+  for (const events of byVoice.values()) {
+    const open = new Map<number, CanonEvent>();
+    for (const e of events) {
+      if (e.slurStart) for (const n of e.slurStart) open.set(n, e);
+      if (e.slurStop) {
+        const kept = e.slurStop.filter((n) => open.delete(n));
+        if (kept.length) e.slurStop = kept;
+        else delete e.slurStop;
+      }
+    }
+    for (const [n, e] of open) {
+      const kept = (e.slurStart ?? []).filter((x) => x !== n);
+      if (kept.length) e.slurStart = kept;
+      else delete e.slurStart;
+    }
+  }
 }
 
 function canonNote(
@@ -144,14 +184,56 @@ function canonNote(
   if (cursor > filled) {
     events.push({ durTicks: Math.round(((cursor - filled) * PPQ) / divisions), rest: true, staff, pitches: [] });
   }
-  events.push({ durTicks: Math.round((durationDivs * PPQ) / divisions), rest: isRest, staff, pitches: pitchStr ? [pitchStr] : [] });
+  events.push({
+    durTicks: Math.round((durationDivs * PPQ) / divisions),
+    rest: isRest,
+    staff,
+    pitches: pitchStr ? [pitchStr] : [],
+    ...readXmlNotations(nc),
+  });
   voiceEnd.set(voice, cursor + durationDivs);
   return cursor + durationDivs;
+}
+
+/** Extract tier-1 notation from a note's <notations> for the canonical form. */
+function readXmlNotations(nc: XmlNode[]): Partial<CanonEvent> {
+  const notations = child(nc, "notations");
+  if (!notations) return {};
+  const nn = childrenOf(notations);
+  const out: Partial<CanonEvent> = {};
+  const orns = child(nn, "ornaments");
+  if (orns) {
+    const list = childrenOf(orns).map((o) => tagOf(o)).filter((t) => t !== "#text").sort();
+    if (list.length) out.orn = list;
+  }
+  const arts = child(nn, "articulations");
+  if (arts) {
+    const list = childrenOf(arts).map((a) => tagOf(a)).filter((t) => t !== "#text").sort();
+    if (list.length) out.art = list;
+  }
+  if (child(nn, "fermata")) out.fer = true;
+  const starts: number[] = [];
+  const stops: number[] = [];
+  for (const s of children(nn, "slur")) {
+    const num = Number(attr(s, "number") ?? 1) || 1;
+    if (attr(s, "type") === "start") starts.push(num);
+    else if (attr(s, "type") === "stop") stops.push(num);
+  }
+  if (starts.length) out.slurStart = starts.sort((a, b) => a - b);
+  if (stops.length) out.slurStop = stops.sort((a, b) => a - b);
+  return out;
 }
 
 /** Reduce a v1 document to the same canonical form (for testing the model). */
 export function canonicalizeV1(doc: ScoreV1): CanonicalScore {
   const tupletOf = tupletIndex(doc.spanners.filter((s): s is Tuplet => s.kind === "tuplet"));
+  const slurStarts = new Map<string, number[]>();
+  const slurStops = new Map<string, number[]>();
+  for (const s of doc.spanners) {
+    if (s.kind !== "slur") continue;
+    (slurStarts.get(s.fromBeat) ?? slurStarts.set(s.fromBeat, []).get(s.fromBeat)!).push(s.number);
+    (slurStops.get(s.toBeat) ?? slurStops.set(s.toBeat, []).get(s.toBeat)!).push(s.number);
+  }
   let time: { beats: number; beatUnit: number } | undefined;
   let key: number | undefined;
   const parts: CanonPart[] = doc.parts.map((part) => {
@@ -161,12 +243,21 @@ export function canonicalizeV1(doc: ScoreV1): CanonicalScore {
       const voices: CanonVoice[] = measure.voices
         .map((voice) => ({
           voice: voice.index + 1,
-          events: voice.beats.map((beat) => ({
-            durTicks: Math.round(playedTicks(beat, tupletOf)),
-            rest: beat.rest,
-            staff: (beat.notes[0]?.staff ?? beat.staff ?? voice.staff) + 1,
-            pitches: beat.notes.map((n) => pitchKey(n.step, n.alter, n.octave)).sort(),
-          })),
+          events: voice.beats.map((beat): CanonEvent => {
+            const starts = slurStarts.get(beat.id);
+            const stops = slurStops.get(beat.id);
+            return {
+              durTicks: Math.round(playedTicks(beat, tupletOf)),
+              rest: beat.rest,
+              staff: (beat.notes[0]?.staff ?? beat.staff ?? voice.staff) + 1,
+              pitches: beat.notes.map((n) => pitchKey(n.step, n.alter, n.octave)).sort(),
+              ...(beat.ornaments?.length ? { orn: [...beat.ornaments].sort() } : {}),
+              ...(beat.articulations?.length ? { art: [...beat.articulations].sort() } : {}),
+              ...(beat.fermata ? { fer: true as const } : {}),
+              ...(starts?.length ? { slurStart: [...starts].sort((a, b) => a - b) } : {}),
+              ...(stops?.length ? { slurStop: [...stops].sort((a, b) => a - b) } : {}),
+            };
+          }),
         }))
         .sort((a, b) => a.voice - b.voice);
       return { ...(time ? { time } : {}), ...(key !== undefined ? { key } : {}), voices };

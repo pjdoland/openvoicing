@@ -158,13 +158,26 @@ interface PartState {
   spanners: Spanner[];
   openTies: Map<string, { beatId: EntityId; noteId: EntityId }>;
   openTuplet: Tuplet | null;
+  openSlurs: Map<number, EntityId>;
 }
+
+const ORNAMENT_TAGS: Record<string, ArticulationOrnament["orn"]> = {
+  "trill-mark": "trill-mark", mordent: "mordent", "inverted-mordent": "inverted-mordent",
+  turn: "turn", "inverted-turn": "inverted-turn", "delayed-turn": "turn", schleifer: "schleifer", tremolo: "tremolo",
+};
+const ARTICULATION_TAGS: Record<string, ArticulationOrnament["art"]> = {
+  staccato: "staccato", staccatissimo: "staccatissimo", accent: "accent",
+  "strong-accent": "strong-accent", tenuto: "tenuto", "detached-legato": "detached-legato",
+};
+type ArticulationOrnament = { orn: NonNullable<Beat["ornaments"]>[number]; art: NonNullable<Beat["articulations"]>[number] };
 
 function importPart(xmlPart: XmlNode, spanners: Spanner[]): { measures: Measure[]; staves: Staff[] } {
   const measures: Measure[] = [];
   const staffClefs = new Map<number, Clef>();
   let staffCount = 1;
-  const state: PartState = { divisions: 1, spanners, openTies: new Map(), openTuplet: null };
+  const state: PartState = {
+    divisions: 1, spanners, openTies: new Map(), openTuplet: null, openSlurs: new Map(),
+  };
 
   for (const [barIndex, xmlMeasure] of children(childrenOf(xmlPart), "measure").entries()) {
     const mc = childrenOf(xmlMeasure);
@@ -265,6 +278,8 @@ function importNote(
     if (last && note) {
       last.notes.push(note);
       linkTie(nc, note, last.id, state, staff, voiceKey);
+      // Slurs/ornaments can be authored on a chord note; capture them too.
+      readNotations(nc, last, state);
     }
     return cursor;
   }
@@ -299,6 +314,7 @@ function importNote(
   }
   vs.voice.beats.push(beat);
   registerTuplet(nc, beat.id, state);
+  readNotations(nc, beat, state);
 
   if (isGrace) return cursor;
   vs.endDivs = cursor + durationDivs;
@@ -349,6 +365,44 @@ function linkTie(
   if (ties.some((t) => attr(t, "type") === "start")) {
     state.openTies.set(key, { beatId, noteId: note.id });
   }
+}
+
+/** Read slurs, ornaments, articulations, and fermatas from a note's <notations>. */
+function readNotations(nc: XmlNode[], beat: Beat, state: PartState): void {
+  const notations = child(nc, "notations");
+  if (!notations) return;
+  const nn = childrenOf(notations);
+
+  for (const slur of children(nn, "slur")) {
+    const number = Number(attr(slur, "number") ?? 1) || 1;
+    const type = attr(slur, "type");
+    if (type === "start") state.openSlurs.set(number, beat.id);
+    else if (type === "stop") {
+      const from = state.openSlurs.get(number);
+      if (from) {
+        state.spanners.push({ id: newId("slur"), kind: "slur", number, fromBeat: from, toBeat: beat.id });
+        state.openSlurs.delete(number);
+      }
+    }
+  }
+
+  const ornamentsNode = child(nn, "ornaments");
+  if (ornamentsNode) {
+    for (const orn of childrenOf(ornamentsNode)) {
+      const mapped = ORNAMENT_TAGS[tagOf(orn)];
+      if (mapped) (beat.ornaments ??= []).push(mapped);
+    }
+  }
+
+  const articulationsNode = child(nn, "articulations");
+  if (articulationsNode) {
+    for (const art of childrenOf(articulationsNode)) {
+      const mapped = ARTICULATION_TAGS[tagOf(art)];
+      if (mapped) (beat.articulations ??= []).push(mapped);
+    }
+  }
+
+  if (child(nn, "fermata")) beat.fermata = true;
 }
 
 function registerTuplet(nc: XmlNode[], beatId: EntityId, state: PartState): void {
