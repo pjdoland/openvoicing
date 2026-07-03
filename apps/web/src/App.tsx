@@ -143,28 +143,46 @@ const MARK_PALETTE: Array<{ type: v1.ArticulationType; glyph: string; label: str
  * 2 = medium, 1 = narrow, 0 = extra-narrow. Groups collapse into a "More" menu
  * in tier order (see renderEditToolbar). Uses a ResizeObserver, rAF-throttled.
  */
+// Priority+ overflow for the edit toolbar. Rather than guess from viewport
+// width (which ignores the variable pinned width — e.g. the Voice group only
+// appears on multi-voice bars), start at the top tier and step down until the
+// pinned cluster (History/Mode/Voice/Value/Pitch) stops clipping. The pinned
+// cluster has overflow-x:auto, so it clips internally without the toolbar ever
+// reporting overflow; measuring the pinned cluster directly is what catches it.
 function useToolbarTier(ref: RefObject<HTMLElement | null>, active: boolean): number {
   const [tier, setTier] = useState(3);
+  // Bumped on every resize to force a re-render (and thus a fresh step-down
+  // pass) even when the tier is already at the top — otherwise resizing from a
+  // wide layout would no-op setTier(3) and never re-measure.
+  const [, setResizeNonce] = useState(0);
   useLayoutEffect(() => {
     const el = ref.current;
     if (!active || !el) return;
     let raf = 0;
-    const compute = () => {
-      const w = el.clientWidth;
-      setTier(w >= 1080 ? 3 : w >= 780 ? 2 : w >= 560 ? 1 : 0);
-    };
     const ro = new ResizeObserver(() => {
       cancelAnimationFrame(raf);
-      raf = requestAnimationFrame(compute);
+      raf = requestAnimationFrame(() => {
+        setTier(3);
+        setResizeNonce((n) => n + 1);
+      });
     });
     ro.observe(el);
-    compute();
     return () => {
       ro.disconnect();
       cancelAnimationFrame(raf);
     };
   }, [ref, active]);
-  return tier;
+  // Runs after every layout: if the pinned cluster is clipping its essential
+  // controls, drop a tier so one more overflow-eligible group collapses into
+  // "More". Converges (guarded by tier > 0) before the browser paints.
+  useLayoutEffect(() => {
+    if (!active) return;
+    const pinned = ref.current?.querySelector<HTMLElement>(".etb-pinned");
+    if (pinned && pinned.scrollWidth > pinned.clientWidth + 1 && tier > 0) {
+      setTier((t) => Math.max(0, t - 1));
+    }
+  });
+  return active ? tier : 3;
 }
 
 function sanitizeName(name: string): string {

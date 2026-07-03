@@ -22,6 +22,9 @@ const metrics = (page: Page) =>
       inlineGroups: groups(tb).filter((g) => g !== "More"),
       pinnedGroups: groups(pinned),
       hasMore: !!document.querySelector('[aria-label^="More editing tools"]'),
+      // The essential controls (History/Mode/Voice/Value/Pitch) must never be
+      // clipped inside the pinned cluster's own overflow.
+      pinnedClips: pinned.scrollWidth > pinned.clientWidth + 1,
       // The page must never require two-dimensional scrolling (WCAG 1.4.10).
       pageScrollsX: document.documentElement.scrollWidth > document.documentElement.clientWidth + 1,
     };
@@ -30,17 +33,29 @@ const metrics = (page: Page) =>
 test.describe("responsive edit toolbar", () => {
   test("stays a single row and never forces horizontal page scroll (320-1440)", async ({ page }) => {
     await freshApp(page);
-    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.setViewportSize({ width: 2300, height: 900 });
     await newScoreWithNote(page);
 
-    // Wide: everything inline, no overflow, one short row.
-    await page.setViewportSize({ width: 1440, height: 900 });
+    // Very wide: enough room for every group inline, nothing in More, one row.
+    await page.setViewportSize({ width: 2300, height: 900 });
     await page.waitForTimeout(300);
     let m = await metrics(page);
-    expect(m.hasMore, "wide: no overflow needed").toBe(false);
-    expect(m.toolbarHeight, "wide: single row").toBeLessThan(72);
-    expect(m.pageScrollsX, "wide: no horizontal page scroll").toBe(false);
+    expect(m.hasMore, "very wide: no overflow needed").toBe(false);
+    expect(m.toolbarHeight, "very wide: single row").toBeLessThan(72);
+    expect(m.pageScrollsX, "very wide: no horizontal page scroll").toBe(false);
+    expect(m.pinnedClips, "very wide: pinned not clipped").toBe(false);
     expect(m.inlineGroups).toContain("Ornaments and grace");
+
+    // Laptop: the full toolbar is wider than the screen, so feature groups
+    // collapse into More rather than clipping the pinned essential controls.
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await page.waitForTimeout(300);
+    m = await metrics(page);
+    expect(m.toolbarHeight, "laptop: single row").toBeLessThan(72);
+    expect(m.pageScrollsX, "laptop: no horizontal page scroll").toBe(false);
+    expect(m.pinnedClips, "laptop: essential controls never clipped").toBe(false);
+    expect(m.pinnedGroups, "laptop: value stays pinned").toContain("Note value");
+    expect(m.pinnedGroups, "laptop: pitch stays pinned").toContain("Pitch");
 
     // Tablet width: still one row, but low-priority groups overflow to More.
     await page.setViewportSize({ width: 768, height: 800 });
