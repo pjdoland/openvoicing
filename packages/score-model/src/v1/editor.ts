@@ -59,6 +59,30 @@ function reindexBars(doc: ScoreV1): void {
   for (const part of doc.parts) part.measures.forEach((m, i) => (m.barIndex = i));
 }
 
+/** Drop spanners whose referenced beats/notes no longer exist (after a delete). */
+function pruneDanglingSpanners(doc: ScoreV1): void {
+  const beatIds = new Set<string>();
+  const noteIds = new Set<string>();
+  for (const part of doc.parts)
+    for (const m of part.measures)
+      for (const v of m.voices)
+        for (const b of v.beats) {
+          beatIds.add(b.id);
+          for (const n of b.notes) noteIds.add(n.id);
+        }
+  doc.spanners = doc.spanners.filter((s) => {
+    switch (s.kind) {
+      case "tie": return noteIds.has(s.from.noteId) && noteIds.has(s.to.noteId);
+      case "slur":
+      case "hairpin":
+      case "octave-shift": return beatIds.has(s.fromBeat) && beatIds.has(s.toBeat);
+      case "beam":
+      case "tuplet": return s.beatIds.every((id) => beatIds.has(id));
+      default: return true;
+    }
+  });
+}
+
 export interface NoteLocation {
   part: Part;
   measure: Measure;
@@ -145,6 +169,9 @@ export class ScoreEditorV1 {
     const snapshot = structuredClone(this.doc);
     const changed = fn(this.doc);
     if (changed) {
+      // Any edit that removed or replaced beats/notes can orphan a spanner;
+      // self-heal so the document is never left referencing deleted elements.
+      pruneDanglingSpanners(this.doc);
       this.past.push(snapshot);
       this.future.length = 0;
     }
@@ -481,6 +508,7 @@ export class ScoreEditorV1 {
       if (at < 0 || at > doc.bars.length) return false;
       const ref = doc.bars[Math.min(Math.max(0, barIndex), doc.bars.length - 1)];
       doc.bars.splice(at, 0, { id: newId("bar"), index: at, durationTicks: ref?.durationTicks ?? 4 * PPQ });
+      doc.directions = doc.directions.map((d) => (d.barIndex >= at ? { ...d, barIndex: d.barIndex + 1 } : d));
       for (const part of doc.parts) {
         const time = effectiveTime(part, at);
         part.measures.splice(at, 0, {
@@ -505,6 +533,10 @@ export class ScoreEditorV1 {
       if (doc.bars.length <= 1 || barIndex < 0 || barIndex >= doc.bars.length) return false;
       doc.bars.splice(barIndex, 1);
       for (const part of doc.parts) part.measures.splice(barIndex, 1);
+      // Drop directions anchored to the removed bar; shift later ones down.
+      doc.directions = doc.directions
+        .filter((d) => d.barIndex !== barIndex)
+        .map((d) => (d.barIndex > barIndex ? { ...d, barIndex: d.barIndex - 1 } : d));
       reindexBars(doc);
       return true;
     });
