@@ -269,6 +269,7 @@ export function App() {
   const [hasV1Editor, setHasV1Editor] = useState(false);
   const selectedV1Ref = useRef<EditSelection | null>(null);
   const [selectedV1, setSelectedV1] = useState<EditSelection | null>(null);
+  const v1ClipboardRef = useRef<v1.CopiedBeat | null>(null);
   // Bumped after each v1 edit so the edit band's disabled states refresh.
   const [, setV1Version] = useState(0);
   const [hasEditor, setHasEditor] = useState(false);
@@ -1967,9 +1968,32 @@ export function App() {
       if (e.shiftKey ? ed.redo() : ed.undo()) v1Rerender();
       return;
     }
+    const selForClip = selectedV1Ref.current;
+    const beatForClip = selForClip?.noteId ? ed.findNote(selForClip.noteId)?.beat.id : selForClip?.restBeatId;
+    if ((e.metaKey || e.ctrlKey) && e.code === "KeyC" && beatForClip) {
+      e.preventDefault();
+      v1ClipboardRef.current = ed.copyBeat(beatForClip) ?? null;
+      setAnnouncement("Beat copied");
+      return;
+    }
+    if ((e.metaKey || e.ctrlKey) && e.code === "KeyV" && beatForClip && v1ClipboardRef.current) {
+      e.preventDefault();
+      if (ed.pasteBeat(beatForClip, v1ClipboardRef.current)) v1Rerender();
+      return;
+    }
     if (e.metaKey || e.ctrlKey || e.altKey) return;
     const sel = selectedV1Ref.current;
     const beatId = v1SelectedBeatId();
+    const isTabNote = sel?.noteId ? ed.findNote(sel.noteId)?.note.string !== undefined : false;
+
+    // Chord symbol entry (lead sheets): prompt for text on the selected beat.
+    if (e.code === "KeyK" && beatId) {
+      e.preventDefault();
+      const current = ed.findBeat(beatId)?.beat.chordSymbol ?? "";
+      const text = window.prompt("Chord symbol (e.g. Cmaj7, G/B)", current);
+      if (text !== null && ed.setChordSymbol(beatId, text)) v1Rerender();
+      return;
+    }
 
     if (e.code === "ArrowLeft" || e.code === "ArrowRight") {
       e.preventDefault();
@@ -2013,8 +2037,15 @@ export function App() {
       }
       return;
     }
-    const digit = /^Digit([1-9])$/.exec(e.code);
-    if (digit && beatId) {
+    // On a tab staff, digits type a fret onto the selected note; elsewhere they
+    // set the note value.
+    const digit = /^Digit([0-9])$/.exec(e.code);
+    if (digit && isTabNote && sel?.noteId) {
+      e.preventDefault();
+      if (ed.setFret(sel.noteId, Number(digit[1]))) v1Rerender();
+      return;
+    }
+    if (digit && Number(digit[1]) >= 1 && beatId) {
       e.preventDefault();
       const type = DURATION_KEYS[Number(digit[1])];
       if (type && ed.setDuration(beatId, type)) v1Rerender();

@@ -5,6 +5,7 @@ import type {
   AccidentalKind,
   ArticulationType,
   Beat,
+  DurationSpec,
   EntityId,
   Measure,
   Note,
@@ -16,6 +17,14 @@ import type {
   TimeSignature,
   Voice,
 } from "./types";
+
+export interface CopiedBeat {
+  duration: DurationSpec;
+  rest: boolean;
+  notes: Note[];
+  articulations?: ArticulationType[];
+  ornaments?: OrnamentType[];
+}
 
 /** Offset ticks of a beat within its voice (sum of prior played durations). */
 function beatTick(beats: Beat[], index: number): number {
@@ -523,6 +532,75 @@ export class ScoreEditorV1 {
         const measure = part.measures[barIndex];
         if (measure) (measure.attributes ??= {}).key = { fifths };
       }
+      return true;
+    });
+  }
+
+  /** Set a bar's tempo (bpm), or clear it. */
+  setTempo(barIndex: number, bpm: number | null): boolean {
+    return this.edit((doc) => {
+      const bar = doc.bars[barIndex];
+      if (!bar) return false;
+      if (bpm && bpm > 0) bar.tempoBpm = bpm;
+      else delete bar.tempoBpm;
+      return true;
+    });
+  }
+
+  /** Add a text direction (words / rehearsal mark) at a beat. */
+  addText(beatId: EntityId, text: string, kind: "words" | "rehearsal" = "words"): boolean {
+    return this.edit((doc) => {
+      const loc = findBeat(doc, beatId);
+      if (!loc || !text) return false;
+      doc.directions.push({
+        id: newId("dir"),
+        barIndex: loc.measure.barIndex,
+        tick: beatTick(loc.voice.beats, loc.beatIndex),
+        placement: "above",
+        content: kind === "rehearsal" ? { kind: "rehearsal", text } : { kind: "words", text },
+      });
+      return true;
+    });
+  }
+
+  /** Set (or clear) a beat's chord symbol. */
+  setChordSymbol(beatId: EntityId, text: string | null): boolean {
+    return this.edit((doc) => {
+      const beat = findBeat(doc, beatId)?.beat;
+      if (!beat) return false;
+      if (text && text.trim()) beat.chordSymbol = text.trim();
+      else delete beat.chordSymbol;
+      return true;
+    });
+  }
+
+  // ---------- clipboard ----------
+
+  /** A detached copy of a beat's content (rhythm + pitches) for pasting. */
+  copyBeat(beatId: EntityId): CopiedBeat | undefined {
+    const beat = findBeat(this.doc, beatId)?.beat;
+    if (!beat) return undefined;
+    return structuredClone({
+      duration: beat.duration,
+      rest: beat.rest,
+      notes: beat.notes,
+      ...(beat.articulations ? { articulations: beat.articulations } : {}),
+      ...(beat.ornaments ? { ornaments: beat.ornaments } : {}),
+    });
+  }
+
+  /** Paste copied content onto a beat (fresh note ids). */
+  pasteBeat(beatId: EntityId, source: CopiedBeat): boolean {
+    return this.edit((doc) => {
+      const beat = findBeat(doc, beatId)?.beat;
+      if (!beat) return false;
+      beat.duration = { ...source.duration };
+      beat.rest = source.rest;
+      beat.notes = source.notes.map((n) => ({ ...n, id: newId("note") }));
+      if (source.articulations) beat.articulations = [...source.articulations];
+      else delete beat.articulations;
+      if (source.ornaments) beat.ornaments = [...source.ornaments];
+      else delete beat.ornaments;
       return true;
     });
   }

@@ -206,6 +206,8 @@ export interface Beat {
   ornaments?: OrnamentType[];
   articulations?: ArticulationType[];
   fermata?: boolean;
+  /** Chord/harmony symbol shown above the beat (e.g. "Cmaj7", "G/B"). */
+  chordSymbol?: string;
 }
 
 export interface Lyric {

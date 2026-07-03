@@ -48,3 +48,33 @@ describe("v1 blank canvas + structural editing", () => {
     expect(editor.doc.work.composer).toBe("Me");
   });
 });
+
+describe("v1 clipboard, chord symbols, tempo, text", () => {
+  it("copies a beat and pastes it with fresh note ids", () => {
+    const doc = createEmptyScoreV1({ bars: 1, beats: 4 });
+    const editor = new ScoreEditorV1(doc);
+    const beats = doc.parts[0]!.measures[0]!.voices[0]!.beats;
+    editor.restToNoteByName(beats[0]!.id, "C");
+    editor.setDuration(beats[0]!.id, "eighth");
+    const clip = editor.copyBeat(beats[0]!.id)!;
+    editor.pasteBeat(beats[2]!.id, clip);
+    const target = editor.findBeat(beats[2]!.id)!.beat;
+    expect(target.duration.noteType).toBe("eighth");
+    expect(target.notes[0]!.step).toBe("C");
+    expect(target.notes[0]!.id).not.toBe(clip.notes[0]!.id);
+    expect(validationErrors(editor.doc)).toEqual([]);
+  });
+
+  it("sets chord symbols, tempo, and text directions", () => {
+    const doc = createEmptyScoreV1({ bars: 1 });
+    const editor = new ScoreEditorV1(doc);
+    const beatId = doc.parts[0]!.measures[0]!.voices[0]!.beats[0]!.id;
+    editor.setChordSymbol(beatId, "Cmaj7");
+    expect(editor.findBeat(beatId)!.beat.chordSymbol).toBe("Cmaj7");
+    editor.setTempo(0, 120);
+    expect(editor.doc.bars[0]!.tempoBpm).toBe(120);
+    editor.addText(beatId, "Swing", "words");
+    expect(editor.doc.directions.some((d) => d.content.kind === "words")).toBe(true);
+    expect(validationErrors(editor.doc)).toEqual([]);
+  });
+});

@@ -201,6 +201,7 @@ function toBeat(
     beat.graceType = beatModel.grace.kind === "acciaccatura" ? m.GraceType.OnBeat : m.GraceType.BeforeBeat;
   }
   if (beatModel.fermata) beat.fermata = new m.Fermata();
+  if (beatModel.chordSymbol) beat.text = beatModel.chordSymbol;
   // A beat with no notes renders as a rest.
   if (!beatModel.rest) {
     const ornament = beatModel.ornaments?.map((o) => NOTE_ORNAMENT[o]).find((v) => v !== undefined);
