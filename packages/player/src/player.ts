@@ -34,6 +34,8 @@ export interface PlayerEvents {
   playerReady: () => void;
   /** A beat was clicked: its absolute playback tick and structural address. */
   beatClicked: (tick: number, location: BeatLocation) => void;
+  /** A specific note was clicked (v1 model note id + its beat id). */
+  noteClicked: (noteId: string | undefined, beatId: string | undefined) => void;
   error: (error: Error) => void;
 }
 
@@ -54,13 +56,14 @@ export class Player {
   private loopMarkerLayer: HTMLDivElement | null = null;
   private loopRange: { startBar: number; endBar: number } | null = null;
   private highlightLayer: HTMLDivElement | null = null;
-  private highlightBeatId: string | null = null;
+  private highlightNoteId: string | null = null;
   private readonly listeners: { [K in keyof PlayerEvents]: Set<PlayerEvents[K]> } = {
     scoreLoaded: new Set(),
     playerStateChanged: new Set(),
     positionChanged: new Set(),
     playerReady: new Set(),
     beatClicked: new Set(),
+    noteClicked: new Set(),
     error: new Set(),
   };
 
@@ -69,6 +72,9 @@ export class Player {
     this.api = new alphaTab.AlphaTabApi(container, {
       core: {
         fontDirectory: options.fontDirectory,
+        // Needed for note-level click selection (noteMouseDown) and per-note
+        // bounds used to highlight the exact selected note.
+        includeNoteBounds: true,
       },
       display: {
         scale: options.scale ?? 1,
@@ -115,6 +121,13 @@ export class Player {
         beatIndex: beat.index,
         modelBeatId: (beat as unknown as { ovBeatId?: string }).ovBeatId,
       });
+    });
+    this.api.noteMouseDown.on((note) => {
+      this.emit(
+        "noteClicked",
+        (note as unknown as { ovNoteId?: string }).ovNoteId,
+        (note.beat as unknown as { ovBeatId?: string }).ovBeatId,
+      );
     });
     this.api.error.on((error) => this.emit("error", error));
     // Re-place loop markers whenever the score is (re-)laid out.
@@ -292,22 +305,78 @@ export class Player {
     draw(range.endBar, "end");
   }
 
-  /** Highlight the selected note (by v1 model beat id), or clear with null. */
-  highlightModelBeat(beatId: string | null): void {
-    this.highlightBeatId = beatId;
-    this.renderHighlight();
+  /**
+   * Resolve the v1 model note id nearest a screen position: the beat under the
+   * cursor, then its note closest in the vertical (pitch) axis. This makes a
+   * click select the note the user aimed at even between stacked noteheads.
+   */
+  noteAtPosition(clientX: number, clientY: number): string | undefined {
+    const rect = this.container.getBoundingClientRect();
+    const x = clientX - rect.left;
+    const y = clientY - rect.top;
+    let best: string | undefined;
+    let bestDist = Infinity;
+    // Nearest notehead across every voice/staff (overlapping voices share an x
+    // column, so a per-beat search would pick the wrong voice's note).
+    this.forEachNoteBounds((noteId, b) => {
+      const dx = b.x + b.w / 2 - x;
+      const dy = b.y + b.h / 2 - y;
+      const dist = dx * dx + dy * dy;
+      if (dist < bestDist) {
+        bestDist = dist;
+        best = noteId;
+      }
+    });
+    // Ignore clicks far from any note so empty-staff clicks don't grab one.
+    return Math.sqrt(bestDist) <= 48 ? best : undefined;
   }
 
-  private beatBoundsById(beatId: string): { x: number; y: number; w: number; h: number } | null {
+  private forEachNoteBounds(
+    cb: (noteId: string, bounds: { x: number; y: number; w: number; h: number }) => void,
+  ): void {
     const bl = this.api.renderer?.boundsLookup as
       | {
           staffSystems?: Array<{
             bars: Array<{
               bars: Array<{
                 beats: Array<{
-                  beat?: { ovBeatId?: string };
-                  onNotesBounds?: { x: number; y: number; w: number; h: number };
-                  realBounds?: { x: number; y: number; w: number; h: number };
+                  notes?: Array<{
+                    note?: { ovNoteId?: string };
+                    noteHeadBounds?: { x: number; y: number; w: number; h: number };
+                  }> | null;
+                }>;
+              }>;
+            }>;
+          }>;
+        }
+      | undefined;
+    if (!bl?.staffSystems) return;
+    for (const sys of bl.staffSystems)
+      for (const mb of sys.bars)
+        for (const bar of mb.bars)
+          for (const bb of bar.beats)
+            for (const nb of bb.notes ?? []) {
+              if (nb.note?.ovNoteId && nb.noteHeadBounds) cb(nb.note.ovNoteId, nb.noteHeadBounds);
+            }
+  }
+
+  /** Highlight the selected note (by v1 model note id), or clear with null. */
+  highlightModelNote(noteId: string | null): void {
+    this.highlightNoteId = noteId;
+    this.renderHighlight();
+  }
+
+  private noteHeadBoundsById(noteId: string): { x: number; y: number; w: number; h: number } | null {
+    const bl = this.api.renderer?.boundsLookup as
+      | {
+          staffSystems?: Array<{
+            bars: Array<{
+              bars: Array<{
+                beats: Array<{
+                  notes?: Array<{
+                    note?: { ovNoteId?: string };
+                    noteHeadBounds?: { x: number; y: number; w: number; h: number };
+                  }> | null;
                 }>;
               }>;
             }>;
@@ -319,7 +388,9 @@ export class Player {
       for (const mb of sys.bars) {
         for (const bar of mb.bars) {
           for (const bb of bar.beats) {
-            if (bb.beat?.ovBeatId === beatId) return bb.onNotesBounds ?? bb.realBounds ?? null;
+            for (const nb of bb.notes ?? []) {
+              if (nb.note?.ovNoteId === noteId && nb.noteHeadBounds) return nb.noteHeadBounds;
+            }
           }
         }
       }
@@ -337,12 +408,12 @@ export class Player {
       this.highlightLayer = layer;
     }
     layer.textContent = "";
-    if (!this.highlightBeatId) return;
-    const b = this.beatBoundsById(this.highlightBeatId);
+    if (!this.highlightNoteId) return;
+    const b = this.noteHeadBoundsById(this.highlightNoteId);
     if (!b) return;
     const el = document.createElement("div");
     el.className = "ov-note-highlight";
-    // Pad a little so the box reads as a selection, not a cursor line.
+    // Pad around the single notehead so the selection reads clearly.
     el.style.left = `${b.x - 4}px`;
     el.style.top = `${b.y - 4}px`;
     el.style.width = `${b.w + 8}px`;

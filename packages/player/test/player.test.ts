@@ -15,6 +15,7 @@ const events = {
   playerStateChanged: emitter(),
   playerPositionChanged: emitter(),
   beatMouseDown: emitter(),
+  noteMouseDown: emitter(),
   error: emitter(),
   renderFinished: emitter(),
 };
@@ -25,6 +26,7 @@ const api = {
   playerStateChanged: events.playerStateChanged,
   playerPositionChanged: events.playerPositionChanged,
   beatMouseDown: events.beatMouseDown,
+  noteMouseDown: events.noteMouseDown,
   error: events.error,
   renderFinished: events.renderFinished,
   renderer: { boundsLookup: { staffSystems: [] } },

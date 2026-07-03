@@ -38,13 +38,13 @@ test.describe("v1 editing (multi-staff)", () => {
     await page.getByRole("button", { name: "Edit", exact: true }).click();
     await expect(page.locator(".edit-band")).toBeVisible();
 
-    // Select the first beat (click->select is coordinate-mapped by alphaTab and
-    // covered manually; here we select via the model so the keyboard-edit
-    // pipeline is tested deterministically).
+    // Select the first note (nearest-note click selection is coordinate-based
+    // and covered manually; here we select the note id via the model so the
+    // keyboard-edit pipeline is tested deterministically).
     await page.evaluate(() => {
       const ed = (window as any).__ovV1Editor();
-      const beatId = ed.doc.parts[0].measures[0].voices[0].beats[0].id;
-      (window as any).__ovSelectV1(beatId);
+      const noteId = ed.doc.parts[0].measures[0].voices[0].beats[0].notes[0].id;
+      (window as any).__ovSelectV1(noteId);
     });
     await page.waitForTimeout(200);
     expect(await page.evaluate(() => (window as any).__ovSelectedV1())).toBeTruthy();
@@ -52,7 +52,7 @@ test.describe("v1 editing (multi-staff)", () => {
     const pitch = () =>
       page.evaluate(() => {
         const ed = (window as any).__ovV1Editor();
-        const loc = ed.findNote(ed.firstNoteId((window as any).__ovSelectedV1()));
+        const loc = ed.findNote((window as any).__ovSelectedV1());
         return loc ? `${loc.note.step}${loc.note.alter}/${loc.note.octave}` : null;
       });
     const before = await pitch();

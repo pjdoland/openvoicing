@@ -223,5 +223,7 @@ function toNote(noteModel: v1.Note): alphaTab.model.Note {
   // Tablature: string/fret place the note on the tab staff.
   if (noteModel.string !== undefined) note.string = noteModel.string;
   if (noteModel.fret !== undefined) note.fret = noteModel.fret;
+  // Stamp the model id so a clicked note maps back to the v1 model.
+  (note as unknown as { ovNoteId?: string }).ovNoteId = noteModel.id;
   return note;
 }

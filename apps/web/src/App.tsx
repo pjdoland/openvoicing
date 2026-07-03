@@ -261,8 +261,8 @@ export function App() {
   // editorRef is null and edits/selection/export route through the v1 model.
   const v1EditorRef = useRef<v1.ScoreEditorV1 | null>(null);
   const [hasV1Editor, setHasV1Editor] = useState(false);
-  const selectedV1BeatRef = useRef<string | null>(null);
-  const [selectedV1Beat, setSelectedV1Beat] = useState<string | null>(null);
+  const selectedV1NoteRef = useRef<string | null>(null);
+  const [selectedV1Note, setSelectedV1Note] = useState<string | null>(null);
   // Bumped after each v1 edit so the edit band's disabled states refresh.
   const [, setV1Version] = useState(0);
   const [hasEditor, setHasEditor] = useState(false);
@@ -304,16 +304,16 @@ export function App() {
   }, [selectedBeat]);
 
   useEffect(() => {
-    selectedV1BeatRef.current = selectedV1Beat;
-    playerRef.current?.highlightModelBeat(selectedV1Beat);
-  }, [selectedV1Beat]);
+    selectedV1NoteRef.current = selectedV1Note;
+    playerRef.current?.highlightModelNote(selectedV1Note);
+  }, [selectedV1Note]);
 
   function adoptEditor(loaded: LoadedScore): void {
     editorRef.current = loaded.editor;
     v1EditorRef.current = loaded.v1Editor;
     setHasEditor(loaded.editor !== null);
     setHasV1Editor(loaded.v1Editor !== null);
-    setSelectedV1Beat(null);
+    setSelectedV1Note(null);
     setEditMode(false);
     if (loaded.editor) void storage.set("scoreDoc", loaded.editor.doc);
     else void storage.delete("scoreDoc");
@@ -399,11 +399,10 @@ export function App() {
     });
     player.on("beatClicked", (tick, location) => {
       if (editModeRef.current) {
-        // v1-backed scores select by model beat id; v0 by structural address.
-        if (v1EditorRef.current) {
-          if (location.modelBeatId) setSelectedV1Beat(location.modelBeatId);
-          return;
-        }
+        // v1-backed scores select the exact clicked note (see noteClicked);
+        // beat clicks are ignored here so a click near a beat doesn't pick the
+        // top note. v0 scores still select by structural beat address.
+        if (v1EditorRef.current) return;
         setSelectedBeat({
           partIndex: location.trackIndex,
           barIndex: location.barIndex,
@@ -415,6 +414,15 @@ export function App() {
       const points = syncPointsRef.current;
       if (points) recording.seek(mediaTimeAtTick(points, tick));
     });
+    // Note-level selection for v1 editing: resolve the note nearest the cursor
+    // on any staff click, so clicking between stacked notes still targets the
+    // one you aimed at (alphaTab's noteMouseDown only fires on an exact hit).
+    const onScoreClick = (e: MouseEvent) => {
+      if (!editModeRef.current || !v1EditorRef.current) return;
+      const id = playerRef.current?.noteAtPosition(e.clientX, e.clientY);
+      if (id) setSelectedV1Note(id);
+    };
+    container.addEventListener("click", onScoreClick);
     player.on("error", (error) => console.error("[openvoicing]", error));
     if (import.meta.env.DEV) {
       const w = window as unknown as Record<string, unknown>;
@@ -422,8 +430,8 @@ export function App() {
       w.__ovRecording = recording;
       w.__ovEditor = () => editorRef.current;
       w.__ovV1Editor = () => v1EditorRef.current;
-      w.__ovSelectedV1 = () => selectedV1BeatRef.current;
-      w.__ovSelectV1 = (id: string) => setSelectedV1Beat(id);
+      w.__ovSelectedV1 = () => selectedV1NoteRef.current;
+      w.__ovSelectV1 = (id: string) => setSelectedV1Note(id);
       w.__ovSelected = () => selectedBeatRef.current;
       // Dev hook: render any MusicXML through the full-fidelity v1 pipeline
       // (import -> v1 model -> alphaTab adapter), the Option C render path.
@@ -476,6 +484,7 @@ export function App() {
     return () => {
       disposed = true;
       playerRef.current = null;
+      container.removeEventListener("click", onScoreClick);
       player.destroy();
     };
   }, [recording]);
@@ -1071,8 +1080,7 @@ export function App() {
         // even when nothing is selected yet (then just show a nudge to select).
         if (["ArrowUp", "ArrowDown", "Delete", "Backspace"].includes(e.code)) {
           e.preventDefault();
-          const beatId = selectedV1BeatRef.current;
-          const noteId = beatId ? v1Editor.firstNoteId(beatId) : undefined;
+          const noteId = selectedV1NoteRef.current;
           if (!noteId) {
             setAnnouncement("Click a note to select it first");
             return;
@@ -1938,9 +1946,7 @@ export function App() {
     setV1Version((n) => n + 1);
   }
   function v1SelectedNoteId(): string | undefined {
-    const ed = v1EditorRef.current;
-    const beatId = selectedV1BeatRef.current;
-    return ed && beatId ? ed.firstNoteId(beatId) : undefined;
+    return selectedV1NoteRef.current ?? undefined;
   }
   function v1Transpose(n: number) {
     const ed = v1EditorRef.current;
@@ -2307,12 +2313,12 @@ export function App() {
           <button className="btn-icon" onClick={v1Redo} disabled={!v1EditorRef.current?.canRedo} title="Redo (Shift+Cmd+Z)" aria-label="Redo">↷</button>
           <span className="subgroup">
             <span className="subgroup-label">Transpose</span>
-            <button className="btn-icon" onClick={() => v1Transpose(1)} disabled={!selectedV1Beat} aria-label="Transpose up" title="Transpose up (Up arrow)">＋</button>
-            <button className="btn-icon" onClick={() => v1Transpose(-1)} disabled={!selectedV1Beat} aria-label="Transpose down" title="Transpose down (Down arrow)">－</button>
+            <button className="btn-icon" onClick={() => v1Transpose(1)} disabled={!selectedV1Note} aria-label="Transpose up" title="Transpose up (Up arrow)">＋</button>
+            <button className="btn-icon" onClick={() => v1Transpose(-1)} disabled={!selectedV1Note} aria-label="Transpose down" title="Transpose down (Down arrow)">－</button>
           </span>
-          <button className="btn-icon" onClick={v1Delete} disabled={!selectedV1Beat} aria-label="Delete note" title="Delete note (Del)">🗑</button>
+          <button className="btn-icon" onClick={v1Delete} disabled={!selectedV1Note} aria-label="Delete note" title="Delete note (Del)">🗑</button>
           <span className="edit-hint">
-            {selectedV1Beat ? "Note selected — ↑/↓ transpose, Del delete" : "Click a note to edit. Pitches and rhythm are editable; ornaments and slurs are preserved."}
+            {selectedV1Note ? "Note selected — ↑/↓ transpose, Del delete" : "Click a note to edit. Pitches are editable; ornaments and slurs are preserved."}
           </span>
         </div>
       )}
@@ -2540,7 +2546,9 @@ export function App() {
       </main>
 
       <footer className="footer">
-        Tip: click a note to jump there, drag across notes to loop a passage.
+        {editMode
+          ? "Tip: click a note to select it, then ↑/↓ transpose or Del delete."
+          : "Tip: click a note to jump there, drag across notes to loop a passage."}
       </footer>
     </div>
   );
