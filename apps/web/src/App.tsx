@@ -2043,6 +2043,16 @@ export function App() {
       }
       return;
     }
+    if (e.code === "KeyT" && sel?.noteId) {
+      e.preventDefault();
+      if (ed.toggleTie(sel.noteId)) v1Rerender();
+      return;
+    }
+    if (e.code === "KeyS" && beatId) {
+      e.preventDefault();
+      if (ed.toggleSlur(beatId)) v1Rerender();
+      return;
+    }
   }
   const doTranspose = (n: number) => {
     if (editorRef.current?.transposeScore(n)) rerenderScore();
@@ -2397,7 +2407,7 @@ export function App() {
           <button className="btn-icon" onClick={v1Delete} disabled={!selectedV1?.noteId} aria-label="Delete note" title="Delete note (Del)">🗑</button>
           <span className="edit-hint">
             {selectedV1?.noteId
-              ? "A–G pitch · 1–9 value · . dot · +/− accidental · Shift+A–G chord · ↑/↓ transpose · ←/→ move · Del"
+              ? "A–G pitch · 1–9 value · . dot · +/− accidental · Shift+A–G chord · t tie · s slur · r rest · ↑/↓ transpose · ←/→ move · Del"
               : selectedV1?.restBeatId
                 ? "Rest selected — type A–G to make it a note, 1–9 sets the value"
                 : "Click a note or rest, then type A–G to set pitch, 1–9 for the value."}

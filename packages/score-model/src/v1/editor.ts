@@ -1,18 +1,28 @@
 import { newId } from "../ids";
+import { playedTicks } from "./durations";
 import { PPQ } from "./types";
 import type {
   AccidentalKind,
+  ArticulationType,
   Beat,
   EntityId,
   Measure,
   Note,
   NoteStep,
   NoteType,
+  OrnamentType,
   Part,
   ScoreV1,
   TimeSignature,
   Voice,
 } from "./types";
+
+/** Offset ticks of a beat within its voice (sum of prior played durations). */
+function beatTick(beats: Beat[], index: number): number {
+  let t = 0;
+  for (let i = 0; i < index; i++) t += Math.round(playedTicks(beats[i]!));
+  return t;
+}
 
 const BEAT_UNIT_TYPE: Record<number, NoteType> = { 1: "whole", 2: "half", 4: "quarter", 8: "eighth", 16: "16th" };
 
@@ -340,6 +350,115 @@ export class ScoreEditorV1 {
       if (!loc) return false;
       loc.beat.notes.splice(loc.noteIndex, 1);
       if (loc.beat.notes.length === 0) loc.beat.rest = true;
+      return true;
+    });
+  }
+
+  // ---------- notation ----------
+
+  /** Toggle an articulation (staccato/accent/...) on a beat. */
+  toggleArticulation(beatId: EntityId, type: ArticulationType): boolean {
+    return this.edit((doc) => {
+      const beat = findBeat(doc, beatId)?.beat;
+      if (!beat) return false;
+      const list = beat.articulations ?? [];
+      beat.articulations = list.includes(type) ? list.filter((a) => a !== type) : [...list, type];
+      if (beat.articulations.length === 0) delete beat.articulations;
+      return true;
+    });
+  }
+
+  /** Toggle an ornament (mordent/turn/trill...) on a beat. */
+  toggleOrnament(beatId: EntityId, type: OrnamentType): boolean {
+    return this.edit((doc) => {
+      const beat = findBeat(doc, beatId)?.beat;
+      if (!beat) return false;
+      const list = beat.ornaments ?? [];
+      beat.ornaments = list.includes(type) ? list.filter((o) => o !== type) : [...list, type];
+      if (beat.ornaments.length === 0) delete beat.ornaments;
+      return true;
+    });
+  }
+
+  toggleFermata(beatId: EntityId): boolean {
+    return this.edit((doc) => {
+      const beat = findBeat(doc, beatId)?.beat;
+      if (!beat) return false;
+      if (beat.fermata) delete beat.fermata;
+      else beat.fermata = true;
+      return true;
+    });
+  }
+
+  /** Tie a note to the next beat (creating/copying the target pitch), or untie. */
+  toggleTie(noteId: EntityId): boolean {
+    return this.edit((doc) => {
+      const loc = findNote(doc, noteId);
+      if (!loc) return false;
+      const existing = doc.spanners.findIndex((s) => s.kind === "tie" && s.from.noteId === noteId);
+      if (existing >= 0) {
+        doc.spanners.splice(existing, 1);
+        return true;
+      }
+      const nextBeat = loc.voice.beats[loc.voice.beats.indexOf(loc.beat) + 1];
+      if (!nextBeat) return false;
+      // Match a same-pitch note in the next beat, or copy this pitch into it.
+      let target = nextBeat.notes.find((n) => chromaticValue(n) === chromaticValue(loc.note));
+      if (!target) {
+        target = { id: newId("note"), step: loc.note.step, alter: loc.note.alter, octave: loc.note.octave };
+        nextBeat.rest = false;
+        nextBeat.notes = [target];
+      }
+      doc.spanners.push({
+        id: newId("tie"),
+        kind: "tie",
+        from: { beatId: loc.beat.id, noteId: loc.note.id },
+        to: { beatId: nextBeat.id, noteId: target.id },
+      });
+      return true;
+    });
+  }
+
+  /** Slur a beat to the next beat, or remove that slur. */
+  toggleSlur(beatId: EntityId): boolean {
+    return this.edit((doc) => {
+      const loc = findBeat(doc, beatId);
+      const nextBeat = loc?.voice.beats[loc.beatIndex + 1];
+      if (!loc || !nextBeat) return false;
+      const existing = doc.spanners.findIndex(
+        (s) => s.kind === "slur" && s.fromBeat === beatId && s.toBeat === nextBeat.id,
+      );
+      if (existing >= 0) {
+        doc.spanners.splice(existing, 1);
+        return true;
+      }
+      const number = 1 + Math.max(0, ...doc.spanners.filter((s) => s.kind === "slur").map((s) => s.number));
+      doc.spanners.push({ id: newId("slur"), kind: "slur", number, fromBeat: beatId, toBeat: nextBeat.id });
+      return true;
+    });
+  }
+
+  /** Attach a dynamic marking (p, mf, f, ...) at a beat, or clear it. */
+  setDynamic(beatId: EntityId, value: string | null): boolean {
+    return this.edit((doc) => {
+      const loc = findBeat(doc, beatId);
+      if (!loc) return false;
+      const tick = beatTick(loc.voice.beats, loc.beatIndex);
+      const staff = loc.voice.staff;
+      const existing = doc.directions.findIndex(
+        (d) => d.content.kind === "dynamics" && d.barIndex === loc.measure.barIndex && d.tick === tick && d.staff === staff,
+      );
+      if (existing >= 0) doc.directions.splice(existing, 1);
+      if (value) {
+        doc.directions.push({
+          id: newId("dir"),
+          barIndex: loc.measure.barIndex,
+          tick,
+          staff,
+          placement: "below",
+          content: { kind: "dynamics", value },
+        });
+      }
       return true;
     });
   }
