@@ -1,4 +1,17 @@
-import type { Beat, EntityId, Measure, Note, NoteStep, Part, ScoreV1, Voice } from "./types";
+import { newId } from "../ids";
+import type {
+  AccidentalKind,
+  Beat,
+  DurationSpec,
+  EntityId,
+  Measure,
+  Note,
+  NoteStep,
+  NoteType,
+  Part,
+  ScoreV1,
+  Voice,
+} from "./types";
 
 export interface NoteLocation {
   part: Part;
@@ -9,168 +22,352 @@ export interface NoteLocation {
   noteIndex: number;
 }
 
-/** A reversible edit. Each op records the inverse so undo is exact. */
-interface Command {
-  label: string;
-  apply(doc: ScoreV1): void;
-  invert(doc: ScoreV1): void;
+export interface BeatLocation {
+  part: Part;
+  measure: Measure;
+  voice: Voice;
+  beat: Beat;
+  beatIndex: number;
 }
 
 const STEP_SEMITONE: Record<NoteStep, number> = { C: 0, D: 2, E: 4, F: 5, G: 7, A: 9, B: 11 };
-// Sharp-preferring spelling of each pitch class.
-const PC_SPELL: Array<{ step: NoteStep; alter: number }> = [
+// Sharp-preferring and flat-preferring spellings of each pitch class.
+const PC_SHARP: Array<{ step: NoteStep; alter: number }> = [
   { step: "C", alter: 0 }, { step: "C", alter: 1 }, { step: "D", alter: 0 }, { step: "D", alter: 1 },
   { step: "E", alter: 0 }, { step: "F", alter: 0 }, { step: "F", alter: 1 }, { step: "G", alter: 0 },
   { step: "G", alter: 1 }, { step: "A", alter: 0 }, { step: "A", alter: 1 }, { step: "B", alter: 0 },
+];
+const PC_FLAT: Array<{ step: NoteStep; alter: number }> = [
+  { step: "C", alter: 0 }, { step: "D", alter: -1 }, { step: "D", alter: 0 }, { step: "E", alter: -1 },
+  { step: "E", alter: 0 }, { step: "F", alter: 0 }, { step: "G", alter: -1 }, { step: "G", alter: 0 },
+  { step: "A", alter: -1 }, { step: "A", alter: 0 }, { step: "B", alter: -1 }, { step: "B", alter: 0 },
 ];
 
 export function chromaticValue(note: { step: NoteStep; alter: number; octave: number }): number {
   return note.octave * 12 + STEP_SEMITONE[note.step] + note.alter;
 }
 
-function spell(chromatic: number): { step: NoteStep; alter: number; octave: number } {
+/** Spell a chromatic pitch, preferring flats in flat keys (fifths < 0). */
+function spell(chromatic: number, keyFifths = 0): { step: NoteStep; alter: number; octave: number } {
   const octave = Math.floor(chromatic / 12);
   const pc = ((chromatic % 12) + 12) % 12;
-  const s = PC_SPELL[pc]!;
+  const s = (keyFifths < 0 ? PC_FLAT : PC_SHARP)[pc]!;
+  // A flat-spelled C (Cb) or sharp-spelled B belongs to the neighbouring octave;
+  // keep the simple table result, correcting octave for the boundary steps.
   return { step: s.step, alter: s.alter, octave };
 }
 
+/** The octave of `step` nearest to a reference chromatic value. */
+function nearestOctave(step: NoteStep, referenceChromatic: number): number {
+  const base = STEP_SEMITONE[step];
+  const approxOctave = Math.round((referenceChromatic - base) / 12);
+  let best = approxOctave;
+  let bestDist = Infinity;
+  for (const o of [approxOctave - 1, approxOctave, approxOctave + 1]) {
+    const dist = Math.abs(o * 12 + base - referenceChromatic);
+    if (dist < bestDist) {
+      bestDist = dist;
+      best = o;
+    }
+  }
+  return best;
+}
+
+const NOTE_TYPES: NoteType[] = ["whole", "half", "quarter", "eighth", "16th", "32nd", "64th", "128th", "256th"];
+
 /**
- * Editing layer over a v1 document. Selection and edits are addressed by stable
- * entity id (resolved to position at apply time), so edits survive re-layout,
- * and every op is reversible via an inverse command — no whole-document
- * snapshots. Scoped to the P1 edit subset (pitch, delete); richer notation edits
- * come later.
+ * Editing layer over a v1 document. Ops are addressed by stable entity id and
+ * mutate the document in place; undo/redo restore whole-document snapshots
+ * (simple and exact across the full op set). `doc` is replaced on undo/redo, so
+ * callers must read `editor.doc` fresh after each call.
  */
 export class ScoreEditorV1 {
-  private undoStack: Command[] = [];
-  private redoStack: Command[] = [];
+  private past: ScoreV1[] = [];
+  private future: ScoreV1[] = [];
 
   constructor(public doc: ScoreV1) {}
 
   get canUndo(): boolean {
-    return this.undoStack.length > 0;
+    return this.past.length > 0;
   }
   get canRedo(): boolean {
-    return this.redoStack.length > 0;
+    return this.future.length > 0;
   }
 
-  /** The id of a beat's first note (selection is by beat; edits act on notes). */
-  firstNoteId(beatId: EntityId): EntityId | undefined {
-    const beat = findBeatById(this.doc, beatId);
-    return beat?.notes[0]?.id;
-  }
-
-  findNote(noteId: EntityId): NoteLocation | undefined {
-    for (const part of this.doc.parts) {
-      for (const measure of part.measures) {
-        for (const voice of measure.voices) {
-          for (const beat of voice.beats) {
-            const noteIndex = beat.notes.findIndex((n) => n.id === noteId);
-            if (noteIndex >= 0) {
-              return { part, measure, voice, beat, note: beat.notes[noteIndex]!, noteIndex };
-            }
-          }
-        }
-      }
+  /** Run a mutation; snapshot for undo only if it reports a change. */
+  private edit(fn: (doc: ScoreV1) => boolean): boolean {
+    const snapshot = structuredClone(this.doc);
+    const changed = fn(this.doc);
+    if (changed) {
+      this.past.push(snapshot);
+      this.future.length = 0;
     }
-    return undefined;
-  }
-
-  private run(cmd: Command): void {
-    cmd.apply(this.doc);
-    this.undoStack.push(cmd);
-    this.redoStack.length = 0;
-  }
-
-  /** Set a note's exact pitch. */
-  setPitch(noteId: EntityId, pitch: { step: NoteStep; alter: number; octave: number }): boolean {
-    const loc = this.findNote(noteId);
-    if (!loc) return false;
-    const before = { step: loc.note.step, alter: loc.note.alter, octave: loc.note.octave };
-    this.run({
-      label: "set pitch",
-      apply: (doc) => assignPitch(findNoteById(doc, noteId), pitch),
-      invert: (doc) => assignPitch(findNoteById(doc, noteId), before),
-    });
-    return true;
-  }
-
-  /** Shift a note by a number of semitones (sharp-preferring spelling). */
-  transposeNote(noteId: EntityId, semitones: number): boolean {
-    const loc = this.findNote(noteId);
-    if (!loc || semitones === 0) return !!loc;
-    const next = spell(chromaticValue(loc.note) + semitones);
-    return this.setPitch(noteId, next);
-  }
-
-  /** Remove a note; if its beat becomes empty, the beat turns into a rest. */
-  deleteNote(noteId: EntityId): boolean {
-    const loc = this.findNote(noteId);
-    if (!loc) return false;
-    const removed = loc.note;
-    const index = loc.noteIndex;
-    const beatId = loc.beat.id;
-    const becameRest = loc.beat.notes.length === 1;
-    this.run({
-      label: "delete note",
-      apply: (doc) => {
-        const beat = findBeatById(doc, beatId);
-        if (!beat) return;
-        beat.notes.splice(index, 1);
-        if (beat.notes.length === 0) beat.rest = true;
-      },
-      invert: (doc) => {
-        const beat = findBeatById(doc, beatId);
-        if (!beat) return;
-        beat.notes.splice(index, 0, { ...removed });
-        if (becameRest) beat.rest = false;
-      },
-    });
-    return true;
+    return changed;
   }
 
   undo(): boolean {
-    const cmd = this.undoStack.pop();
-    if (!cmd) return false;
-    cmd.invert(this.doc);
-    this.redoStack.push(cmd);
+    const prev = this.past.pop();
+    if (!prev) return false;
+    this.future.push(structuredClone(this.doc));
+    replaceDocInPlace(this.doc, prev);
     return true;
   }
 
   redo(): boolean {
-    const cmd = this.redoStack.pop();
-    if (!cmd) return false;
-    cmd.apply(this.doc);
-    this.undoStack.push(cmd);
+    const next = this.future.pop();
+    if (!next) return false;
+    this.past.push(structuredClone(this.doc));
+    replaceDocInPlace(this.doc, next);
     return true;
+  }
+
+  // ---------- lookups ----------
+
+  firstNoteId(beatId: EntityId): EntityId | undefined {
+    return findBeat(this.doc, beatId)?.beat.notes[0]?.id;
+  }
+
+  findNote(noteId: EntityId): NoteLocation | undefined {
+    for (const part of this.doc.parts)
+      for (const measure of part.measures)
+        for (const voice of measure.voices)
+          for (const beat of voice.beats) {
+            const noteIndex = beat.notes.findIndex((n) => n.id === noteId);
+            if (noteIndex >= 0) return { part, measure, voice, beat, note: beat.notes[noteIndex]!, noteIndex };
+          }
+    return undefined;
+  }
+
+  findBeat(beatId: EntityId): BeatLocation | undefined {
+    return findBeat(this.doc, beatId);
+  }
+
+  /** Effective key signature (fifths) at a bar, carried forward per part. */
+  private keyFifthsAt(part: Part, barIndex: number): number {
+    let fifths = 0;
+    for (let i = 0; i <= barIndex; i++) {
+      const k = part.measures[i]?.attributes?.key?.fifths;
+      if (k !== undefined) fifths = k;
+    }
+    return fifths;
+  }
+
+  // ---------- pitch ----------
+
+  setPitch(noteId: EntityId, pitch: { step: NoteStep; alter: number; octave: number }): boolean {
+    return this.edit((doc) => {
+      const note = findNote(doc, noteId)?.note;
+      if (!note) return false;
+      Object.assign(note, { step: pitch.step, alter: pitch.alter, octave: pitch.octave });
+      syncFret(findNote(doc, noteId));
+      return true;
+    });
+  }
+
+  /** Set a note's letter name, choosing the octave nearest its current pitch. */
+  setPitchByName(noteId: EntityId, step: NoteStep): boolean {
+    const loc = this.findNote(noteId);
+    if (!loc) return false;
+    const octave = nearestOctave(step, chromaticValue(loc.note));
+    return this.setPitch(noteId, { step, alter: 0, octave });
+  }
+
+  /** Transpose a note, respelling per the measure's key signature. */
+  transposeNote(noteId: EntityId, semitones: number): boolean {
+    const loc = this.findNote(noteId);
+    if (!loc || semitones === 0) return !!loc;
+    const barIndex = loc.measure.barIndex;
+    const fifths = this.keyFifthsAt(loc.part, barIndex);
+    return this.setPitch(noteId, spell(chromaticValue(loc.note) + semitones, fifths));
+  }
+
+  /** Cycle a note's accidental: natural -> sharp -> double-sharp | flat side. */
+  cycleAccidental(noteId: EntityId, direction: 1 | -1): boolean {
+    return this.edit((doc) => {
+      const note = findNote(doc, noteId)?.note;
+      if (!note) return false;
+      const next = Math.max(-2, Math.min(2, note.alter + direction));
+      if (next === note.alter) return false;
+      note.alter = next;
+      note.accidental = { kind: ALTER_ACCIDENTAL[next]! };
+      syncFret(findNote(doc, noteId));
+      return true;
+    });
+  }
+
+  // ---------- rhythm ----------
+
+  /** Set a beat's written duration (note type and dots). */
+  setDuration(beatId: EntityId, noteType: NoteType, dots = 0): boolean {
+    return this.edit((doc) => {
+      const beat = findBeat(doc, beatId)?.beat;
+      if (!beat) return false;
+      beat.duration = { noteType, dots };
+      return true;
+    });
+  }
+
+  /** Step a beat's duration one value shorter (+1) or longer (-1). */
+  stepDuration(beatId: EntityId, direction: 1 | -1): boolean {
+    const beat = findBeat(this.doc, beatId)?.beat;
+    if (!beat) return false;
+    const i = NOTE_TYPES.indexOf(beat.duration.noteType);
+    const next = NOTE_TYPES[Math.max(0, Math.min(NOTE_TYPES.length - 1, i + direction))]!;
+    return this.setDuration(beatId, next, beat.duration.dots);
+  }
+
+  toggleDot(beatId: EntityId): boolean {
+    return this.edit((doc) => {
+      const beat = findBeat(doc, beatId)?.beat;
+      if (!beat) return false;
+      beat.duration = { noteType: beat.duration.noteType, dots: beat.duration.dots ? 0 : 1 };
+      return true;
+    });
+  }
+
+  // ---------- notes, chords, rests ----------
+
+  private newNote(pitch: { step: NoteStep; alter: number; octave: number }): Note {
+    return { id: newId("note"), step: pitch.step, alter: pitch.alter, octave: pitch.octave };
+  }
+
+  /** Turn a rest into a note (or replace the beat's notes) with a pitch. */
+  restToNote(beatId: EntityId, pitch: { step: NoteStep; alter: number; octave: number }): boolean {
+    return this.edit((doc) => {
+      const beat = findBeat(doc, beatId)?.beat;
+      if (!beat) return false;
+      beat.rest = false;
+      beat.notes = [this.newNote(pitch)];
+      return true;
+    });
+  }
+
+  /** Set a rest's letter name, defaulting the octave (near the previous note). */
+  restToNoteByName(beatId: EntityId, step: NoteStep): boolean {
+    const loc = findBeat(this.doc, beatId);
+    if (!loc) return false;
+    const ref = previousPitchChromatic(loc.voice, loc.beatIndex) ?? 4 * 12 + STEP_SEMITONE.B; // ~B4
+    return this.restToNote(beatId, { step, alter: 0, octave: nearestOctave(step, ref) });
+  }
+
+  /** Make a beat a rest (clear its notes). */
+  makeRest(beatId: EntityId): boolean {
+    return this.edit((doc) => {
+      const beat = findBeat(doc, beatId)?.beat;
+      if (!beat || beat.rest) return false;
+      beat.rest = true;
+      beat.notes = [];
+      return true;
+    });
+  }
+
+  /** Add a note to a beat (build a chord), keeping notes ordered high-to-low. */
+  addNoteToBeat(beatId: EntityId, pitch: { step: NoteStep; alter: number; octave: number }): boolean {
+    return this.edit((doc) => {
+      const beat = findBeat(doc, beatId)?.beat;
+      if (!beat) return false;
+      beat.rest = false;
+      const note = this.newNote(pitch);
+      if (beat.notes.some((n) => chromaticValue(n) === chromaticValue(note))) return false;
+      beat.notes.push(note);
+      beat.notes.sort((a, b) => chromaticValue(b) - chromaticValue(a));
+      return true;
+    });
+  }
+
+  /** Add a note a given interval (in semitones) above the beat's top note. */
+  addInterval(beatId: EntityId, semitones: number): boolean {
+    const beat = findBeat(this.doc, beatId)?.beat;
+    const top = beat?.notes[0];
+    if (!top) return false;
+    const fifths = 0;
+    return this.addNoteToBeat(beatId, spell(chromaticValue(top) + semitones, fifths));
+  }
+
+  /** Remove a note; a beat with no notes left becomes a rest. */
+  deleteNote(noteId: EntityId): boolean {
+    return this.edit((doc) => {
+      const loc = findNote(doc, noteId);
+      if (!loc) return false;
+      loc.beat.notes.splice(loc.noteIndex, 1);
+      if (loc.beat.notes.length === 0) loc.beat.rest = true;
+      return true;
+    });
+  }
+
+  // ---------- tab ----------
+
+  /** Set the fret of a note on a tab staff, deriving pitch from the tuning. */
+  setFret(noteId: EntityId, fret: number): boolean {
+    return this.edit((doc) => {
+      const loc = findNote(doc, noteId);
+      if (!loc) return false;
+      const tuning = tuningFor(loc);
+      const string = loc.note.string;
+      if (!tuning || string === undefined) return false;
+      loc.note.fret = fret;
+      const open = tuning[string - 1];
+      if (open !== undefined) Object.assign(loc.note, spell(open + fret));
+      return true;
+    });
   }
 }
 
-function assignPitch(note: Note | undefined, pitch: { step: NoteStep; alter: number; octave: number }): void {
-  if (!note) return;
-  note.step = pitch.step;
-  note.alter = pitch.alter;
-  note.octave = pitch.octave;
+const ALTER_ACCIDENTAL: Record<number, AccidentalKind> = {
+  [-2]: "double-flat",
+  [-1]: "flat",
+  [0]: "natural",
+  [1]: "sharp",
+  [2]: "double-sharp",
+};
+
+/** Keep a tab note's fret consistent after a pitch change (avoid stale frets). */
+function syncFret(loc: NoteLocation | undefined): void {
+  if (!loc || loc.note.string === undefined) return;
+  const tuning = tuningFor(loc);
+  const open = tuning?.[loc.note.string - 1];
+  if (open === undefined) return;
+  const fret = chromaticValue(loc.note) - open;
+  if (fret >= 0) loc.note.fret = fret;
 }
 
-function findNoteById(doc: ScoreV1, noteId: EntityId): Note | undefined {
+function tuningFor(loc: NoteLocation): number[] | undefined {
+  const staffIndex = loc.note.staff ?? loc.beat.staff ?? loc.voice.staff;
+  return loc.part.staves[staffIndex]?.tuning;
+}
+
+function previousPitchChromatic(voice: Voice, beatIndex: number): number | undefined {
+  for (let i = beatIndex - 1; i >= 0; i--) {
+    const note = voice.beats[i]?.notes[0];
+    if (note) return chromaticValue(note);
+  }
+  return undefined;
+}
+
+/** Restore a document's contents in place, keeping its object identity stable
+ * so callers holding `editor.doc` see the restored state after undo/redo. */
+function replaceDocInPlace(target: ScoreV1, source: ScoreV1): void {
+  for (const key of Object.keys(target)) delete (target as Record<string, unknown>)[key];
+  Object.assign(target, source);
+}
+
+function findNote(doc: ScoreV1, noteId: EntityId): NoteLocation | undefined {
   for (const part of doc.parts)
     for (const measure of part.measures)
       for (const voice of measure.voices)
         for (const beat of voice.beats) {
-          const note = beat.notes.find((n) => n.id === noteId);
-          if (note) return note;
+          const noteIndex = beat.notes.findIndex((n) => n.id === noteId);
+          if (noteIndex >= 0) return { part, measure, voice, beat, note: beat.notes[noteIndex]!, noteIndex };
         }
   return undefined;
 }
 
-function findBeatById(doc: ScoreV1, beatId: EntityId): Beat | undefined {
+function findBeat(doc: ScoreV1, beatId: EntityId): BeatLocation | undefined {
   for (const part of doc.parts)
     for (const measure of part.measures)
       for (const voice of measure.voices) {
-        const beat = voice.beats.find((b) => b.id === beatId);
-        if (beat) return beat;
+        const beatIndex = voice.beats.findIndex((b) => b.id === beatId);
+        if (beatIndex >= 0) return { part, measure, voice, beat: voice.beats[beatIndex]!, beatIndex };
       }
   return undefined;
 }

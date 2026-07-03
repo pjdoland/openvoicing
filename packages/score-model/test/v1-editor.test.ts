@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { canonicalizeV1, importMusicXmlV1, ScoreEditorV1 } from "../src/v1";
+import { canonicalizeV1, chromaticValue, importMusicXmlV1, ScoreEditorV1 } from "../src/v1";
 
 const GRAND_STAFF = `<?xml version="1.0"?>
 <score-partwise version="4.0">
@@ -72,12 +72,58 @@ describe("ScoreEditorV1", () => {
     const doc = importMusicXmlV1(GRAND_STAFF);
     const editor = new ScoreEditorV1(doc);
     const id = firstNoteId(doc);
-    const beat = editor.findNote(id)!.beat;
+    const beatId = editor.findNote(id)!.beat.id;
     editor.deleteNote(id);
-    expect(beat.notes).toHaveLength(0);
-    expect(beat.rest).toBe(true);
+    // Re-query after each op: undo restores document contents, so held nested
+    // references go stale (the app reads editor.doc fresh each render).
+    expect(editor.findBeat(beatId)!.beat.rest).toBe(true);
     editor.undo();
-    expect(beat.notes).toHaveLength(1);
-    expect(beat.rest).toBe(false);
+    expect(editor.findBeat(beatId)!.beat.notes).toHaveLength(1);
+    expect(editor.findBeat(beatId)!.beat.rest).toBe(false);
+  });
+
+  it("note entry: set pitch by name, set duration, add chord, rest<->note", () => {
+    const doc = importMusicXmlV1(GRAND_STAFF);
+    const editor = new ScoreEditorV1(doc);
+    const beatId = doc.parts[0]!.measures[0]!.voices[0]!.beats[0]!.id; // C5 half
+    const noteId = editor.findBeat(beatId)!.beat.notes[0]!.id;
+
+    // Set by name -> nearest octave to C5 is C5.
+    editor.setPitchByName(noteId, "F");
+    expect(editor.findNote(noteId)!.note.step).toBe("F");
+
+    // Duration change.
+    editor.setDuration(beatId, "quarter", 1);
+    expect(editor.findBeat(beatId)!.beat.duration).toEqual({ noteType: "quarter", dots: 1 });
+
+    // Chord: add a third above; notes stay ordered high-to-low.
+    editor.addInterval(beatId, 4);
+    const beat = editor.findBeat(beatId)!.beat;
+    expect(beat.notes.length).toBe(2);
+    expect(chromaticValue(beat.notes[0]!)).toBeGreaterThan(chromaticValue(beat.notes[1]!));
+
+    // Make it a rest, then bring it back as a note by name.
+    editor.makeRest(beatId);
+    expect(editor.findBeat(beatId)!.beat.rest).toBe(true);
+    editor.restToNoteByName(beatId, "G");
+    expect(editor.findBeat(beatId)!.beat.rest).toBe(false);
+    expect(editor.findBeat(beatId)!.beat.notes[0]!.step).toBe("G");
+  });
+
+  it("accidental cycling and key-aware transpose spelling", () => {
+    const doc = importMusicXmlV1(GRAND_STAFF);
+    const editor = new ScoreEditorV1(doc);
+    const noteId = doc.parts[0]!.measures[0]!.voices[0]!.beats[0]!.notes[0]!.id; // C5
+
+    editor.cycleAccidental(noteId, 1); // C#5
+    expect(editor.findNote(noteId)!.note.alter).toBe(1);
+    expect(editor.findNote(noteId)!.note.accidental?.kind).toBe("sharp");
+
+    // Reset and transpose in a flat key -> flat spelling.
+    editor.cycleAccidental(noteId, -1); // back to natural
+    doc.parts[0]!.measures[0]!.attributes!.key = { fifths: -3 }; // Eb major
+    editor.transposeNote(noteId, 1); // C -> Db (flat key), not C#
+    expect(editor.findNote(noteId)!.note.step).toBe("D");
+    expect(editor.findNote(noteId)!.note.alter).toBe(-1);
   });
 });
