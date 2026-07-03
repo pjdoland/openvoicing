@@ -96,18 +96,8 @@ function loadScoreIntoPlayer(player: Player, source: ScoreSource): LoadedScore {
     const bytes = new Uint8Array(source.data);
     // .mxl is a zip container; unwrap it to the root MusicXML document first.
     const text = v1.isMxl(bytes) ? v1.unwrapMxl(bytes) : new TextDecoder().decode(bytes);
-    // Simple scores stay on the lightweight v0 editable path. Multi-staff /
-    // multi-voice scores (piano, ensemble) go through the full-fidelity v1
-    // model, rendered via the alphaTab adapter, so they are editable too.
-    if (!isMultiStaffMusicXml(text)) {
-      try {
-        const doc = importMusicXml(text);
-        player.loadTex(toAlphaTex(doc));
-        return { editor: new ScoreEditor(doc), v1Editor: null };
-      } catch {
-        // Files the v0 importer cannot handle fall through to v1 / native.
-      }
-    }
+    // All MusicXML (simple and multi-staff) goes through the full-fidelity v1
+    // model now; the v0 editor path is retired.
     try {
       const doc = v1.importMusicXmlV1(text);
       player.renderV1(doc);
@@ -134,6 +124,13 @@ function newRecordingId(): string {
 function structuredCloneBeat(beat: Beat): Beat {
   return structuredClone(beat);
 }
+
+const KEY_OPTIONS: Array<{ fifths: number; label: string }> = [
+  { fifths: -6, label: "6♭" }, { fifths: -5, label: "5♭" }, { fifths: -4, label: "4♭" },
+  { fifths: -3, label: "3♭ (E♭)" }, { fifths: -2, label: "2♭ (B♭)" }, { fifths: -1, label: "1♭ (F)" },
+  { fifths: 0, label: "0 (C)" }, { fifths: 1, label: "1♯ (G)" }, { fifths: 2, label: "2♯ (D)" },
+  { fifths: 3, label: "3♯ (A)" }, { fifths: 4, label: "4♯ (E)" }, { fifths: 5, label: "5♯" }, { fifths: 6, label: "6♯" },
+];
 
 // Number keys 1-9 map to note values (whole through 256th) for v1 duration entry.
 const DURATION_KEYS: Record<number, v1.NoteType> = {
@@ -1930,7 +1927,13 @@ export function App() {
   // re-render from the model so notation is preserved.
   function v1Rerender() {
     const ed = v1EditorRef.current;
-    if (ed) playerRef.current?.renderV1(ed.doc, { preserveScroll: true });
+    if (ed) {
+      playerRef.current?.renderV1(ed.doc, { preserveScroll: true });
+      // Persist the edited model as its source so edits survive reload/bundle.
+      const data = new TextEncoder().encode(v1.exportMusicXmlV1(ed.doc)).buffer as ArrayBuffer;
+      scoreSourceRef.current = { name: "score.musicxml", type: "musicxml", data };
+      void storage.set("score", { name: "score.musicxml", type: "musicxml", data });
+    }
     setV1Version((n) => n + 1);
   }
   function v1SelectedNoteId(): string | undefined {
@@ -2085,6 +2088,77 @@ export function App() {
       return;
     }
   }
+  // Edit-band ops for the selected v1 beat/note.
+  function v1BeatOp(fn: (ed: v1.ScoreEditorV1, beatId: string) => boolean) {
+    const ed = v1EditorRef.current;
+    const beatId = v1SelectedBeatId();
+    if (ed && beatId && fn(ed, beatId)) v1Rerender();
+  }
+  function v1SelectedBarIndex(): number {
+    const ed = v1EditorRef.current;
+    const beatId = v1SelectedBeatId();
+    return (beatId && ed?.findBeat(beatId)?.measure.barIndex) || 0;
+  }
+  const v1Articulate = (t: v1.ArticulationType) => v1BeatOp((ed, b) => ed.toggleArticulation(b, t));
+  const v1Fermata = () => v1BeatOp((ed, b) => ed.toggleFermata(b));
+  const v1Dynamic = (value: string) => v1BeatOp((ed, b) => ed.setDynamic(b, value));
+  const v1Slur = () => v1BeatOp((ed, b) => ed.toggleSlur(b));
+  function v1Tie() {
+    const ed = v1EditorRef.current;
+    const noteId = selectedV1Ref.current?.noteId;
+    if (ed && noteId && ed.toggleTie(noteId)) v1Rerender();
+  }
+  function v1AddBar() {
+    const ed = v1EditorRef.current;
+    if (ed && ed.insertMeasure(v1SelectedBarIndex(), "after")) v1Rerender();
+  }
+  function v1RemoveBar() {
+    const ed = v1EditorRef.current;
+    if (ed && ed.removeMeasure(v1SelectedBarIndex())) v1Rerender();
+  }
+  function v1SetTime(value: string) {
+    const [beats, unit] = value.split("/").map(Number);
+    const ed = v1EditorRef.current;
+    if (ed && beats && unit && ed.setTimeSignature(v1SelectedBarIndex(), beats, unit)) v1Rerender();
+  }
+  function v1SetKey(fifths: number) {
+    const ed = v1EditorRef.current;
+    if (ed && ed.setKeySignature(v1SelectedBarIndex(), fifths)) v1Rerender();
+  }
+  function v1EditMeta() {
+    const ed = v1EditorRef.current;
+    if (!ed) return;
+    const title = window.prompt("Title", ed.doc.work.title);
+    if (title === null) return;
+    const composer = window.prompt("Composer", ed.doc.work.composer ?? "") ?? undefined;
+    if (ed.setWork({ title, composer })) {
+      v1Rerender();
+      setScoreTitle(title);
+      setScoreArtist(composer ?? "");
+    }
+  }
+  function v1EditTempo() {
+    const ed = v1EditorRef.current;
+    if (!ed) return;
+    const bar = v1SelectedBarIndex();
+    const value = window.prompt("Tempo (bpm)", String(ed.doc.bars[bar]?.tempoBpm ?? 120));
+    if (value !== null && ed.setTempo(bar, Number(value) || null)) v1Rerender();
+  }
+  // Effective time/key at the selected bar, for the edit-band selects.
+  const v1EffectiveAttrs = ((): { time: string; key: number } => {
+    const measures = v1EditorRef.current?.doc.parts[0]?.measures ?? [];
+    const bar = v1SelectedBarIndex();
+    let time = { beats: 4, beatUnit: 4 };
+    let key = 0;
+    for (let i = 0; i <= bar && i < measures.length; i++) {
+      const a = measures[i]?.attributes;
+      if (a?.time) time = a.time;
+      if (a?.key) key = a.key.fifths;
+    }
+    return { time: `${time.beats}/${time.beatUnit}`, key };
+  })();
+  const v1TimeValue = v1EffectiveAttrs.time;
+  const v1KeyValue = v1EffectiveAttrs.key;
   const doTranspose = (n: number) => {
     if (editorRef.current?.transposeScore(n)) rerenderScore();
   };
@@ -2436,9 +2510,44 @@ export function App() {
             <button className="btn-icon" onClick={() => v1Transpose(-1)} disabled={!selectedV1?.noteId} aria-label="Transpose down" title="Transpose down (Down arrow)">－</button>
           </span>
           <button className="btn-icon" onClick={v1Delete} disabled={!selectedV1?.noteId} aria-label="Delete note" title="Delete note (Del)">🗑</button>
+          <span className="subgroup">
+            <span className="subgroup-label">Marks</span>
+            <button className="btn-icon" onClick={() => v1Articulate("staccato")} disabled={!selectedV1} title="Staccato">·</button>
+            <button className="btn-icon" onClick={() => v1Articulate("accent")} disabled={!selectedV1} title="Accent">&gt;</button>
+            <button className="btn-icon" onClick={() => v1Articulate("tenuto")} disabled={!selectedV1} title="Tenuto">‒</button>
+            <button className="btn-icon" onClick={v1Fermata} disabled={!selectedV1} title="Fermata">𝄐</button>
+            <button className="btn-icon" onClick={v1Tie} disabled={!selectedV1?.noteId} title="Tie (t)">‿</button>
+            <button className="btn-icon" onClick={v1Slur} disabled={!selectedV1} title="Slur (s)">⌒</button>
+          </span>
+          <label className="control" title="Dynamic">
+            Dyn
+            <select value="" onChange={(e) => e.target.value && v1Dynamic(e.target.value)} disabled={!selectedV1}>
+              <option value="">–</option>
+              {["pp", "p", "mp", "mf", "f", "ff"].map((d) => <option key={d} value={d}>{d}</option>)}
+            </select>
+          </label>
+          <span className="subgroup">
+            <span className="subgroup-label">Bar</span>
+            <button className="btn-icon" onClick={v1AddBar} title="Add a measure after this one">＋</button>
+            <button className="btn-icon" onClick={v1RemoveBar} title="Remove this measure">－</button>
+          </span>
+          <label className="control" title="Time signature of this bar">
+            Time
+            <select value={v1TimeValue} onChange={(e) => v1SetTime(e.target.value)}>
+              {["2/4", "3/4", "4/4", "6/8", "3/8", "5/4", "12/8"].map((t) => <option key={t} value={t}>{t}</option>)}
+            </select>
+          </label>
+          <label className="control" title="Key signature of this bar">
+            Key
+            <select value={v1KeyValue} onChange={(e) => v1SetKey(Number(e.target.value))}>
+              {KEY_OPTIONS.map((k) => <option key={k.fifths} value={k.fifths}>{k.label}</option>)}
+            </select>
+          </label>
+          <button className="btn-icon" onClick={v1EditTempo} title="Tempo (bpm)">♩=</button>
+          <button className="btn-icon" onClick={v1EditMeta} title="Title & composer">ℹ</button>
           <span className="edit-hint">
             {selectedV1?.noteId
-              ? "A–G pitch · 1–9 value · . dot · +/− accidental · Shift+A–G chord · t tie · s slur · r rest · ↑/↓ transpose · ←/→ move · Del"
+              ? "A–G pitch · 1–9 value · . dot · +/− accidental · Shift+A–G chord · t tie · s slur · k chord-sym · r rest · ↑/↓ transpose · ←/→ move"
               : selectedV1?.restBeatId
                 ? "Rest selected — type A–G to make it a note, 1–9 sets the value"
                 : "Click a note or rest, then type A–G to set pitch, 1–9 for the value."}
