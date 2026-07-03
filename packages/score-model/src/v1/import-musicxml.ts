@@ -212,6 +212,7 @@ function importPart(
 ): { measures: Measure[]; staves: Staff[]; transpose?: Transpose } {
   const measures: Measure[] = [];
   const staffClefs = new Map<number, Clef>();
+  const staffTab = new Map<number, TabDetails>();
   let staffCount = 1;
   let transpose: Transpose | undefined;
   const state: PartState = {
@@ -220,7 +221,7 @@ function importPart(
 
   for (const [barIndex, xmlMeasure] of children(childrenOf(xmlPart), "measure").entries()) {
     const mc = childrenOf(xmlMeasure);
-    const measureAttrs = readMeasureAttributes(mc, state, staffClefs, (n) => (staffCount = n));
+    const measureAttrs = readMeasureAttributes(mc, state, staffClefs, staffTab, (n) => (staffCount = n));
     transpose ??= readTranspose(mc);
 
     const voices = new Map<string, VoiceState>();
@@ -260,14 +261,62 @@ function importPart(
 
   const staves: Staff[] = [];
   for (let i = 0; i < staffCount; i++) {
+    const tab = staffTab.get(i);
     staves.push({
       id: newId("staff"),
       index: i,
-      lines: 5,
+      lines: tab?.lines ?? (tab?.tuning ? tab.tuning.length : 5),
       clef: staffClefs.get(i) ?? (i === 1 ? { sign: "F", line: 4 } : { sign: "G", line: 2 }),
+      ...(tab?.tab ? { showTablature: true } : {}),
+      ...(tab?.tuning ? { tuning: tab.tuning } : {}),
+      ...(tab?.capo ? { capo: tab.capo } : {}),
     });
   }
   return { measures, staves, transpose };
+}
+
+interface TabDetails {
+  tab?: boolean;
+  tuning?: number[];
+  capo?: number;
+  lines?: number;
+}
+
+const STEP_TO_SEMITONE: Record<string, number> = { C: 0, D: 2, E: 4, F: 5, G: 7, A: 9, B: 11 };
+
+/** Read <staff-details> tuning/capo/lines and TAB clef into per-staff details. */
+function readStaffTab(ac: XmlNode[], staffTab: Map<number, TabDetails>): void {
+  for (const clefNode of children(ac, "clef")) {
+    if (childText(childrenOf(clefNode), "sign") === "TAB") {
+      const idx = (Number(attr(clefNode, "number") ?? 1) || 1) - 1;
+      (staffTab.get(idx) ?? staffTab.set(idx, {}).get(idx)!).tab = true;
+    }
+  }
+  for (const details of children(ac, "staff-details")) {
+    const idx = (Number(attr(details, "number") ?? 1) || 1) - 1;
+    const info = staffTab.get(idx) ?? staffTab.set(idx, {}).get(idx)!;
+    const dc = childrenOf(details);
+    const lines = childText(dc, "staff-lines");
+    if (lines) info.lines = Number(lines);
+    const capo = childText(dc, "capo");
+    if (capo) info.capo = Number(capo);
+    const tunings = children(dc, "staff-tuning");
+    if (tunings.length) {
+      // Map staff-tuning line (1 = bottom = lowest string) to string 1 = highest.
+      const byLine = new Map<number, number>();
+      for (const st of tunings) {
+        const stc = childrenOf(st);
+        const step = childText(stc, "tuning-step") ?? "E";
+        const octave = Number(childText(stc, "tuning-octave") ?? 2);
+        const alter = Number(childText(stc, "tuning-alter") ?? 0);
+        byLine.set(Number(attr(st, "line") ?? 1), (octave + 1) * 12 + STEP_TO_SEMITONE[step]! + alter);
+      }
+      const maxLine = Math.max(...byLine.keys());
+      const tuning: number[] = [];
+      for (let line = maxLine; line >= 1; line--) tuning.push(byLine.get(line) ?? 0);
+      info.tuning = tuning;
+    }
+  }
 }
 
 /** Read a part's <attributes><transpose> (written->sounding pitch offset). */
@@ -288,12 +337,14 @@ function readMeasureAttributes(
   mc: XmlNode[],
   state: PartState,
   staffClefs: Map<number, Clef>,
+  staffTab: Map<number, TabDetails>,
   setStaffCount: (n: number) => void,
 ): MeasureAttributes {
   const out: MeasureAttributes = {};
   const attrsNode = child(mc, "attributes");
   if (!attrsNode) return out;
   const ac = childrenOf(attrsNode);
+  readStaffTab(ac, staffTab);
   const d = childText(ac, "divisions");
   if (d) state.divisions = Number(d);
   const staves = childText(ac, "staves");
@@ -389,6 +440,12 @@ function readPitch(nc: XmlNode[], staff: number): Note | undefined {
   if (!pitch) return undefined;
   const pc = childrenOf(pitch);
   const acc = childText(nc, "accidental");
+  // Tablature string/fret from <notations><technical>.
+  const notations = child(nc, "notations");
+  const technical = notations ? child(childrenOf(notations), "technical") : undefined;
+  const tc = technical ? childrenOf(technical) : [];
+  const string = childText(tc, "string");
+  const fret = childText(tc, "fret");
   return {
     id: newId("note"),
     step: (childText(pc, "step") ?? "C") as NoteStep,
@@ -396,6 +453,8 @@ function readPitch(nc: XmlNode[], staff: number): Note | undefined {
     octave: Number(childText(pc, "octave") ?? 4),
     ...(acc ? { accidental: { kind: acc as AccidentalKind } } : {}),
     ...(staff > 0 ? { staff } : {}),
+    ...(string ? { string: Number(string) } : {}),
+    ...(fret ? { fret: Number(fret) } : {}),
   };
 }
 

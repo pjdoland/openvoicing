@@ -56,6 +56,16 @@ export function toAlphaTabScore(doc: v1.ScoreV1): alphaTab.model.Score {
     part.staves.forEach((staffModel, staffIndex) => {
       const staff = new m.Staff();
       if (transposePitch) staff.transpositionPitch = transposePitch;
+      if (staffModel.showTablature) {
+        staff.showTablature = true;
+        staff.showStandardNotation = false;
+        if (staffModel.tuning?.length) {
+          const tuning = new m.Tuning();
+          tuning.tunings = [...staffModel.tuning];
+          staff.stringTuning = tuning;
+        }
+        if (staffModel.capo) staff.capo = staffModel.capo;
+      }
       track.addStaff(staff);
       // alphaTab chains voices by index across bars, so every bar on a staff
       // must carry the same number of voices (consolidate() normally does this,
@@ -201,5 +211,8 @@ function toNote(noteModel: v1.Note): alphaTab.model.Note {
   const note = new alphaTab.model.Note();
   note.octave = noteModel.octave;
   note.tone = STEP_SEMITONE[noteModel.step]! + noteModel.alter;
+  // Tablature: string/fret place the note on the tab staff.
+  if (noteModel.string !== undefined) note.string = noteModel.string;
+  if (noteModel.fret !== undefined) note.fret = noteModel.fret;
   return note;
 }

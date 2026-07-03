@@ -9,6 +9,7 @@ import {
   type Part,
   type ScoreV1,
   type Slur,
+  type Staff,
   type Tie,
   type Tuplet,
 } from "./types";
@@ -149,7 +150,12 @@ function attributeLines(part: Part, measure: Measure, barIndex: number): string[
   }
   if (barIndex === 0 && part.staves.length > 1) out.push(`<staves>${part.staves.length}</staves>`);
   if (barIndex === 0) {
-    part.staves.forEach((staff, i) => out.push(...clefLines(staff.clef, part.staves.length > 1 ? i + 1 : undefined)));
+    const multi = part.staves.length > 1;
+    part.staves.forEach((staff, i) => {
+      const num = multi ? i + 1 : undefined;
+      if (staff.showTablature) out.push(...staffDetailsLines(staff, num));
+      out.push(...clefLines(staff.showTablature ? { sign: "TAB", line: staff.lines } : staff.clef, num));
+    });
   }
   for (const change of a?.clefs ?? []) {
     out.push(...clefLines(change.clef, part.staves.length > 1 ? change.staffIndex + 1 : undefined));
@@ -161,6 +167,31 @@ function attributeLines(part: Part, measure: Measure, barIndex: number): string[
     if (part.transpose.octaveChange) out.push(`  <octave-change>${part.transpose.octaveChange}</octave-change>`);
     out.push("</transpose>");
   }
+  return out;
+}
+
+const TUNING_SPELL: Array<[step: string, alter: number]> = [
+  ["C", 0], ["C", 1], ["D", 0], ["D", 1], ["E", 0], ["F", 0],
+  ["F", 1], ["G", 0], ["G", 1], ["A", 0], ["A", 1], ["B", 0],
+];
+
+function staffDetailsLines(staff: Staff, staffNumber: number | undefined): string[] {
+  const out: string[] = [];
+  out.push(`<staff-details${staffNumber ? ` number="${staffNumber}"` : ""}>`);
+  out.push(`  <staff-lines>${staff.lines}</staff-lines>`);
+  const tuning = staff.tuning ?? [];
+  // tuning[0] = string 1 = highest = top line = highest line number.
+  for (let line = 1; line <= tuning.length; line++) {
+    const midi = tuning[tuning.length - line]!;
+    const [step, alter] = TUNING_SPELL[((midi % 12) + 12) % 12]!;
+    out.push(`  <staff-tuning line="${line}">`);
+    out.push(`    <tuning-step>${step}</tuning-step>`);
+    if (alter) out.push(`    <tuning-alter>${alter}</tuning-alter>`);
+    out.push(`    <tuning-octave>${Math.floor(midi / 12) - 1}</tuning-octave>`);
+    out.push("  </staff-tuning>");
+  }
+  if (staff.capo) out.push(`  <capo>${staff.capo}</capo>`);
+  out.push("</staff-details>");
   return out;
 }
 
@@ -230,7 +261,8 @@ function exportNoteElement(
   const ornaments = isChord ? undefined : beat.ornaments;
   const articulations = isChord ? undefined : beat.articulations;
   const fermata = isChord ? false : beat.fermata;
-  if (tie?.start || tie?.stop || edge || slurs.length || ornaments?.length || articulations?.length || fermata) {
+  const technical = note && (note.string !== undefined || note.fret !== undefined);
+  if (tie?.start || tie?.stop || edge || slurs.length || ornaments?.length || articulations?.length || fermata || technical) {
     out.push("        <notations>");
     if (tie?.stop) out.push('          <tied type="stop"/>');
     if (tie?.start) out.push('          <tied type="start"/>');
@@ -247,6 +279,12 @@ function exportNoteElement(
       out.push("          </articulations>");
     }
     if (fermata) out.push("          <fermata/>");
+    if (technical && note) {
+      out.push("          <technical>");
+      if (note.string !== undefined) out.push(`            <string>${note.string}</string>`);
+      if (note.fret !== undefined) out.push(`            <fret>${note.fret}</fret>`);
+      out.push("          </technical>");
+    }
     out.push("        </notations>");
   }
   out.push("      </note>");

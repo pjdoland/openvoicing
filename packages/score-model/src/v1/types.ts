@@ -137,6 +137,14 @@ export interface Staff {
   lines: number;
   /** Clef effective from bar 0; clef *changes* live in MeasureAttributes. */
   clef: Clef;
+  /** Render as tablature (fretted). */
+  showTablature?: boolean;
+  /**
+   * Open-string MIDI pitches, string 1 first (string 1 = highest-pitched, top
+   * tab line), matching MusicXML <string> and alphaTab conventions.
+   */
+  tuning?: number[];
+  capo?: number;
 }
 
 export interface Part {
