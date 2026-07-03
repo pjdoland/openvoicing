@@ -713,9 +713,14 @@ body {
   padding-left: 18px;
   line-height: 1.7;
 }
+.tour-lede { margin: 0 0 12px; }
+.tour-verbs { list-style: none; padding-left: 0; margin: 0 0 12px; }
+.tour-verbs li { padding: 6px 0; border-top: 1px solid var(--border); }
+.tour-verbs li:first-child { border-top: 0; }
+.tour-demo { color: var(--muted); font-size: 0.8125rem; margin: 0 0 16px; }
+.tour-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 
 .tour-dismiss {
-  margin-top: 12px;
   padding: 8px 20px;
   border: 1px solid var(--accent);
   border-radius: 8px;

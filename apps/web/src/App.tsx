@@ -2502,16 +2502,18 @@ export function App() {
         <div className="cheatsheet-backdrop" role="dialog" aria-modal="true" aria-label="Welcome">
           <div className="cheatsheet tour" onClick={(e) => e.stopPropagation()}>
             <h2>Welcome to OpenVoicing</h2>
-            <p>This is living sheet music. A demo piece is loaded so you can try it now:</p>
-            <ul>
-              <li><strong>Play</strong> and drag across the waveform to <strong>loop</strong> a passage.</li>
-              <li>Use <strong>−/+</strong> to slow it down without changing pitch.</li>
-              <li>Open the <strong>Recording</strong> row to sync a real audio track.</li>
-              <li>Turn on <strong>Edit</strong> to change the notes; press <strong>?</strong> any time for shortcuts.</li>
+            <p className="tour-lede">OpenVoicing turns sheet music into an interactive practice tool. There are three things you can do with a piece:</p>
+            <ul className="tour-verbs">
+              <li><strong>Play</strong> it &mdash; hear the notation and follow along.</li>
+              <li><strong>Practice</strong> it &mdash; slow it down, loop a passage, or sync it to a real recording.</li>
+              <li><strong>Edit</strong> it &mdash; change the notes yourself.</li>
             </ul>
-            <button className="tour-dismiss" onClick={dismissTour}>
-              Got it
-            </button>
+            <p className="tour-demo">A demo piece is loaded, so you can try everything right now.</p>
+            <div className="tour-actions">
+              <button className="tour-dismiss" onClick={dismissTour}>Explore the demo</button>
+              <button className="btn-sm" onClick={() => { dismissTour(); scoreInputRef.current?.click(); }}>Load a file</button>
+              <button className="btn-sm" onClick={() => { dismissTour(); newScore(); }}>Start a new score</button>
+            </div>
           </div>
         </div>
       )}
