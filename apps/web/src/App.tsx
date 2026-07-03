@@ -2599,7 +2599,7 @@ export function App() {
 
         {/* Navigation */}
         <div className="tb-zone" role="group" aria-label="Navigation">
-          <span className="tb-zone-label">Go to</span>
+          <span className="tb-zone-label">Jump to</span>
           <NavigateControl
             barCount={barCount}
             sections={sections}
@@ -2672,9 +2672,10 @@ export function App() {
             <div className="edit-coach" role="note">
               <span className="edit-coach-icon" aria-hidden="true">🎵</span>
               <span>
-                <strong>Write your first note.</strong> A rest is already selected. Tap a <strong>Pitch</strong> button
-                (or press <kbd>A</kbd>–<kbd>G</kbd>) to place a note, then <kbd>1</kbd>–<kbd>9</kbd> sets its length and{" "}
-                <kbd>→</kbd> moves to the next beat.
+                <strong>This score is empty.</strong> The squiggles are silent <strong>rests</strong>, one per beat &mdash;
+                the highlighted one is where your next note goes. Tap a <strong>Pitch</strong> button (or press{" "}
+                <kbd>A</kbd>–<kbd>G</kbd>) to place it, set its <strong>value</strong> (how long it lasts) with{" "}
+                <kbd>1</kbd>–<kbd>9</kbd>, and <kbd>→</kbd> moves to the next beat.
               </span>
               <button className="btn-sm" onClick={dismissCoach}>Got it</button>
             </div>
@@ -2881,9 +2882,12 @@ export function App() {
       </main>
 
       <footer className="footer">
-        {editMode
-          ? "Tip: click a note to select it, then ↑/↓ transpose or Del delete."
-          : "Tip: click a note to jump there, drag across notes to loop a passage."}
+        <span className="footer-tip">
+          {editMode
+            ? "Tip: click a note to select it, then ↑/↓ transpose or Del delete."
+            : "Tip: click a note to jump there, drag across notes to loop a passage."}
+        </span>
+        <span className="footer-colophon">Engraving by alphaTab</span>
       </footer>
     </div>
   );

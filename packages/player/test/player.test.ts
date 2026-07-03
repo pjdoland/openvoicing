@@ -18,6 +18,7 @@ const events = {
   noteMouseDown: emitter(),
   error: emitter(),
   renderFinished: emitter(),
+  postRenderFinished: emitter(),
 };
 
 const api = {
@@ -29,6 +30,7 @@ const api = {
   noteMouseDown: events.noteMouseDown,
   error: events.error,
   renderFinished: events.renderFinished,
+  postRenderFinished: events.postRenderFinished,
   renderer: { boundsLookup: { staffSystems: [] } },
   tex: vi.fn(),
   load: vi.fn(() => true),
@@ -64,6 +66,7 @@ vi.mock("@coderline/alphatab", () => ({
   }),
   PlayerMode: { EnabledAutomatic: 1 },
   ScrollMode: { Off: 0, Continuous: 1, OffScreen: 2 },
+  NotationElement: { ScoreCopyright: 7 },
   model: { Color: class { constructor(...args: number[]) { void args; } } },
   synth: { PlayerState: { Paused: 0, Playing: 1 } },
 }));

@@ -73,10 +73,11 @@ export function NavigateControl({
       <input
         className="bars-input"
         list="ov-sections"
-        placeholder="bar or section"
-        aria-label="Jump to bar or section"
+        placeholder="Bar # or section"
+        title="Type a bar number (e.g. 12) or a section name, then Enter"
+        aria-label="Jump to a bar number or section name"
         value={value}
-        size={12}
+        size={14}
         onChange={(e) => setValue(e.target.value)}
         onKeyDown={(e) => {
           if (e.key === "Enter") go((e.target as HTMLInputElement).value);

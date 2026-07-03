@@ -394,10 +394,16 @@ body {
 }
 
 .footer {
+  display: flex;
+  align-items: baseline;
+  gap: 16px;
   padding: 10px 20px;
   font-size: 0.75rem;
   color: var(--muted);
 }
+.footer-tip { flex: 1; min-width: 0; }
+.footer-colophon { color: var(--faint, var(--muted)); opacity: 0.75; white-space: nowrap; font-variant: small-caps; letter-spacing: 0.02em; }
+@media (max-width: 560px) { .footer-colophon { display: none; } }
 
 .bars-input {
   min-height: 32px;
@@ -1297,9 +1303,11 @@ body {
 .menu-list { max-width: min(280px, 92vw); }
 .popover-panel { max-width: min(280px, 92vw); }
 
-/* The Sections caret menu stays icon-only. */
-.navigate-menu .menu-trigger-label { display: none; }
-.navigate-menu .menu-caret { margin: 0; }
+/* The Sections menu shows its label so the caret reads as a section browser,
+   not a mystery arrow (hallway test C5). */
+.navigate-menu .menu-trigger-label { font-size: 0.8125rem; }
+.navigate-menu .menu-caret { margin: 0 0 0 3px; }
+@media (max-width: 720px) { .navigate-menu .menu-trigger-label { display: none; } }
 
 /* Score and waveform fill the available width. */
 .score, .score-surface, .wave-scroll { max-width: 100%; }

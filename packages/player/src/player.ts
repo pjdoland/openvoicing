@@ -71,6 +71,7 @@ export class Player {
   private highlightLayer: HTMLDivElement | null = null;
   private selection: EditSelection | null = null;
   private pendingScrollTop: number | null = null;
+  private watermarkObserver: MutationObserver | null = null;
   private readonly listeners: { [K in keyof PlayerEvents]: Set<PlayerEvents[K]> } = {
     scoreLoaded: new Set(),
     playerStateChanged: new Set(),
@@ -168,6 +169,24 @@ export class Player {
         }
       }
     });
+    // Hide alphaTab's "rendered by alphaTab" annotation. postRenderFinished
+    // catches it after a normal render; a MutationObserver also re-hides it
+    // after late re-layouts (font load, resize) that re-add it without firing
+    // postRenderFinished. The observer watches childList only (not the
+    // per-frame cursor attribute updates) and coalesces to one call per frame.
+    this.api.postRenderFinished.on(() => this.hideEngineWatermark());
+    if (typeof MutationObserver !== "undefined") {
+      let watermarkScheduled = false;
+      this.watermarkObserver = new MutationObserver(() => {
+        if (watermarkScheduled) return;
+        watermarkScheduled = true;
+        requestAnimationFrame(() => {
+          watermarkScheduled = false;
+          this.hideEngineWatermark();
+        });
+      });
+      this.watermarkObserver.observe(this.container, { childList: true, subtree: true });
+    }
   }
 
   on<K extends keyof PlayerEvents>(event: K, handler: PlayerEvents[K]): () => void {
@@ -309,6 +328,18 @@ export class Player {
   setLoopMarkers(range: { startBar: number; endBar: number } | null): void {
     this.loopRange = range;
     this.renderLoopMarkers();
+  }
+
+  /**
+   * Hide alphaTab's hardcoded "rendered by alphaTab" annotation. It has no
+   * setting to disable and reads to newcomers as an unfinished/debug page
+   * (hallway test C7). Attribution is preserved: the engine is credited
+   * intentionally in the app footer ("Engraving by alphaTab").
+   */
+  private hideEngineWatermark(): void {
+    for (const el of this.container.querySelectorAll<SVGTextElement>("text")) {
+      if (el.textContent?.includes("rendered by alphaTab")) el.style.display = "none";
+    }
   }
 
   private renderLoopMarkers(): void {
@@ -547,6 +578,8 @@ export class Player {
   }
 
   destroy(): void {
+    this.watermarkObserver?.disconnect();
+    this.watermarkObserver = null;
     this.api.destroy();
   }
 }
