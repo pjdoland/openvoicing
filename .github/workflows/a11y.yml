@@ -17,8 +17,8 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm build
-      - name: Install a11y test deps
-        run: pnpm --filter @openvoicing/web add -D playwright @axe-core/playwright && pnpm --filter @openvoicing/web exec playwright install --with-deps chromium
+      # playwright + @axe-core/playwright are devDependencies; just fetch the browser.
+      - run: pnpm --filter @openvoicing/web exec playwright install --with-deps chromium
       - name: Serve and scan
         run: |
           pnpm --filter @openvoicing/web exec vite preview --port 4173 &

@@ -2916,7 +2916,7 @@ export function App() {
         {scoreTitle}
         {scoreArtist ? ` by ${scoreArtist}` : ""}. {barCount} bars.
       </p>
-      <main className="score" aria-label="Score" aria-describedby="score-summary">
+      <main className="score" aria-label="Score" aria-describedby="score-summary" tabIndex={0}>
         <div ref={containerRef} className="score-surface" role="img" aria-label="Musical notation" />
       </main>
 

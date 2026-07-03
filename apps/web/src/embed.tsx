@@ -297,7 +297,7 @@ function EmbedApp() {
           OpenVoicing
         </a>
       </div>
-      <div className="embed-score" ref={containerRef} />
+      <div className="embed-score" ref={containerRef} tabIndex={0} role="region" aria-label="Score" />
     </div>
   );
 }

@@ -13,7 +13,10 @@ export default defineConfig({
   timeout: slowMo ? 0 : 60_000,
   fullyParallel: false,
   workers: 1,
-  retries: process.env.CI ? 1 : 0,
+  // alphaTab renders asynchronously; its timing varies enough on CI's headless
+  // Chromium to occasionally trip a heavy editing test that is stable locally.
+  // Allow a couple of retries on CI to absorb that flake.
+  retries: process.env.CI ? 2 : 0,
   reporter: [["list"]],
   use: {
     baseURL: "http://localhost:5173",

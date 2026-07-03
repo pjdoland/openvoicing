@@ -431,7 +431,7 @@ body {
   color: var(--muted);
 }
 .footer-tip { flex: 1; min-width: 0; }
-.footer-colophon { color: var(--faint, var(--muted)); opacity: 0.75; white-space: nowrap; font-variant: small-caps; letter-spacing: 0.02em; }
+.footer-colophon { color: var(--muted); white-space: nowrap; font-variant: small-caps; letter-spacing: 0.02em; }
 @media (max-width: 560px) { .footer-colophon { display: none; } }
 
 .bars-input {
