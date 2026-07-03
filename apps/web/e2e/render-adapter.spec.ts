@@ -68,12 +68,15 @@ test.describe("programmatic render adapter", () => {
     const r = await page.evaluate(() => {
       const api = (window as any).__ovPlayer.api;
       const staves = api.score.tracks[0].staves;
+      const pi = api.score.tracks[0].playbackInfo;
       return {
         staffCount: staves.length,
         // Every bar of the bass staff keeps the F clef (the carry-forward fix).
         bassClefs: staves[1].bars.map((b: any) => b.clef),
         isReady: api.isReadyForPlayback,
         rendered: document.querySelectorAll(".score-surface svg").length > 0,
+        primaryChannel: pi.primaryChannel,
+        secondaryChannel: pi.secondaryChannel,
       };
     });
     expect(r.staffCount).toBe(2);
@@ -81,6 +84,8 @@ test.describe("programmatic render adapter", () => {
     expect(r.bassClefs).toEqual([3, 3]);
     expect(r.isReady).toBe(true);
     expect(r.rendered).toBe(true);
+    // Primary and secondary channels must differ, or note-offs silence playback.
+    expect(r.primaryChannel).not.toBe(r.secondaryChannel);
   });
 
   test("renders tier-1 notation (ornament, fermata, slur) through the adapter", async ({ page }) => {

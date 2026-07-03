@@ -29,11 +29,13 @@ export function toAlphaTabScore(doc: v1.ScoreV1): alphaTab.model.Score {
     score.addMasterBar(mb);
   });
 
+  // Allocate a distinct channel per call, skipping 9 (percussion). Each track
+  // needs two DIFFERENT channels (primary for notes, secondary for effects and
+  // note-offs) -- collapsing them to one silences playback.
   let nextChannel = 0;
-  const allocChannel = (unpitched: boolean) => {
-    if (unpitched) return 9; // percussion is always MIDI channel 9
+  const takeChannel = () => {
     while (nextChannel === 9) nextChannel++;
-    return nextChannel < 16 ? nextChannel++ : 0;
+    return nextChannel++ % 16;
   };
 
   for (const part of doc.parts) {
@@ -42,10 +44,14 @@ export function toAlphaTabScore(doc: v1.ScoreV1): alphaTab.model.Score {
     if (part.abbreviation) track.shortName = part.abbreviation;
     const inst = part.instruments[0];
     if (inst?.midiProgram !== undefined) track.playbackInfo.program = inst.midiProgram;
-    // Distinct channels per track so parts don't collide on channel 0.
-    const primary = inst?.midiChannel ?? allocChannel(!!inst?.unpitched);
-    track.playbackInfo.primaryChannel = primary;
-    track.playbackInfo.secondaryChannel = inst?.unpitched ? 9 : allocChannel(false);
+    // Distinct channels per track so parts don't collide; percussion on 9.
+    if (inst?.unpitched) {
+      track.playbackInfo.primaryChannel = 9;
+      track.playbackInfo.secondaryChannel = 9;
+    } else {
+      track.playbackInfo.primaryChannel = takeChannel();
+      track.playbackInfo.secondaryChannel = takeChannel();
+    }
     if (inst?.volume !== undefined) track.playbackInfo.volume = Math.round((inst.volume / 127) * 16);
     if (inst?.pan !== undefined) track.playbackInfo.balance = Math.round((inst.pan / 127) * 16);
     score.addTrack(track);
