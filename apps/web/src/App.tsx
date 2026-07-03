@@ -303,6 +303,7 @@ export function App() {
 
   useEffect(() => {
     selectedV1BeatRef.current = selectedV1Beat;
+    playerRef.current?.highlightModelBeat(selectedV1Beat);
   }, [selectedV1Beat]);
 
   function adoptEditor(loaded: LoadedScore): void {
@@ -1064,18 +1065,23 @@ export function App() {
           if (e.shiftKey ? v1Editor.redo() : v1Editor.undo()) rerender();
           return;
         }
-        const beatId = selectedV1BeatRef.current;
-        const noteId = beatId ? v1Editor.firstNoteId(beatId) : undefined;
-        if (!noteId) return;
-        if (e.code === "ArrowUp") {
+        // Claim the edit keys while in edit mode so they never scroll the page,
+        // even when nothing is selected yet (then just show a nudge to select).
+        if (["ArrowUp", "ArrowDown", "Delete", "Backspace"].includes(e.code)) {
           e.preventDefault();
-          if (v1Editor.transposeNote(noteId, e.shiftKey ? 12 : 1)) rerender();
-        } else if (e.code === "ArrowDown") {
-          e.preventDefault();
-          if (v1Editor.transposeNote(noteId, e.shiftKey ? -12 : -1)) rerender();
-        } else if (e.code === "Delete" || e.code === "Backspace") {
-          e.preventDefault();
-          if (v1Editor.deleteNote(noteId)) rerender();
+          const beatId = selectedV1BeatRef.current;
+          const noteId = beatId ? v1Editor.firstNoteId(beatId) : undefined;
+          if (!noteId) {
+            setAnnouncement("Click a note to select it first");
+            return;
+          }
+          if (e.code === "ArrowUp") {
+            if (v1Editor.transposeNote(noteId, e.shiftKey ? 12 : 1)) rerender();
+          } else if (e.code === "ArrowDown") {
+            if (v1Editor.transposeNote(noteId, e.shiftKey ? -12 : -1)) rerender();
+          } else if (v1Editor.deleteNote(noteId)) {
+            rerender();
+          }
         }
         return;
       }

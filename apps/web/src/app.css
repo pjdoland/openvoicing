@@ -1151,3 +1151,18 @@ body {
 .ov-loop-bracket.end {
   border-right: 3px solid var(--accent);
 }
+
+/* Selected-note highlight for editing (drawn over the beat's note bounds). */
+.ov-note-highlight-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 3;
+}
+.ov-note-highlight {
+  position: absolute;
+  box-sizing: border-box;
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--accent) 18%, transparent);
+  border: 1.5px solid var(--accent);
+}

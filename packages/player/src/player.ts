@@ -53,6 +53,8 @@ export class Player {
   private readonly container: HTMLElement;
   private loopMarkerLayer: HTMLDivElement | null = null;
   private loopRange: { startBar: number; endBar: number } | null = null;
+  private highlightLayer: HTMLDivElement | null = null;
+  private highlightBeatId: string | null = null;
   private readonly listeners: { [K in keyof PlayerEvents]: Set<PlayerEvents[K]> } = {
     scoreLoaded: new Set(),
     playerStateChanged: new Set(),
@@ -116,7 +118,10 @@ export class Player {
     });
     this.api.error.on((error) => this.emit("error", error));
     // Re-place loop markers whenever the score is (re-)laid out.
-    this.api.renderFinished.on(() => this.renderLoopMarkers());
+    this.api.renderFinished.on(() => {
+      this.renderLoopMarkers();
+      this.renderHighlight();
+    });
   }
 
   on<K extends keyof PlayerEvents>(event: K, handler: PlayerEvents[K]): () => void {
@@ -285,6 +290,64 @@ export class Player {
     };
     draw(range.startBar, "start");
     draw(range.endBar, "end");
+  }
+
+  /** Highlight the selected note (by v1 model beat id), or clear with null. */
+  highlightModelBeat(beatId: string | null): void {
+    this.highlightBeatId = beatId;
+    this.renderHighlight();
+  }
+
+  private beatBoundsById(beatId: string): { x: number; y: number; w: number; h: number } | null {
+    const bl = this.api.renderer?.boundsLookup as
+      | {
+          staffSystems?: Array<{
+            bars: Array<{
+              bars: Array<{
+                beats: Array<{
+                  beat?: { ovBeatId?: string };
+                  onNotesBounds?: { x: number; y: number; w: number; h: number };
+                  realBounds?: { x: number; y: number; w: number; h: number };
+                }>;
+              }>;
+            }>;
+          }>;
+        }
+      | undefined;
+    if (!bl?.staffSystems) return null;
+    for (const sys of bl.staffSystems) {
+      for (const mb of sys.bars) {
+        for (const bar of mb.bars) {
+          for (const bb of bar.beats) {
+            if (bb.beat?.ovBeatId === beatId) return bb.onNotesBounds ?? bb.realBounds ?? null;
+          }
+        }
+      }
+    }
+    return null;
+  }
+
+  private renderHighlight(): void {
+    let layer = this.highlightLayer;
+    if (!layer || !layer.isConnected) {
+      layer = document.createElement("div");
+      layer.className = "ov-note-highlight-layer";
+      this.container.style.position = "relative";
+      this.container.appendChild(layer);
+      this.highlightLayer = layer;
+    }
+    layer.textContent = "";
+    if (!this.highlightBeatId) return;
+    const b = this.beatBoundsById(this.highlightBeatId);
+    if (!b) return;
+    const el = document.createElement("div");
+    el.className = "ov-note-highlight";
+    // Pad a little so the box reads as a selection, not a cursor line.
+    el.style.left = `${b.x - 4}px`;
+    el.style.top = `${b.y - 4}px`;
+    el.style.width = `${b.w + 8}px`;
+    el.style.height = `${b.h + 8}px`;
+    layer.appendChild(el);
   }
 
   /** Seek synth playback to a time position in seconds. */
