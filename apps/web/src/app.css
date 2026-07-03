@@ -5,7 +5,7 @@
   --panel-alt: #fafbfc;
   --border: #dfe3e8;
   --border-strong: #c8ceda;
-  --muted: #7a8494;
+  --muted: #5e6775;
   --muted-2: #5b6472;
   --header-bg: #1b1f27;
   --header-fg: #fff;
@@ -14,6 +14,7 @@
   --header-btn-border: #3d4452;
   --header-btn-hover: #2a303c;
   --accent: #2563eb;
+  --on-accent: #fff;
   --accent-strong: #1e3a8a;
   --accent-soft: #f2f7ff;
   --accent-soft-border: #d5e3f7;
@@ -40,6 +41,9 @@
   --header-btn-border: #3a4250;
   --header-btn-hover: #262c36;
   --accent: #4f8cff;
+  /* The dark accent is a light blue; white text on it is only 3.2:1, so text
+     on filled-accent elements is near-black. */
+  --on-accent: #0c1526;
   --accent-strong: #7aa8ff;
   --accent-soft: #1a2130;
   --accent-soft-border: #2c3a52;
@@ -219,8 +223,13 @@ body {
   cursor: pointer;
 }
 
-.toolbar button:hover:not(:disabled) {
+.toolbar button:hover:not(:disabled):not(.on) {
   background: var(--btn-hover);
+}
+/* Active toggles keep their accent fill (and white text) on hover; greying the
+   background would leave white-on-grey text unreadable. Just brighten it. */
+.toolbar button.on:hover:not(:disabled) {
+  filter: brightness(1.08);
 }
 
 .toolbar button:disabled {
@@ -355,7 +364,9 @@ body {
   height: 19px;
   padding: 0 4px;
   border-radius: 4px;
-  background: var(--accent);
+  /* Fixed blue (not the theme accent, which is a light blue in dark mode) so
+     the white bar number stays >=4.5:1 in every theme. */
+  background: #2563eb;
   color: #fff;
   font-size: 11px;
   line-height: 19px;
@@ -366,7 +377,7 @@ body {
 }
 
 .sync-marker.dragging {
-  background: var(--accent-strong);
+  background: #1e3a8a;
   z-index: 2;
 }
 
@@ -375,10 +386,11 @@ body {
 }
 
 .sync-marker.conf-good {
-  background: var(--accent);
+  background: #2563eb;
 }
 .sync-marker.conf-fair {
-  background: #d97706;
+  /* Darker amber so the white bar number clears 4.5:1 (was #d97706 = 3.2:1). */
+  background: #b45309;
 }
 .sync-marker.conf-poor {
   background: #dc2626;
@@ -903,7 +915,7 @@ body {
   border: 1px solid var(--accent);
   border-radius: 6px;
   background: var(--accent);
-  color: #fff;
+  color: var(--on-accent, #fff);
   font-size: 0.875rem;
   font-weight: 600;
   cursor: pointer;
@@ -1290,7 +1302,7 @@ body {
   font-size: 0.8125rem;
   cursor: pointer;
 }
-.mode-toggle button.on { background: var(--accent); color: #fff; }
+.mode-toggle button.on { background: var(--accent); color: var(--on-accent, #fff); }
 
 /* Let alphaTab size the surface to its content height so the .score pane
    scrolls; a min-height keeps a short score from collapsing. */
@@ -1389,7 +1401,7 @@ body {
 }
 .source-toggle button.on {
   background: var(--accent);
-  color: #fff;
+  color: var(--on-accent, #fff);
 }
 
 /* File inputs triggered programmatically from menus: Safari will not open the
