@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type ChangeEvent } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ChangeEvent, type ReactNode, type RefObject } from "react";
 import { Player, type EditSelection, type TrackInfo } from "@openvoicing/player";
 import { alignBarsToOnsets, detectOnsets, RecordingPlayer } from "@openvoicing/audio-engine";
 import {
@@ -136,6 +136,36 @@ const MARK_PALETTE: Array<{ type: v1.ArticulationType; glyph: string; label: str
   { type: "tenuto", glyph: "‒", label: "Tenuto" },
 ];
 
+/**
+ * Responsive "priority+" tier for the edit toolbar, from its OWN width (not the
+ * viewport, which is wrong when panels steal space). 3 = wide (all inline),
+ * 2 = medium, 1 = narrow, 0 = extra-narrow. Groups collapse into a "More" menu
+ * in tier order (see renderEditToolbar). Uses a ResizeObserver, rAF-throttled.
+ */
+function useToolbarTier(ref: RefObject<HTMLElement | null>, active: boolean): number {
+  const [tier, setTier] = useState(3);
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!active || !el) return;
+    let raf = 0;
+    const compute = () => {
+      const w = el.clientWidth;
+      setTier(w >= 1080 ? 3 : w >= 780 ? 2 : w >= 560 ? 1 : 0);
+    };
+    const ro = new ResizeObserver(() => {
+      cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(compute);
+    });
+    ro.observe(el);
+    compute();
+    return () => {
+      ro.disconnect();
+      cancelAnimationFrame(raf);
+    };
+  }, [ref, active]);
+  return tier;
+}
+
 function sanitizeName(name: string): string {
   return name.replace(/[^\w.-]+/g, "_");
 }
@@ -245,6 +275,8 @@ export function App() {
   const v1ClipboardRef = useRef<v1.CopiedBeat | null>(null);
   const persistTimerRef = useRef<number | null>(null);
   const [scorePanelOpen, setScorePanelOpen] = useState(false);
+  const [moreOpen, setMoreOpen] = useState(false);
+  const editToolbarRef = useRef<HTMLDivElement | null>(null);
   const [coachSeen, setCoachSeen] = useState(() => {
     try {
       return localStorage.getItem("ov-edit-coached") === "1";
@@ -271,6 +303,20 @@ export function App() {
   useEffect(() => {
     noteInputModeRef.current = noteInputMode;
   }, [noteInputMode]);
+
+  // Close the toolbar's More / Score popovers on an outside click.
+  useEffect(() => {
+    if (!moreOpen && !scorePanelOpen) return;
+    const onDown = (e: MouseEvent) => {
+      const t = e.target as HTMLElement | null;
+      if (t && !t.closest(".etb-more") && !t.closest(".etb-right")) {
+        setMoreOpen(false);
+        setScorePanelOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", onDown);
+    return () => document.removeEventListener("mousedown", onDown);
+  }, [moreOpen, scorePanelOpen]);
 
   useEffect(() => {
     editModeRef.current = editMode;
@@ -1899,6 +1945,8 @@ export function App() {
   // Live, selection-aware description of what is selected. Drives the status
   // strip and which toolbar groups + active states show. Recomputes on each
   // edit (v1Version) and selection change.
+  const toolbarTier = useToolbarTier(editToolbarRef, editMode && hasV1Editor);
+
   const v1Sel = ((): {
     kind: "note" | "rest" | "none";
     desc: string;
@@ -2063,6 +2111,184 @@ export function App() {
     const info = ed && b ? ed.voiceInfo(b) : undefined;
     if (info && info.count > 1) v1SelectVoice((info.index + 1) % info.count);
   };
+
+  // The editing toolbar as a fixed-grammar list of atomic groups with a
+  // priority+ overflow: pinned groups (history/mode/voice/value/pitch) always
+  // show; the rest collapse into a "More" menu in tier order as width shrinks.
+  function renderEditToolbar(): ReactNode {
+    const note = v1Sel.kind === "note";
+    const noteOrRest = v1Sel.kind !== "none";
+
+    const historyGroup = (
+      <div className="etb-group" role="group" aria-label="History" key="history">
+        <button className="etb-btn" onClick={v1Undo} disabled={!v1EditorRef.current?.canUndo} title="Undo (Cmd+Z)" aria-label="Undo">↶</button>
+        <button className="etb-btn" onClick={v1Redo} disabled={!v1EditorRef.current?.canRedo} title="Redo (Shift+Cmd+Z)" aria-label="Redo">↷</button>
+        <button className="etb-btn" onClick={v1Delete} disabled={!note} title="Delete (Del)" aria-label="Delete note">🗑</button>
+      </div>
+    );
+    const modeGroup = (
+      <div className="etb-group" role="group" aria-label="Input mode" key="mode">
+        <button className={"etb-btn wide" + (noteInputMode ? " active" : "")} aria-pressed={noteInputMode} title="Note-input mode (N): notes advance as you type" onClick={() => setNoteInputMode((m) => !m)}>
+          {noteInputMode ? "✎ Input" : "Select"}
+        </button>
+      </div>
+    );
+    const voiceGroup = v1Sel.voiceCount > 1 && (
+      <div className="etb-group" role="group" aria-label="Voice" key="voice">
+        <span className="etb-label">Voice</span>
+        {Array.from({ length: v1Sel.voiceCount }, (_, i) => (
+          <button key={i} className={"etb-btn voice-pill v" + (i + 1) + (v1Sel.voiceIndex === i ? " active" : "")} aria-pressed={v1Sel.voiceIndex === i} aria-label={`Voice ${i + 1}`} title={`Select voice ${i + 1} (v cycles)`} onClick={() => v1SelectVoice(i)}>
+            {i + 1}
+          </button>
+        ))}
+      </div>
+    );
+    const valueGroup = noteOrRest && (
+      <div className="etb-group" role="group" aria-label="Note value" key="value">
+        <span className="etb-label">Value</span>
+        {DURATION_PALETTE.map((d) => (
+          <button key={d.type} className={"etb-btn" + (v1Sel.noteType === d.type ? " active" : "")} aria-pressed={v1Sel.noteType === d.type} aria-label={`${d.label} (${d.key})`} title={`${d.label} (key ${d.key})`} onClick={() => v1SetDurationType(d.type)}>
+            {d.face}
+          </button>
+        ))}
+        <button className={"etb-btn" + (v1Sel.dotted ? " active" : "")} aria-pressed={v1Sel.dotted} aria-label="Dotted" title="Dotted (.)" onClick={v1ToggleDotBtn}>・</button>
+      </div>
+    );
+    const pitchGroup = noteOrRest && !v1Sel.tab && (
+      <div className="etb-group" role="group" aria-label="Pitch" key="pitch">
+        <span className="etb-label">Pitch</span>
+        {(["C", "D", "E", "F", "G", "A", "B"] as v1.NoteStep[]).map((s) => (
+          <button key={s} className="etb-btn" aria-label={`Pitch ${s}`} title={`Pitch ${s} (${s.toLowerCase()})`} onClick={() => v1SetPitchLetter(s)}>{s}</button>
+        ))}
+      </div>
+    );
+    const fretGroup = note && v1Sel.tab && (
+      <div className="etb-group" role="group" aria-label="Fret" key="fret">
+        <span className="etb-label">Fret</span>
+        {[0, 1, 2, 3, 4, 5, 6, 7].map((f) => (
+          <button key={f} className="etb-btn" aria-label={`Fret ${f}`} title={`Fret ${f}`} onClick={() => v1SetFretBtn(f)}>{f}</button>
+        ))}
+      </div>
+    );
+    const accidentalGroup = (
+      <div className="etb-group" role="group" aria-label="Accidental and octave" key="accidental">
+        <span className="etb-label">Accidental</span>
+        <button className="etb-btn" aria-label="Flat" title="Flat (−)" onClick={() => v1SetAlter(-1)}>♭</button>
+        <button className="etb-btn" aria-label="Natural" title="Natural" onClick={() => v1SetAlter(0)}>♮</button>
+        <button className="etb-btn" aria-label="Sharp" title="Sharp (+)" onClick={() => v1SetAlter(1)}>♯</button>
+        <button className="etb-btn" aria-label="Octave up" title="Octave up (Shift+Up)" onClick={() => v1Transpose(12)}>8va</button>
+        <button className="etb-btn" aria-label="Octave down" title="Octave down (Shift+Down)" onClick={() => v1Transpose(-12)}>8vb</button>
+      </div>
+    );
+    const marksGroup = (
+      <div className="etb-group" role="group" aria-label="Articulations and slurs" key="marks">
+        <span className="etb-label">Marks</span>
+        {MARK_PALETTE.map((m) => (
+          <button key={m.type} className={"etb-btn" + (v1Sel.marks.has(m.type) ? " active" : "")} aria-pressed={v1Sel.marks.has(m.type)} aria-label={m.label} title={m.label} onClick={() => v1Articulate(m.type)}>{m.glyph}</button>
+        ))}
+        <button className={"etb-btn wide" + (v1Sel.marks.has("fermata") ? " active" : "")} aria-pressed={v1Sel.marks.has("fermata")} aria-label="Fermata" title="Fermata" onClick={v1Fermata}>Hold</button>
+        <button className={"etb-btn" + (v1Sel.marks.has("tie") ? " active" : "")} aria-pressed={v1Sel.marks.has("tie")} aria-label="Tie" title="Tie (t)" onClick={v1Tie}>‿</button>
+        <button className={"etb-btn" + (v1Sel.marks.has("slur") ? " active" : "")} aria-pressed={v1Sel.marks.has("slur")} aria-label="Slur" title="Slur (s)" onClick={v1Slur}>⌒</button>
+      </div>
+    );
+    const ornamentsGroup = (
+      <div className="etb-group" role="group" aria-label="Ornaments and grace" key="ornaments">
+        <span className="etb-label">Orn</span>
+        <button className={"etb-btn wide" + (v1Sel.marks.has("trill-mark") ? " active" : "")} aria-pressed={v1Sel.marks.has("trill-mark")} aria-label="Trill" title="Trill" onClick={() => v1Ornament("trill-mark")}>tr</button>
+        <button className={"etb-btn wide" + (v1Sel.marks.has("mordent") ? " active" : "")} aria-pressed={v1Sel.marks.has("mordent")} aria-label="Mordent" title="Mordent" onClick={() => v1Ornament("mordent")}>Mord</button>
+        <button className={"etb-btn wide" + (v1Sel.marks.has("turn") ? " active" : "")} aria-pressed={v1Sel.marks.has("turn")} aria-label="Turn" title="Turn" onClick={() => v1Ornament("turn")}>Turn</button>
+        <button className={"etb-btn wide" + (v1Sel.marks.has("grace") ? " active" : "")} aria-label="Add grace note" title="Grace note before this beat (/)" onClick={v1AddGrace}>Grace</button>
+      </div>
+    );
+    const dynamicsGroup = (
+      <div className="etb-group" role="group" aria-label="Dynamics and chord" key="dynamics">
+        <label className="etb-select" title="Dynamic">
+          <span className="etb-label">Dyn</span>
+          <select value="" onChange={(e) => e.target.value && v1Dynamic(e.target.value)}>
+            <option value="">–</option>
+            {["pp", "p", "mp", "mf", "f", "ff"].map((d) => <option key={d} value={d}>{d}</option>)}
+          </select>
+        </label>
+        <button className="etb-btn wide" aria-label="Chord symbol" title="Chord symbol (k)" onClick={v1ChordSymbolBtn}>Chord</button>
+        <button className="etb-btn wide" aria-label="Change to rest" title="Change to rest (r)" onClick={v1MakeRestBtn}>Rest</button>
+      </div>
+    );
+
+    // Overflow-eligible groups collapse into "More" in this tier order (highest
+    // minTier collapses first): ornaments/dynamics, then marks, then accidental.
+    const eligible: Array<{ minTier: number; node: ReactNode }> = [];
+    if (note && !v1Sel.tab) eligible.push({ minTier: 1, node: accidentalGroup });
+    if (note) eligible.push({ minTier: 2, node: marksGroup });
+    if (note) eligible.push({ minTier: 3, node: ornamentsGroup });
+    if (note) eligible.push({ minTier: 3, node: dynamicsGroup });
+    const inline = eligible.filter((g) => toolbarTier >= g.minTier).map((g) => g.node);
+    const overflow = eligible.filter((g) => toolbarTier < g.minTier).map((g) => g.node);
+
+    const scoreGroup = (
+      <div className="etb-group etb-right" role="group" aria-label="Score settings" key="score">
+        <button className={"etb-btn wide" + (scorePanelOpen ? " active" : "")} aria-expanded={scorePanelOpen} aria-haspopup="dialog" title="Bars, time, key, tempo, title" onClick={() => setScorePanelOpen((o) => !o)}>⚙ Score</button>
+        {scorePanelOpen && (
+          <div className="etb-popover etb-sheet" role="dialog" aria-label="Score settings">
+            <div className="etb-pop-row">
+              <span className="etb-label">Measures</span>
+              <button className="etb-btn" onClick={v1AddBar} aria-label="Add a measure after this one" title="Add measure">＋ Bar</button>
+              <button className="etb-btn" onClick={v1RemoveBar} aria-label="Remove this measure" title="Remove measure">－ Bar</button>
+            </div>
+            <div className="etb-pop-row">
+              <span className="etb-label">Voices</span>
+              <button className="etb-btn" onClick={v1AddVoice} aria-label="Add a voice to this bar" title="Add an independent voice to this bar">＋ Voice</button>
+              <button className="etb-btn" onClick={v1RemoveVoice} aria-label="Remove this voice" title="Remove the selected voice">－ Voice</button>
+            </div>
+            <label className="etb-pop-row">
+              <span className="etb-label">Time</span>
+              <select value={v1TimeValue} onChange={(e) => v1SetTime(e.target.value)}>
+                {["2/4", "3/4", "4/4", "6/8", "3/8", "5/4", "12/8"].map((t) => <option key={t} value={t}>{t}</option>)}
+              </select>
+            </label>
+            <label className="etb-pop-row">
+              <span className="etb-label">Key</span>
+              <select value={v1KeyValue} onChange={(e) => v1SetKey(Number(e.target.value))}>
+                {KEY_OPTIONS.map((k) => <option key={k.fifths} value={k.fifths}>{k.label}</option>)}
+              </select>
+            </label>
+            <div className="etb-pop-row">
+              <button className="etb-btn wide" onClick={v1EditTempo} aria-label="Tempo" title="Tempo (bpm)">♩= Tempo</button>
+              <button className="etb-btn wide" onClick={v1EditMeta} aria-label="Title and composer" title="Title & composer">ℹ Title</button>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+
+    return (
+      <div className="edit-toolbar" role="toolbar" aria-label="Editing tools" ref={editToolbarRef}>
+        <div className="etb-pinned">
+          {historyGroup}
+          {modeGroup}
+          {voiceGroup}
+          {valueGroup}
+          {pitchGroup}
+          {fretGroup}
+        </div>
+        {inline}
+        <div className="etb-trailing">
+          {overflow.length > 0 && (
+            <div className="etb-group etb-more" role="group" aria-label="More">
+              <button className={"etb-btn wide" + (moreOpen ? " active" : "")} aria-expanded={moreOpen} aria-haspopup="menu" aria-label={`More editing tools (${overflow.length} groups)`} title="More editing tools" onClick={() => setMoreOpen((o) => !o)}>
+                More ▾
+              </button>
+              {moreOpen && (
+                <div className="etb-popover etb-more-popover etb-sheet" role="menu" aria-label="More editing tools">
+                  {overflow}
+                </div>
+              )}
+            </div>
+          )}
+          {scoreGroup}
+        </div>
+      </div>
+    );
+  }
 
   // Every action, for the command palette (Cmd-K) and, where sensible, menus.
   const commands: Command[] = [
@@ -2396,188 +2622,7 @@ export function App() {
 
       {editMode && hasV1Editor && (
         <>
-          <div className="edit-toolbar" role="toolbar" aria-label="Editing tools">
-            {/* Always available: history + delete, pinned so they never move. */}
-            <div className="etb-group" role="group" aria-label="History">
-              <button className="etb-btn" onClick={v1Undo} disabled={!v1EditorRef.current?.canUndo} title="Undo (Cmd+Z)" aria-label="Undo">↶</button>
-              <button className="etb-btn" onClick={v1Redo} disabled={!v1EditorRef.current?.canRedo} title="Redo (Shift+Cmd+Z)" aria-label="Redo">↷</button>
-              <button className="etb-btn" onClick={v1Delete} disabled={v1Sel.kind !== "note"} title="Delete (Del)" aria-label="Delete note">🗑</button>
-            </div>
-
-            {/* Select vs Note-Input mode (MuseScore "N"): in input mode, typing a
-                pitch advances to the next beat so melodies flow. */}
-            <div className="etb-group" role="group" aria-label="Input mode">
-              <button
-                className={"etb-btn wide" + (noteInputMode ? " active" : "")}
-                aria-pressed={noteInputMode}
-                title="Note-input mode (N): notes advance as you type"
-                onClick={() => setNoteInputMode((m) => !m)}
-              >
-                {noteInputMode ? "✎ Input" : "Select"}
-              </button>
-            </div>
-
-            {/* Voice picker: appears only where a bar has stacked voices, so a
-                specific voice can be selected without a pixel-perfect click. */}
-            {v1Sel.voiceCount > 1 && (
-              <div className="etb-group" role="group" aria-label="Voice">
-                <span className="etb-label">Voice</span>
-                {Array.from({ length: v1Sel.voiceCount }, (_, i) => (
-                  <button
-                    key={i}
-                    className={"etb-btn voice-pill v" + (i + 1) + (v1Sel.voiceIndex === i ? " active" : "")}
-                    aria-pressed={v1Sel.voiceIndex === i}
-                    aria-label={`Voice ${i + 1}`}
-                    title={`Select voice ${i + 1} (v cycles)`}
-                    onClick={() => v1SelectVoice(i)}
-                  >
-                    {i + 1}
-                  </button>
-                ))}
-              </div>
-            )}
-
-            {/* Note value (when a note or rest is selected). */}
-            {v1Sel.kind !== "none" && (
-              <div className="etb-group" role="group" aria-label="Note value">
-                <span className="etb-label">Value</span>
-                {DURATION_PALETTE.map((d) => (
-                  <button
-                    key={d.type}
-                    className={"etb-btn" + (v1Sel.noteType === d.type ? " active" : "")}
-                    aria-pressed={v1Sel.noteType === d.type}
-                    aria-label={`${d.label} (${d.key})`}
-                    title={`${d.label} (key ${d.key})`}
-                    onClick={() => v1SetDurationType(d.type)}
-                  >
-                    {d.face}
-                  </button>
-                ))}
-                <button className={"etb-btn" + (v1Sel.dotted ? " active" : "")} aria-pressed={v1Sel.dotted} aria-label="Dotted" title="Dotted (.)" onClick={v1ToggleDotBtn}>
-                  ・
-                </button>
-              </div>
-            )}
-
-            {/* Pitch entry A-G (standard staves). Fret keypad on tab staves. */}
-            {v1Sel.kind !== "none" && !v1Sel.tab && (
-              <div className="etb-group" role="group" aria-label="Pitch">
-                <span className="etb-label">Pitch</span>
-                {(["C", "D", "E", "F", "G", "A", "B"] as v1.NoteStep[]).map((s) => (
-                  <button key={s} className="etb-btn" aria-label={`Pitch ${s}`} title={`Pitch ${s} (${s.toLowerCase()})`} onClick={() => v1SetPitchLetter(s)}>
-                    {s}
-                  </button>
-                ))}
-              </div>
-            )}
-            {v1Sel.kind === "note" && v1Sel.tab && (
-              <div className="etb-group" role="group" aria-label="Fret">
-                <span className="etb-label">Fret</span>
-                {[0, 1, 2, 3, 4, 5, 6, 7].map((f) => (
-                  <button key={f} className="etb-btn" aria-label={`Fret ${f}`} title={`Fret ${f}`} onClick={() => v1SetFretBtn(f)}>
-                    {f}
-                  </button>
-                ))}
-              </div>
-            )}
-
-            {/* Accidental + octave (note on a standard staff). */}
-            {v1Sel.kind === "note" && !v1Sel.tab && (
-              <div className="etb-group" role="group" aria-label="Accidental and octave">
-                <span className="etb-label">Accidental</span>
-                <button className="etb-btn" aria-label="Flat" title="Flat (−)" onClick={() => v1SetAlter(-1)}>♭</button>
-                <button className="etb-btn" aria-label="Natural" title="Natural" onClick={() => v1SetAlter(0)}>♮</button>
-                <button className="etb-btn" aria-label="Sharp" title="Sharp (+)" onClick={() => v1SetAlter(1)}>♯</button>
-                <button className="etb-btn" aria-label="Octave up" title="Octave up (Shift+Up)" onClick={() => v1Transpose(12)}>8va</button>
-                <button className="etb-btn" aria-label="Octave down" title="Octave down (Shift+Down)" onClick={() => v1Transpose(-12)}>8vb</button>
-              </div>
-            )}
-
-            {/* Articulations, tie, slur (note only). Color marks active state. */}
-            {v1Sel.kind === "note" && (
-              <div className="etb-group" role="group" aria-label="Articulations and slurs">
-                <span className="etb-label">Marks</span>
-                {MARK_PALETTE.map((m) => (
-                  <button
-                    key={m.type}
-                    className={"etb-btn" + (v1Sel.marks.has(m.type) ? " active" : "")}
-                    aria-pressed={v1Sel.marks.has(m.type)}
-                    aria-label={m.label}
-                    title={m.label}
-                    onClick={() => v1Articulate(m.type)}
-                  >
-                    {m.glyph}
-                  </button>
-                ))}
-                <button className={"etb-btn wide" + (v1Sel.marks.has("fermata") ? " active" : "")} aria-pressed={v1Sel.marks.has("fermata")} aria-label="Fermata" title="Fermata" onClick={v1Fermata}>Hold</button>
-                <button className={"etb-btn" + (v1Sel.marks.has("tie") ? " active" : "")} aria-pressed={v1Sel.marks.has("tie")} aria-label="Tie" title="Tie (t)" onClick={v1Tie}>‿</button>
-                <button className={"etb-btn" + (v1Sel.marks.has("slur") ? " active" : "")} aria-pressed={v1Sel.marks.has("slur")} aria-label="Slur" title="Slur (s)" onClick={v1Slur}>⌒</button>
-              </div>
-            )}
-
-            {/* Ornaments + grace note (note only). */}
-            {v1Sel.kind === "note" && (
-              <div className="etb-group" role="group" aria-label="Ornaments and grace">
-                <span className="etb-label">Orn</span>
-                <button className={"etb-btn wide" + (v1Sel.marks.has("trill-mark") ? " active" : "")} aria-pressed={v1Sel.marks.has("trill-mark")} aria-label="Trill" title="Trill" onClick={() => v1Ornament("trill-mark")}>tr</button>
-                <button className={"etb-btn wide" + (v1Sel.marks.has("mordent") ? " active" : "")} aria-pressed={v1Sel.marks.has("mordent")} aria-label="Mordent" title="Mordent" onClick={() => v1Ornament("mordent")}>Mord</button>
-                <button className={"etb-btn wide" + (v1Sel.marks.has("turn") ? " active" : "")} aria-pressed={v1Sel.marks.has("turn")} aria-label="Turn" title="Turn" onClick={() => v1Ornament("turn")}>Turn</button>
-                <button className={"etb-btn wide" + (v1Sel.marks.has("grace") ? " active" : "")} aria-label="Add grace note" title="Grace note before this beat (/)" onClick={v1AddGrace}>Grace</button>
-              </div>
-            )}
-
-            {/* Dynamics, chord symbol, convert-to-rest (note only). */}
-            {v1Sel.kind === "note" && (
-              <div className="etb-group" role="group" aria-label="Dynamics and chord">
-                <label className="etb-select" title="Dynamic">
-                  <span className="etb-label">Dyn</span>
-                  <select value="" onChange={(e) => e.target.value && v1Dynamic(e.target.value)}>
-                    <option value="">–</option>
-                    {["pp", "p", "mp", "mf", "f", "ff"].map((d) => <option key={d} value={d}>{d}</option>)}
-                  </select>
-                </label>
-                <button className="etb-btn wide" aria-label="Chord symbol" title="Chord symbol (k)" onClick={v1ChordSymbolBtn}>Chord</button>
-                <button className="etb-btn wide" aria-label="Change to rest" title="Change to rest (r)" onClick={v1MakeRestBtn}>Rest</button>
-              </div>
-            )}
-
-            {/* Score-level setup: demoted behind one popover, always reachable. */}
-            <div className="etb-group etb-right" role="group" aria-label="Score settings">
-              <button className={"etb-btn wide" + (scorePanelOpen ? " active" : "")} aria-expanded={scorePanelOpen} aria-haspopup="dialog" title="Bars, time, key, tempo, title" onClick={() => setScorePanelOpen((o) => !o)}>
-                ⚙ Score
-              </button>
-              {scorePanelOpen && (
-                <div className="etb-popover" role="dialog" aria-label="Score settings">
-                  <div className="etb-pop-row">
-                    <span className="etb-label">Measures</span>
-                    <button className="etb-btn" onClick={v1AddBar} aria-label="Add a measure after this one" title="Add measure">＋ Bar</button>
-                    <button className="etb-btn" onClick={v1RemoveBar} aria-label="Remove this measure" title="Remove measure">－ Bar</button>
-                  </div>
-                  <div className="etb-pop-row">
-                    <span className="etb-label">Voices</span>
-                    <button className="etb-btn" onClick={v1AddVoice} aria-label="Add a voice to this bar" title="Add an independent voice to this bar">＋ Voice</button>
-                    <button className="etb-btn" onClick={v1RemoveVoice} aria-label="Remove this voice" title="Remove the selected voice">－ Voice</button>
-                  </div>
-                  <label className="etb-pop-row">
-                    <span className="etb-label">Time</span>
-                    <select value={v1TimeValue} onChange={(e) => v1SetTime(e.target.value)}>
-                      {["2/4", "3/4", "4/4", "6/8", "3/8", "5/4", "12/8"].map((t) => <option key={t} value={t}>{t}</option>)}
-                    </select>
-                  </label>
-                  <label className="etb-pop-row">
-                    <span className="etb-label">Key</span>
-                    <select value={v1KeyValue} onChange={(e) => v1SetKey(Number(e.target.value))}>
-                      {KEY_OPTIONS.map((k) => <option key={k.fifths} value={k.fifths}>{k.label}</option>)}
-                    </select>
-                  </label>
-                  <div className="etb-pop-row">
-                    <button className="etb-btn wide" onClick={v1EditTempo} aria-label="Tempo" title="Tempo (bpm)">♩= Tempo</button>
-                    <button className="etb-btn wide" onClick={v1EditMeta} aria-label="Title and composer" title="Title & composer">ℹ Title</button>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
+          {renderEditToolbar()}
 
           {/* Live selection status + the one relevant next action. */}
           <div className="edit-status" role="status" aria-live="polite">

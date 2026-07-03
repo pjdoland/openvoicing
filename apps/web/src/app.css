@@ -892,39 +892,70 @@ body {
 }
 
 /* ---- Selection-aware editing toolbar (v1) ---- */
+/* Priority+ toolbar: a single non-wrapping row. Groups are unbreakable "card"
+   atoms in a fixed left-to-right grammar; low-priority ones move into a "More"
+   menu (driven by a JS ResizeObserver on the toolbar's own width) instead of
+   wrapping into a tall stack. */
 .edit-toolbar {
   position: sticky;
   top: 0;
   z-index: 20;
   display: flex;
   align-items: center;
-  flex-wrap: wrap;
-  gap: 6px 4px;
-  padding: 6px 16px;
+  flex-wrap: nowrap;
+  gap: 6px;
+  padding: 5px 12px;
   background: color-mix(in srgb, var(--accent) 8%, var(--panel));
   border-bottom: 1px solid var(--accent-soft-border);
   border-left: 3px solid var(--accent);
+}
+/* Pinned cluster keeps the fixed grammar; on the very smallest screens it is
+   the one thing allowed to scroll horizontally (not the page). */
+.etb-pinned {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  flex-shrink: 1;
+  overflow-x: auto;
+  scrollbar-width: thin;
+  scroll-snap-type: x proximity;
+}
+.etb-trailing {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+  flex-shrink: 0;
+  position: relative;
 }
 .etb-group {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  padding: 0 8px;
-  border-right: 1px solid var(--border);
+  flex-wrap: nowrap;
+  flex-shrink: 0;
+  padding: 3px 7px;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--panel) 90%, var(--accent));
+  border: 1px solid var(--accent-soft-border);
+  scroll-snap-align: start;
 }
-.etb-group:last-child { border-right: none; }
-.etb-right { margin-left: auto; position: relative; }
+.etb-more,
+.etb-right { position: relative; }
 .etb-label {
   font-size: 0.625rem;
   text-transform: uppercase;
   letter-spacing: 0.04em;
   color: var(--muted);
   margin-right: 2px;
+  white-space: nowrap;
 }
 .etb-btn {
-  min-width: 36px;
-  height: 36px;
-  padding: 0 8px;
+  min-width: clamp(2rem, 1.7rem + 1vw, 2.25rem);
+  height: clamp(2rem, 1.7rem + 1vw, 2.25rem);
+  padding: 0 6px;
+  flex-shrink: 0;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -937,7 +968,12 @@ body {
   cursor: pointer;
 }
 .etb-btn.glyph { font-size: 1.15rem; }
-.etb-btn.wide { min-width: auto; gap: 4px; font-size: 0.8125rem; }
+.etb-btn.wide { min-width: auto; width: auto; gap: 4px; padding: 0 10px; font-size: 0.8125rem; white-space: nowrap; }
+/* Touch: a 44px floor on all edit controls, on coarse pointers only. */
+@media (pointer: coarse) {
+  .etb-btn { min-width: 44px; height: 44px; }
+  .etb-select select, .etb-pop-row select { min-height: 44px; }
+}
 .etb-btn:hover:not(:disabled) { background: var(--btn-hover); }
 .etb-btn:disabled { opacity: 0.4; cursor: default; }
 /* Color/pressed state is reserved for active toggles only. */
@@ -962,6 +998,9 @@ body {
   right: 0;
   z-index: 40;
   min-width: 240px;
+  max-width: min(92vw, 360px);
+  max-height: 70vh;
+  overflow-y: auto;
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -971,9 +1010,27 @@ body {
   border-radius: 8px;
   box-shadow: 0 8px 28px rgba(0, 0, 0, 0.28);
 }
+/* The "More" menu holds overflowed toolbar groups: keep them stacked as their
+   labeled cards so the collapsed view is the same map, just vertical. */
+.etb-more-popover { flex-direction: column; align-items: stretch; min-width: 220px; }
+.etb-more-popover .etb-group { justify-content: flex-start; flex-wrap: wrap; }
 .etb-pop-row { display: flex; align-items: center; gap: 6px; }
 .etb-pop-row .etb-label { min-width: 62px; }
 .etb-pop-row select { flex: 1; }
+
+/* On narrow screens any toolbar popover/sheet docks as a full-width bottom
+   sheet, so it can never clip off a small screen edge (C9). */
+@media (max-width: 560px) {
+  .etb-sheet {
+    position: fixed;
+    top: auto;
+    left: 8px;
+    right: 8px;
+    bottom: 8px;
+    max-width: none;
+    max-height: 76vh;
+  }
+}
 
 .edit-status {
   display: flex;
@@ -1044,10 +1101,9 @@ body {
 .ctx-menu .ctx-danger { color: #d64545; }
 .ctx-sep { height: 1px; margin: 4px 6px; background: var(--border); }
 
-@media (max-width: 720px) {
-  .etb-label { display: none; }
-  .etb-group { padding: 0 4px; }
-  .etb-btn { min-width: 40px; height: 40px; }
+@media (max-width: 560px) {
+  /* Labels stay (group cards keep them legible); just tighten and stack status. */
+  .etb-label { font-size: 0.5625rem; }
   .edit-status { flex-direction: column; gap: 2px; }
 }
 
