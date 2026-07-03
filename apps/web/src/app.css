@@ -981,6 +981,63 @@ body {
 .edit-status-what { font-weight: 600; color: var(--fg); }
 .edit-status-hint { color: var(--muted); }
 
+.edit-coach {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 20px;
+  font-size: 0.8125rem;
+  background: color-mix(in srgb, var(--accent) 12%, var(--panel));
+  border-bottom: 1px solid var(--accent-soft-border);
+}
+.edit-coach-icon { font-size: 1.1rem; }
+.edit-coach kbd {
+  font: inherit;
+  font-size: 0.75rem;
+  padding: 1px 5px;
+  border: 1px solid var(--border);
+  border-bottom-width: 2px;
+  border-radius: 4px;
+  background: var(--panel);
+}
+.edit-coach .btn-sm { margin-left: auto; white-space: nowrap; }
+
+.ctx-backdrop { position: fixed; inset: 0; z-index: 90; }
+.ctx-menu {
+  position: fixed;
+  z-index: 91;
+  min-width: 180px;
+  max-height: 80vh;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  padding: 4px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: 0 10px 32px rgba(0, 0, 0, 0.32);
+}
+.ctx-title {
+  padding: 6px 10px;
+  font-size: 0.6875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--muted);
+}
+.ctx-menu button {
+  text-align: left;
+  padding: 7px 10px;
+  border: none;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--fg);
+  font-size: 0.8125rem;
+  cursor: pointer;
+}
+.ctx-menu button:hover { background: var(--btn-hover); }
+.ctx-menu .ctx-danger { color: #d64545; }
+.ctx-sep { height: 1px; margin: 4px 6px; background: var(--border); }
+
 @media (max-width: 720px) {
   .etb-label { display: none; }
   .etb-group { padding: 0 4px; }
@@ -1266,4 +1323,18 @@ body {
   border-radius: 4px;
   background: color-mix(in srgb, var(--accent) 18%, transparent);
   border: 1.5px solid var(--accent);
+}
+/* In note-input mode the selection reads as a live caret: a stronger, pulsing
+   marker showing where the next typed note lands. */
+.app.note-input .ov-note-highlight {
+  background: color-mix(in srgb, var(--accent) 28%, transparent);
+  border-width: 2px;
+  animation: ov-caret-pulse 1s ease-in-out infinite;
+}
+@keyframes ov-caret-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.45; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .app.note-input .ov-note-highlight { animation: none; }
 }

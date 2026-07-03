@@ -245,14 +245,37 @@ export function App() {
   const v1ClipboardRef = useRef<v1.CopiedBeat | null>(null);
   const persistTimerRef = useRef<number | null>(null);
   const [scorePanelOpen, setScorePanelOpen] = useState(false);
+  const [coachSeen, setCoachSeen] = useState(() => {
+    try {
+      return localStorage.getItem("ov-edit-coached") === "1";
+    } catch {
+      return false;
+    }
+  });
+  const dismissCoach = () => {
+    setCoachSeen(true);
+    try {
+      localStorage.setItem("ov-edit-coached", "1");
+    } catch {
+      /* ignore */
+    }
+  };
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null);
+  const [noteInputMode, setNoteInputMode] = useState(false);
   // Bumped after each v1 edit so the edit band's disabled states refresh.
   const [v1Version, setV1Version] = useState(0);
   const [editMode, setEditMode] = useState(false);
   const editModeRef = useRef(false);
 
+  const noteInputModeRef = useRef(false);
+  useEffect(() => {
+    noteInputModeRef.current = noteInputMode;
+  }, [noteInputMode]);
+
   useEffect(() => {
     editModeRef.current = editMode;
     setAnnouncement(editMode ? "Edit mode on" : "Edit mode off");
+    if (!editMode) setNoteInputMode(false);
   }, [editMode]);
 
   useEffect(() => {
@@ -373,6 +396,17 @@ export function App() {
       if (el) setSelectedV1(el);
     };
     container.addEventListener("click", onScoreClick);
+    // Right-click / long-press a note or rest: select it and open a menu of the
+    // actions that apply, so nothing has to be memorized as a shortcut.
+    const onScoreContext = (e: MouseEvent) => {
+      if (!editModeRef.current || !v1EditorRef.current) return;
+      const el = playerRef.current?.elementAtPosition(e.clientX, e.clientY);
+      if (!el) return;
+      e.preventDefault();
+      setSelectedV1(el);
+      setContextMenu({ x: e.clientX, y: e.clientY });
+    };
+    container.addEventListener("contextmenu", onScoreContext);
     player.on("error", (error) => console.error("[openvoicing]", error));
     if (import.meta.env.DEV) {
       const w = window as unknown as Record<string, unknown>;
@@ -414,6 +448,7 @@ export function App() {
       disposed = true;
       playerRef.current = null;
       container.removeEventListener("click", onScoreClick);
+      container.removeEventListener("contextmenu", onScoreContext);
       player.destroy();
     };
   }, [recording]);
@@ -1647,6 +1682,12 @@ export function App() {
       return;
     }
     if (e.metaKey || e.ctrlKey || e.altKey) return;
+    // Toggle note-input mode (the MuseScore "N" convention).
+    if (e.code === "KeyN") {
+      e.preventDefault();
+      setNoteInputMode((m) => !m);
+      return;
+    }
     const sel = selectedV1Ref.current;
     const beatId = v1SelectedBeatId();
     const isTabNote = sel?.noteId ? ed.findNote(sel.noteId)?.note.string !== undefined : false;
@@ -1697,8 +1738,12 @@ export function App() {
           : ed.restToNoteByName(beatId, step);
       if (ok) {
         v1Rerender();
-        const top = ed.findBeat(beatId)?.beat.notes[0];
-        if (top) setSelectedV1({ noteId: top.id });
+        if (noteInputModeRef.current && !e.shiftKey) {
+          v1AdvanceFrom(beatId);
+        } else {
+          const top = ed.findBeat(beatId)?.beat.notes[0];
+          if (top) setSelectedV1({ noteId: top.id });
+        }
       }
       return;
     }
@@ -1860,6 +1905,14 @@ export function App() {
     return { kind: "rest", desc: `${cap(dur)} rest · ${where}`, noteType: beat.duration.noteType, dotted: beat.duration.dots > 0, marks, tab: false };
   })();
 
+  // A brand-new / all-rests score, for empty-state coaching.
+  const v1IsEmpty = ((): boolean => {
+    void v1Version;
+    const ed = v1EditorRef.current;
+    if (!ed) return false;
+    return ed.doc.parts.every((p) => p.measures.every((m) => m.voices.every((vo) => vo.beats.every((b) => b.notes.length === 0))));
+  })();
+
   // Palette op wrappers (all reachable by pointer for touch parity).
   const v1SetDurationType = (nt: v1.NoteType) => {
     const ed = v1EditorRef.current;
@@ -1877,6 +1930,10 @@ export function App() {
     const note = id ? ed?.findNote(id)?.note : undefined;
     if (ed && id && note && ed.setPitch(id, { step: note.step, alter, octave: note.octave })) v1Rerender();
   };
+  const v1AdvanceFrom = (beatId: string) => {
+    const n = v1EditorRef.current?.neighbor(beatId, 1);
+    if (n) setSelectedV1(n.noteId ? { noteId: n.noteId } : { restBeatId: n.beatId });
+  };
   const v1SetPitchLetter = (step: v1.NoteStep) => {
     const ed = v1EditorRef.current;
     const beatId = v1SelectedBeatId();
@@ -1884,8 +1941,13 @@ export function App() {
     const ok = selectedV1?.noteId ? ed.setPitchByName(selectedV1.noteId, step) : ed.restToNoteByName(beatId, step);
     if (ok) {
       v1Rerender();
-      const top = ed.findBeat(beatId)?.beat.notes[0];
-      if (top) setSelectedV1({ noteId: top.id });
+      // Note-input mode advances to the next beat so melodies flow; select mode
+      // stays put so you can keep adjusting the same note.
+      if (noteInputModeRef.current) v1AdvanceFrom(beatId);
+      else {
+        const top = ed.findBeat(beatId)?.beat.notes[0];
+        if (top) setSelectedV1({ noteId: top.id });
+      }
     }
   };
   const v1SetFretBtn = (fret: number) => {
@@ -2000,7 +2062,7 @@ export function App() {
   const isPlaying = playing || recording.playing;
 
   return (
-    <div className={`app${standMode ? " stand-mode" : ""}${closed ? " closed" : ""}`}>
+    <div className={`app${standMode ? " stand-mode" : ""}${closed ? " closed" : ""}${noteInputMode ? " note-input" : ""}`}>
       <header className="header" role="banner">
         <h1>OpenVoicing</h1>
         {scoreTitle && <span className="tagline">{scoreTitle}</span>}
@@ -2249,6 +2311,19 @@ export function App() {
               <button className="etb-btn" onClick={v1Delete} disabled={v1Sel.kind !== "note"} title="Delete (Del)" aria-label="Delete note">🗑</button>
             </div>
 
+            {/* Select vs Note-Input mode (MuseScore "N"): in input mode, typing a
+                pitch advances to the next beat so melodies flow. */}
+            <div className="etb-group" role="group" aria-label="Input mode">
+              <button
+                className={"etb-btn wide" + (noteInputMode ? " active" : "")}
+                aria-pressed={noteInputMode}
+                title="Note-input mode (N): notes advance as you type"
+                onClick={() => setNoteInputMode((m) => !m)}
+              >
+                {noteInputMode ? "✎ Input" : "Select"}
+              </button>
+            </div>
+
             {/* Note value (when a note or rest is selected). */}
             {v1Sel.kind !== "none" && (
               <div className="etb-group" role="group" aria-label="Note value">
@@ -2381,11 +2456,55 @@ export function App() {
             <span className="edit-status-hint">
               {v1Sel.kind === "none"
                 ? "Click a note or rest to edit it."
-                : v1Sel.kind === "rest"
-                  ? "Type A–G (or tap Pitch) to turn this rest into a note."
-                  : "Type A–G to re-pitch, 1–9 for value, ←/→ to move."}
+                : noteInputMode
+                  ? "Note input: type A–G to place notes; they advance automatically. N to stop."
+                  : v1Sel.kind === "rest"
+                    ? "Type A–G (or tap Pitch) to turn this rest into a note."
+                    : "Type A–G to re-pitch, 1–9 for value, ←/→ to move."}
             </span>
           </div>
+
+          {/* First-run coaching on an empty score: teach the click-then-type loop. */}
+          {v1IsEmpty && !coachSeen && (
+            <div className="edit-coach" role="note">
+              <span className="edit-coach-icon" aria-hidden="true">🎵</span>
+              <span>
+                <strong>Write your first note.</strong> A rest is already selected. Tap a <strong>Pitch</strong> button
+                (or press <kbd>A</kbd>–<kbd>G</kbd>) to place a note, then <kbd>1</kbd>–<kbd>9</kbd> sets its length and{" "}
+                <kbd>→</kbd> moves to the next beat.
+              </span>
+              <button className="btn-sm" onClick={dismissCoach}>Got it</button>
+            </div>
+          )}
+
+          {/* Right-click / long-press context menu: the actions for what was clicked. */}
+          {contextMenu && v1Sel.kind !== "none" && (
+            <>
+              <div className="ctx-backdrop" onClick={() => setContextMenu(null)} onContextMenu={(e) => { e.preventDefault(); setContextMenu(null); }} />
+              <div className="ctx-menu" role="menu" style={{ left: contextMenu.x, top: contextMenu.y }}>
+                {v1Sel.kind === "rest" ? (
+                  <>
+                    <div className="ctx-title">Rest · {NOTE_TYPE_LABEL[v1Sel.noteType ?? "quarter"]}</div>
+                    {(["C", "D", "E", "F", "G", "A", "B"] as v1.NoteStep[]).map((s) => (
+                      <button key={s} role="menuitem" onClick={() => { v1SetPitchLetter(s); setContextMenu(null); }}>Make {s} note</button>
+                    ))}
+                  </>
+                ) : (
+                  <>
+                    <div className="ctx-title">{v1Sel.desc}</div>
+                    <button role="menuitem" onClick={() => { v1Tie(); setContextMenu(null); }}>{v1Sel.marks.has("tie") ? "Remove tie" : "Tie to next"}</button>
+                    <button role="menuitem" onClick={() => { v1Slur(); setContextMenu(null); }}>{v1Sel.marks.has("slur") ? "Remove slur" : "Slur to next"}</button>
+                    <button role="menuitem" onClick={() => { v1Articulate("staccato"); setContextMenu(null); }}>{v1Sel.marks.has("staccato") ? "Remove staccato" : "Staccato"}</button>
+                    <button role="menuitem" onClick={() => { v1Articulate("accent"); setContextMenu(null); }}>{v1Sel.marks.has("accent") ? "Remove accent" : "Accent"}</button>
+                    <button role="menuitem" onClick={() => { v1ChordSymbolBtn(); setContextMenu(null); }}>Chord symbol…</button>
+                    <div className="ctx-sep" />
+                    <button role="menuitem" onClick={() => { v1MakeRestBtn(); setContextMenu(null); }}>Change to rest</button>
+                    <button role="menuitem" className="ctx-danger" onClick={() => { v1Delete(); setContextMenu(null); }}>Delete note</button>
+                  </>
+                )}
+              </div>
+            </>
+          )}
         </>
       )}
       {locked && assignment && (
