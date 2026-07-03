@@ -855,7 +855,7 @@ export function App() {
       applyPreferred("synth");
       if (wasPlaying) player.playFromTick(Math.max(0, tick));
       else player.cursorTick = Math.max(0, tick);
-      setAnnouncement("Synth");
+      setAnnouncement("Playing the written notes");
     } else {
       const tick = player.cursorTick;
       const time = points ? mediaTimeAtTick(points, tick) : 0;
@@ -863,7 +863,7 @@ export function App() {
       applyPreferred("recording");
       recording.seek(time);
       if (wasPlaying) void recording.play();
-      setAnnouncement("Recording");
+      setAnnouncement("Playing the performance recording");
     }
   }
 
@@ -2310,8 +2310,8 @@ export function App() {
     { id: "metro", label: metronome ? "Metronome off" : "Metronome on", group: "Practice", run: toggleMetronome },
     { id: "countin", label: countIn ? "Count-in off" : "Count-in on", group: "Practice", run: toggleCountIn },
     { id: "addsection", label: "Add section here", group: "Navigate", run: addSection, enabled: !locked },
-    { id: "record", label: micRecording ? "Stop recording" : "Record with microphone", group: "Capture", run: () => void toggleMicRecording() },
-    { id: "ab", label: "A/B synth and recording", group: "Capture", shortcut: "V", run: toggleSynthRecording, enabled: activeRecId !== null },
+    { id: "record", label: micRecording ? "Stop recording my take" : "Record my take", group: "Capture", run: () => void toggleMicRecording() },
+    { id: "ab", label: "A/B notes and performance", group: "Capture", shortcut: "V", run: toggleSynthRecording, enabled: activeRecId !== null },
     { id: "autosync", label: "Auto sync recording", group: "Sync", run: autoSync, enabled: activeRecId !== null },
     { id: "tapsync", label: "Start tap sync", group: "Sync", run: startTapSync, enabled: activeRecId !== null },
     { id: "edit", label: editMode ? "Turn off Edit mode" : "Turn on Edit mode", group: "Edit", run: () => setEditMode((v) => !v), enabled: canEdit },
@@ -2331,7 +2331,7 @@ export function App() {
     { id: "themeL", label: "Theme: Light", group: "View", run: () => settings.setTheme("light") },
     { id: "themeD", label: "Theme: Dark", group: "View", run: () => settings.setTheme("dark") },
     { id: "themeC", label: "Theme: High contrast", group: "View", run: () => settings.setTheme("contrast") },
-    { id: "advanced", label: advanced ? "Switch to Basic view" : "Switch to Advanced view", group: "View", run: () => setMode(advanced ? "basic" : "advanced") },
+    { id: "advanced", label: advanced ? "Switch to Listen view" : "Switch to Practice view", group: "View", run: () => setMode(advanced ? "basic" : "advanced") },
     { id: "shortcuts", label: "Keyboard shortcuts", group: "Help", shortcut: "?", run: () => setCheatSheetOpen(true) },
     { id: "tour", label: "Show the welcome tour", group: "Help", run: () => setShowTour(true) },
   ];
@@ -2441,12 +2441,12 @@ export function App() {
             />
           )}
           {!locked && (
-            <div className="mode-toggle" role="group" aria-label="View complexity">
-              <button className={advanced ? "" : "on"} aria-pressed={!advanced} onClick={() => setMode("basic")}>
-                Basic
+            <div className="mode-toggle" role="group" aria-label="Mode">
+              <button className={advanced ? "" : "on"} aria-pressed={!advanced} onClick={() => setMode("basic")} title="Just view and play">
+                Listen
               </button>
-              <button className={advanced ? "on" : ""} aria-pressed={advanced} onClick={() => setMode("advanced")}>
-                Advanced
+              <button className={advanced ? "on" : ""} aria-pressed={advanced} onClick={() => setMode("advanced")} title="Practice, sync and record tools">
+                Practice
               </button>
             </div>
           )}
@@ -2539,24 +2539,27 @@ export function App() {
             </span>
           </Popover>
           {activeRecId !== null && (
-            <div className="mode-toggle source-toggle" role="group" aria-label="Playback source">
+            <>
+            <span className="tb-zone-label">Sound</span>
+            <div className="mode-toggle source-toggle" role="group" aria-label="Sound source">
               <button
                 className={preferredSource === "recording" ? "on" : ""}
                 aria-pressed={preferredSource === "recording"}
                 onClick={() => switchSource("recording")}
-                title="Play the recording"
+                title="Play the reference recording of this piece"
               >
-                Recording
+                Performance
               </button>
               <button
                 className={preferredSource === "synth" ? "on" : ""}
                 aria-pressed={preferredSource === "synth"}
                 onClick={() => switchSource("synth")}
-                title="Play the notation (synth)"
+                title="Play the written notes (computer sound)"
               >
-                Synth
+                Notes
               </button>
             </div>
+            </>
           )}
         </div>
 
@@ -2603,12 +2606,12 @@ export function App() {
         {/* Capture (advanced) */}
         {advanced && (
           <div className="tb-zone">
-            <span className="tb-zone-label">Capture</span>
+            <span className="tb-zone-label">Record my take</span>
             <button
               className={micRecording ? "btn-icon on" : "btn-icon"}
               onClick={() => void toggleMicRecording()}
-              aria-label={micRecording ? "Stop recording" : "Record"}
-              title="Record with the microphone"
+              aria-label={micRecording ? "Stop recording my take" : "Record my take from the microphone"}
+              title="Record your own take from the microphone. Nothing is recorded until you press this."
             >
               <RecordIcon />
             </button>

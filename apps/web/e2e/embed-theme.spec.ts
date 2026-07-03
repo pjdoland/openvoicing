@@ -41,7 +41,7 @@ test.describe("menus, themes, and shortcuts", () => {
     await freshApp(page);
     // Basic default: no Practice/Capture zones.
     await expect(page.locator(".tb-zone-label", { hasText: "Practice" })).toHaveCount(0);
-    await page.locator(".mode-toggle button", { hasText: "Advanced" }).click();
+    await page.locator(".mode-toggle button", { hasText: "Practice" }).click();
     await expect(page.locator(".tb-zone-label", { hasText: "Practice" })).toBeVisible();
     await expect(page.locator(".tb-zone-label", { hasText: "Capture" })).toBeVisible();
   });
