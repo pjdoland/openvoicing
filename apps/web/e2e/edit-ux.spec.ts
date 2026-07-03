@@ -70,4 +70,39 @@ test.describe("edit mode UX (redesigned toolbar)", () => {
     });
     expect(hasStaccato).toBe(true);
   });
+
+  test("can enter grace notes, ornaments, and a second voice", async ({ page }) => {
+    await freshApp(page);
+    await newScore(page);
+    await page.locator('.edit-toolbar button[aria-label="Pitch C"]').click();
+    await page.waitForTimeout(200);
+
+    // Ornament + grace note via the toolbar.
+    await page.locator('.edit-toolbar button[aria-label="Mordent"]').click();
+    await page.locator('.edit-toolbar button[aria-label="Add grace note"]').click();
+    await page.waitForTimeout(300);
+
+    // Add a second voice from the Score popover and type into it.
+    await page.locator(".edit-toolbar button", { hasText: "Score" }).click();
+    await page.locator(".etb-popover button", { hasText: "Voice" }).first().click();
+    await page.waitForTimeout(300);
+    await page.keyboard.press("E");
+    await page.waitForTimeout(300);
+
+    const state = await page.evaluate(() => {
+      const ed = (window as unknown as { __ovV1Editor: () => any }).__ovV1Editor();
+      const m = ed.doc.parts[0].measures[0];
+      const v0 = m.voices[0];
+      return {
+        hasMordent: v0.beats.some((b: any) => b.ornaments?.includes("mordent")),
+        graceCount: v0.beats.filter((b: any) => b.grace).length,
+        voices: m.voices.length,
+        secondVoiceHasNote: m.voices[1]?.beats.some((b: any) => !b.rest),
+      };
+    });
+    expect(state.hasMordent).toBe(true);
+    expect(state.graceCount).toBe(1);
+    expect(state.voices).toBe(2);
+    expect(state.secondVoiceHasNote).toBe(true);
+  });
 });

@@ -1794,6 +1794,17 @@ export function App() {
       if (ed.toggleSlur(beatId)) v1Rerender();
       return;
     }
+    // Grace note before the selected beat. "/" (the grace slash), not a letter,
+    // since A-G are pitches.
+    if (e.code === "Slash" && beatId) {
+      e.preventDefault();
+      const graceId = ed.insertGraceBefore(beatId);
+      if (graceId) {
+        v1Rerender();
+        setSelectedV1({ noteId: graceId });
+      }
+      return;
+    }
   }
   // Edit-band ops for the selected v1 beat/note.
   function v1BeatOp(fn: (ed: v1.ScoreEditorV1, beatId: string) => boolean) {
@@ -1887,6 +1898,8 @@ export function App() {
     if (!loc) return { kind: "none", desc: "Nothing selected", dotted: false, marks: new Set(), tab: false };
     const { beat, measure, beatIndex } = loc;
     const marks = new Set<string>(beat.articulations ?? []);
+    for (const o of beat.ornaments ?? []) marks.add(o);
+    if (beat.grace) marks.add("grace");
     if (beat.fermata) marks.add("fermata");
     if (ed.doc.spanners.some((s) => s.kind === "slur" && s.fromBeat === beat.id)) marks.add("slur");
     const where = `bar ${measure.barIndex + 1}, beat ${beatIndex + 1}`;
@@ -1969,6 +1982,48 @@ export function App() {
     if (!ed || !b) return;
     const text = window.prompt("Chord symbol (e.g. Cmaj7, G/B)", ed.findBeat(b)?.beat.chordSymbol ?? "");
     if (text !== null && ed.setChordSymbol(b, text)) v1Rerender();
+  };
+  const v1Ornament = (t: v1.OrnamentType) => v1BeatOp((ed, b) => ed.toggleOrnament(b, t));
+  const v1AddGrace = () => {
+    const ed = v1EditorRef.current;
+    const b = v1SelectedBeatId();
+    if (!ed || !b) return;
+    const graceId = ed.insertGraceBefore(b);
+    if (graceId) {
+      v1Rerender();
+      setSelectedV1({ noteId: graceId }); // select it so the pitch can be adjusted
+    }
+  };
+  // Part/staff/voice of the current selection, for voice ops.
+  const v1SelectedLoc = () => {
+    const ed = v1EditorRef.current;
+    const b = v1SelectedBeatId();
+    const loc = ed && b ? ed.findBeat(b) : undefined;
+    if (!ed || !loc) return null;
+    return {
+      partIndex: ed.doc.parts.indexOf(loc.part),
+      barIndex: loc.measure.barIndex,
+      staffIndex: loc.voice.staff,
+      voiceIndex: loc.voice.index,
+    };
+  };
+  const v1AddVoice = () => {
+    const ed = v1EditorRef.current;
+    if (!ed) return;
+    const loc = v1SelectedLoc();
+    const first = ed.addVoice(loc?.barIndex ?? v1SelectedBarIndex(), loc?.partIndex ?? 0, loc?.staffIndex ?? 0);
+    if (first) {
+      v1Rerender();
+      setSelectedV1({ restBeatId: first }); // ready to type into the new voice
+    }
+  };
+  const v1RemoveVoice = () => {
+    const ed = v1EditorRef.current;
+    const loc = v1SelectedLoc();
+    if (ed && loc && ed.removeVoice(loc.barIndex, loc.voiceIndex, loc.partIndex)) {
+      v1Rerender();
+      setSelectedV1(null);
+    }
   };
 
   // Every action, for the command palette (Cmd-K) and, where sensible, menus.
@@ -2402,6 +2457,17 @@ export function App() {
               </div>
             )}
 
+            {/* Ornaments + grace note (note only). */}
+            {v1Sel.kind === "note" && (
+              <div className="etb-group" role="group" aria-label="Ornaments and grace">
+                <span className="etb-label">Orn</span>
+                <button className={"etb-btn wide" + (v1Sel.marks.has("trill-mark") ? " active" : "")} aria-pressed={v1Sel.marks.has("trill-mark")} aria-label="Trill" title="Trill" onClick={() => v1Ornament("trill-mark")}>tr</button>
+                <button className={"etb-btn wide" + (v1Sel.marks.has("mordent") ? " active" : "")} aria-pressed={v1Sel.marks.has("mordent")} aria-label="Mordent" title="Mordent" onClick={() => v1Ornament("mordent")}>Mord</button>
+                <button className={"etb-btn wide" + (v1Sel.marks.has("turn") ? " active" : "")} aria-pressed={v1Sel.marks.has("turn")} aria-label="Turn" title="Turn" onClick={() => v1Ornament("turn")}>Turn</button>
+                <button className={"etb-btn wide" + (v1Sel.marks.has("grace") ? " active" : "")} aria-label="Add grace note" title="Grace note before this beat (/)" onClick={v1AddGrace}>Grace</button>
+              </div>
+            )}
+
             {/* Dynamics, chord symbol, convert-to-rest (note only). */}
             {v1Sel.kind === "note" && (
               <div className="etb-group" role="group" aria-label="Dynamics and chord">
@@ -2428,6 +2494,11 @@ export function App() {
                     <span className="etb-label">Measures</span>
                     <button className="etb-btn" onClick={v1AddBar} aria-label="Add a measure after this one" title="Add measure">＋ Bar</button>
                     <button className="etb-btn" onClick={v1RemoveBar} aria-label="Remove this measure" title="Remove measure">－ Bar</button>
+                  </div>
+                  <div className="etb-pop-row">
+                    <span className="etb-label">Voices</span>
+                    <button className="etb-btn" onClick={v1AddVoice} aria-label="Add a voice to this bar" title="Add an independent voice to this bar">＋ Voice</button>
+                    <button className="etb-btn" onClick={v1RemoveVoice} aria-label="Remove this voice" title="Remove the selected voice">－ Voice</button>
                   </div>
                   <label className="etb-pop-row">
                     <span className="etb-label">Time</span>
@@ -2496,6 +2567,10 @@ export function App() {
                     <button role="menuitem" onClick={() => { v1Slur(); setContextMenu(null); }}>{v1Sel.marks.has("slur") ? "Remove slur" : "Slur to next"}</button>
                     <button role="menuitem" onClick={() => { v1Articulate("staccato"); setContextMenu(null); }}>{v1Sel.marks.has("staccato") ? "Remove staccato" : "Staccato"}</button>
                     <button role="menuitem" onClick={() => { v1Articulate("accent"); setContextMenu(null); }}>{v1Sel.marks.has("accent") ? "Remove accent" : "Accent"}</button>
+                    <button role="menuitem" onClick={() => { v1Ornament("mordent"); setContextMenu(null); }}>{v1Sel.marks.has("mordent") ? "Remove mordent" : "Mordent"}</button>
+                    <button role="menuitem" onClick={() => { v1Ornament("turn"); setContextMenu(null); }}>{v1Sel.marks.has("turn") ? "Remove turn" : "Turn"}</button>
+                    <button role="menuitem" onClick={() => { v1Ornament("trill-mark"); setContextMenu(null); }}>{v1Sel.marks.has("trill-mark") ? "Remove trill" : "Trill"}</button>
+                    <button role="menuitem" onClick={() => { v1AddGrace(); setContextMenu(null); }}>Add grace note</button>
                     <button role="menuitem" onClick={() => { v1ChordSymbolBtn(); setContextMenu(null); }}>Chord symbol…</button>
                     <div className="ctx-sep" />
                     <button role="menuitem" onClick={() => { v1MakeRestBtn(); setContextMenu(null); }}>Change to rest</button>

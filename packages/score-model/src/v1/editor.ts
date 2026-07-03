@@ -7,6 +7,7 @@ import type {
   Beat,
   DurationSpec,
   EntityId,
+  GraceKind,
   Measure,
   Note,
   NoteStep,
@@ -495,6 +496,63 @@ export class ScoreEditorV1 {
           content: { kind: "dynamics", value },
         });
       }
+      return true;
+    });
+  }
+
+  // ---------- grace notes & voices ----------
+
+  /** Insert a grace note just before a beat. Pitch defaults to the beat's top
+   * note (or the previous note); returns the new grace note's id. */
+  insertGraceBefore(beatId: EntityId, step?: NoteStep, kind: GraceKind = "appoggiatura"): EntityId | undefined {
+    let graceNoteId: EntityId | undefined;
+    const ok = this.edit((doc) => {
+      const loc = findBeat(doc, beatId);
+      if (!loc) return false;
+      const ref = loc.beat.notes[0] ?? { step: "B" as NoteStep, alter: 0, octave: 4 };
+      const refChroma = previousPitchChromatic(loc.voice, loc.beatIndex) ?? chromaticValue(ref);
+      const pitch = step
+        ? { step, alter: 0, octave: nearestOctave(step, refChroma) }
+        : { step: ref.step, alter: ref.alter, octave: ref.octave };
+      const note: Note = { id: newId("note"), ...pitch };
+      graceNoteId = note.id;
+      loc.voice.beats.splice(loc.beatIndex, 0, {
+        id: newId("beat"),
+        duration: { noteType: "eighth", dots: 0 },
+        rest: false,
+        notes: [note],
+        grace: { kind },
+      });
+      return true;
+    });
+    return ok ? graceNoteId : undefined;
+  }
+
+  /** Add an independent voice (filled with rests) to a bar, on a staff. Returns
+   * the new voice's first beat id, so a caller can select it for entry. */
+  addVoice(barIndex: number, partIndex = 0, staffIndex = 0): EntityId | undefined {
+    let firstBeatId: EntityId | undefined;
+    const ok = this.edit((doc) => {
+      const part = doc.parts[partIndex];
+      const measure = part?.measures[barIndex];
+      if (!part || !measure) return false;
+      const beats = fillRests(effectiveTime(part, barIndex));
+      const index = Math.max(-1, ...measure.voices.map((v) => v.index)) + 1;
+      measure.voices.push({ id: newId("voice"), index, staff: staffIndex, beats });
+      firstBeatId = beats[0]?.id;
+      return true;
+    });
+    return ok ? firstBeatId : undefined;
+  }
+
+  /** Remove a voice from a bar (a bar keeps at least one voice). */
+  removeVoice(barIndex: number, voiceIndex: number, partIndex = 0): boolean {
+    return this.edit((doc) => {
+      const measure = doc.parts[partIndex]?.measures[barIndex];
+      if (!measure || measure.voices.length <= 1) return false;
+      const i = measure.voices.findIndex((v) => v.index === voiceIndex);
+      if (i < 0) return false;
+      measure.voices.splice(i, 1);
       return true;
     });
   }

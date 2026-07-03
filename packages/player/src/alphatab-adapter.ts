@@ -205,9 +205,15 @@ function toBeat(
   // A beat with no notes renders as a rest.
   if (!beatModel.rest) {
     const ornament = beatModel.ornaments?.map((o) => NOTE_ORNAMENT[o]).find((v) => v !== undefined);
+    const hasTrill = beatModel.ornaments?.includes("trill-mark");
     beatModel.notes.forEach((noteModel, i) => {
       const note = toNote(noteModel);
       if (i === 0 && ornament !== undefined) note.ornament = ornament;
+      // alphaTab renders a trill via a target note value a step above.
+      if (i === 0 && hasTrill) {
+        note.trillValue = note.octave * 12 + note.tone + 2;
+        note.trillSpeed = m.Duration.Sixteenth;
+      }
       beat.addNote(note);
     });
   }
