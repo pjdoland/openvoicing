@@ -526,6 +526,8 @@ export function App() {
       ctx = new AudioContext();
       clickCtxRef.current = ctx;
     }
+    // Safari creates the context suspended; resume so the click is audible.
+    if (ctx.state === "suspended") void ctx.resume();
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
     osc.frequency.value = accent ? 1600 : 1000;

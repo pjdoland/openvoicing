@@ -190,8 +190,14 @@ export class RecordingPlayer {
 
   async play(): Promise<void> {
     if (this._duration === 0 || this._playing) return;
+    // Resume the AudioContext synchronously, within the click gesture, BEFORE
+    // any await. Safari only honours resume() while the user gesture is still
+    // on the stack; awaiting the worklet module first consumes the gesture and
+    // leaves the context suspended (silent playback on Safari/iOS).
+    if (!this.context) this.context = new AudioContext();
+    const resuming = this.context.state === "suspended" ? this.context.resume() : undefined;
     const node = await this.ensureNode();
-    if (this.context!.state === "suspended") await this.context!.resume();
+    await resuming;
     if (this._loop && (this._position < this._loop.start || this._position >= this._loop.end)) {
       this._position = this._loop.start;
     }
