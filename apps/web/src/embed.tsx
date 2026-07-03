@@ -7,7 +7,7 @@ import { readBundle, type Bundle } from "@openvoicing/bundle";
 import { parseDeepLink } from "./deep-link";
 import "./embed.css";
 
-const soundFontUrl = "/soundfont/FluidR3Mono_GM.sf3";
+const soundFontUrl = `${import.meta.env.BASE_URL}soundfont/FluidR3Mono_GM.sf3`;
 const SPEEDS = [0.5, 0.6, 0.7, 0.8, 0.9, 1, 1.1, 1.25];
 
 function formatTime(seconds: number): string {
@@ -78,7 +78,7 @@ function EmbedApp() {
 
     const player = new Player(container, {
       soundFontUrl,
-      fontDirectory: "/alphatab/font/",
+      fontDirectory: `${import.meta.env.BASE_URL}alphatab/font/`,
     });
     playerRef.current = player;
     const recording = new RecordingPlayer();

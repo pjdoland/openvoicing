@@ -19,7 +19,7 @@ import {
 } from "@openvoicing/bundle";
 // FluidR3 (full General MIDI, MIT) self-hosted; cached on first play. Much
 // richer than alphaTab's bundled sonivox, at ~24MB loaded once.
-const soundFontUrl = "/soundfont/FluidR3Mono_GM.sf3";
+const soundFontUrl = `${import.meta.env.BASE_URL}soundfont/FluidR3Mono_GM.sf3`;
 import { DEMO_TEX } from "./demo";
 import { RecordingPanel } from "./RecordingPanel";
 import { SpeedControl, clampSpeed } from "./SpeedControl";
@@ -444,7 +444,7 @@ export function App() {
     if (!container) return;
     const player = new Player(container, {
       soundFontUrl,
-      fontDirectory: "/alphatab/font/",
+      fontDirectory: `${import.meta.env.BASE_URL}alphatab/font/`,
     });
     playerRef.current = player;
     player.on("scoreLoaded", (info) => {
