@@ -44,6 +44,7 @@ import {
   RecordIcon,
   ShareIcon,
   StopIcon,
+  TrashIcon,
   ViewIcon,
 } from "./ui/icons";
 import { MicRecorder } from "./mic";
@@ -2125,7 +2126,7 @@ export function App() {
       <div className="etb-group" role="group" aria-label="History" key="history">
         <button className="etb-btn" onClick={v1Undo} disabled={!v1EditorRef.current?.canUndo} title="Undo (Cmd+Z)" aria-label="Undo">↶</button>
         <button className="etb-btn" onClick={v1Redo} disabled={!v1EditorRef.current?.canRedo} title="Redo (Shift+Cmd+Z)" aria-label="Redo">↷</button>
-        <button className="etb-btn" onClick={v1Delete} disabled={!note} title="Delete (Del)" aria-label="Delete note">🗑</button>
+        <button className="etb-btn" onClick={v1Delete} disabled={!note} title="Delete (Del)" aria-label="Delete note"><TrashIcon /></button>
       </div>
     );
     const modeGroup = (
