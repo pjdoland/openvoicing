@@ -111,6 +111,31 @@ const DURATION_KEYS: Record<number, v1.NoteType> = {
   6: "32nd", 7: "64th", 8: "128th", 9: "256th",
 };
 
+const NOTE_TYPE_LABEL: Record<string, string> = {
+  whole: "whole", half: "half", quarter: "quarter", eighth: "eighth",
+  "16th": "16th", "32nd": "32nd", "64th": "64th", "128th": "128th", "256th": "256th",
+  maxima: "maxima", long: "long", breve: "breve",
+};
+const accSym = (a: number) => (a > 0 ? "♯".repeat(a) : a < 0 ? "♭".repeat(-a) : "");
+const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+
+// The common note values as a tappable palette. Faces show the value as a
+// fraction of a whole note (reliable everywhere) with the number-key hint.
+const DURATION_PALETTE: Array<{ type: v1.NoteType; face: string; label: string; key: string }> = [
+  { type: "whole", face: "1", label: "Whole note", key: "1" },
+  { type: "half", face: "½", label: "Half note", key: "2" },
+  { type: "quarter", face: "¼", label: "Quarter note", key: "3" },
+  { type: "eighth", face: "⅛", label: "Eighth note", key: "4" },
+  { type: "16th", face: "1⁄16", label: "16th note", key: "5" },
+];
+
+// Articulation toggles: glyph + accessible label + key hint.
+const MARK_PALETTE: Array<{ type: v1.ArticulationType; glyph: string; label: string }> = [
+  { type: "staccato", glyph: "·", label: "Staccato" },
+  { type: "accent", glyph: ">", label: "Accent" },
+  { type: "tenuto", glyph: "‒", label: "Tenuto" },
+];
+
 function sanitizeName(name: string): string {
   return name.replace(/[^\w.-]+/g, "_");
 }
@@ -218,8 +243,9 @@ export function App() {
   const selectedV1Ref = useRef<EditSelection | null>(null);
   const [selectedV1, setSelectedV1] = useState<EditSelection | null>(null);
   const v1ClipboardRef = useRef<v1.CopiedBeat | null>(null);
+  const [scorePanelOpen, setScorePanelOpen] = useState(false);
   // Bumped after each v1 edit so the edit band's disabled states refresh.
-  const [, setV1Version] = useState(0);
+  const [v1Version, setV1Version] = useState(0);
   const [editMode, setEditMode] = useState(false);
   const editModeRef = useRef(false);
 
@@ -1786,6 +1812,92 @@ export function App() {
   const v1KeyValue = v1EffectiveAttrs.key;
   const doTranspose = (n: number) => v1Transpose(n);
 
+  // Live, selection-aware description of what is selected. Drives the status
+  // strip and which toolbar groups + active states show. Recomputes on each
+  // edit (v1Version) and selection change.
+  const v1Sel = ((): {
+    kind: "note" | "rest" | "none";
+    desc: string;
+    noteType?: v1.NoteType;
+    dotted: boolean;
+    marks: Set<string>;
+    tab: boolean;
+  } => {
+    void v1Version;
+    const ed = v1EditorRef.current;
+    if (!ed || !selectedV1) return { kind: "none", desc: "Nothing selected", dotted: false, marks: new Set(), tab: false };
+    const beatId = selectedV1.noteId ? ed.findNote(selectedV1.noteId)?.beat.id : selectedV1.restBeatId;
+    const loc = beatId ? ed.findBeat(beatId) : undefined;
+    if (!loc) return { kind: "none", desc: "Nothing selected", dotted: false, marks: new Set(), tab: false };
+    const { beat, measure, beatIndex } = loc;
+    const marks = new Set<string>(beat.articulations ?? []);
+    if (beat.fermata) marks.add("fermata");
+    if (ed.doc.spanners.some((s) => s.kind === "slur" && s.fromBeat === beat.id)) marks.add("slur");
+    const where = `bar ${measure.barIndex + 1}, beat ${beatIndex + 1}`;
+    const dur = (beat.duration.dots ? "dotted " : "") + NOTE_TYPE_LABEL[beat.duration.noteType];
+    if (selectedV1.noteId) {
+      const note = ed.findNote(selectedV1.noteId)?.note;
+      const tab = note?.string !== undefined;
+      if (note && ed.doc.spanners.some((s) => s.kind === "tie" && s.from.noteId === note.id)) marks.add("tie");
+      const pitch = note
+        ? tab
+          ? `string ${note.string}, fret ${note.fret ?? 0}`
+          : `${note.step}${accSym(note.alter)}${note.octave}`
+        : "";
+      return { kind: "note", desc: `${cap(dur)} note · ${pitch} · ${where}`, noteType: beat.duration.noteType, dotted: beat.duration.dots > 0, marks, tab };
+    }
+    return { kind: "rest", desc: `${cap(dur)} rest · ${where}`, noteType: beat.duration.noteType, dotted: beat.duration.dots > 0, marks, tab: false };
+  })();
+
+  // Palette op wrappers (all reachable by pointer for touch parity).
+  const v1SetDurationType = (nt: v1.NoteType) => {
+    const ed = v1EditorRef.current;
+    const b = v1SelectedBeatId();
+    if (ed && b && ed.setDuration(b, nt, v1Sel.dotted ? 1 : 0)) v1Rerender();
+  };
+  const v1ToggleDotBtn = () => {
+    const ed = v1EditorRef.current;
+    const b = v1SelectedBeatId();
+    if (ed && b && ed.toggleDot(b)) v1Rerender();
+  };
+  const v1SetAlter = (alter: number) => {
+    const ed = v1EditorRef.current;
+    const id = selectedV1?.noteId;
+    const note = id ? ed?.findNote(id)?.note : undefined;
+    if (ed && id && note && ed.setPitch(id, { step: note.step, alter, octave: note.octave })) v1Rerender();
+  };
+  const v1SetPitchLetter = (step: v1.NoteStep) => {
+    const ed = v1EditorRef.current;
+    const beatId = v1SelectedBeatId();
+    if (!ed || !beatId) return;
+    const ok = selectedV1?.noteId ? ed.setPitchByName(selectedV1.noteId, step) : ed.restToNoteByName(beatId, step);
+    if (ok) {
+      v1Rerender();
+      const top = ed.findBeat(beatId)?.beat.notes[0];
+      if (top) setSelectedV1({ noteId: top.id });
+    }
+  };
+  const v1SetFretBtn = (fret: number) => {
+    const ed = v1EditorRef.current;
+    const id = selectedV1?.noteId;
+    if (ed && id && ed.setFret(id, fret)) v1Rerender();
+  };
+  const v1MakeRestBtn = () => {
+    const ed = v1EditorRef.current;
+    const b = v1SelectedBeatId();
+    if (ed && b && ed.makeRest(b)) {
+      v1Rerender();
+      setSelectedV1({ restBeatId: b });
+    }
+  };
+  const v1ChordSymbolBtn = () => {
+    const ed = v1EditorRef.current;
+    const b = v1SelectedBeatId();
+    if (!ed || !b) return;
+    const text = window.prompt("Chord symbol (e.g. Cmaj7, G/B)", ed.findBeat(b)?.beat.chordSymbol ?? "");
+    if (text !== null && ed.setChordSymbol(b, text)) v1Rerender();
+  };
+
   // Every action, for the command palette (Cmd-K) and, where sensible, menus.
   const commands: Command[] = [
     { id: "play", label: playing || recording.playing ? "Pause" : "Play", group: "Transport", shortcut: "Space", run: () => togglePlayRef.current() },
@@ -2117,59 +2229,153 @@ export function App() {
       </div>
 
       {editMode && hasV1Editor && (
-        <div className="edit-band" role="region" aria-label="Editing tools">
-          <span className="inspector-title">Editing</span>
-          <button className="btn-icon" onClick={v1Undo} disabled={!v1EditorRef.current?.canUndo} title="Undo (Cmd+Z)" aria-label="Undo">↶</button>
-          <button className="btn-icon" onClick={v1Redo} disabled={!v1EditorRef.current?.canRedo} title="Redo (Shift+Cmd+Z)" aria-label="Redo">↷</button>
-          <span className="subgroup">
-            <span className="subgroup-label">Transpose</span>
-            <button className="btn-icon" onClick={() => v1Transpose(1)} disabled={!selectedV1?.noteId} aria-label="Transpose up" title="Transpose up (Up arrow)">＋</button>
-            <button className="btn-icon" onClick={() => v1Transpose(-1)} disabled={!selectedV1?.noteId} aria-label="Transpose down" title="Transpose down (Down arrow)">－</button>
-          </span>
-          <button className="btn-icon" onClick={v1Delete} disabled={!selectedV1?.noteId} aria-label="Delete note" title="Delete note (Del)">🗑</button>
-          <span className="subgroup">
-            <span className="subgroup-label">Marks</span>
-            <button className="btn-icon" onClick={() => v1Articulate("staccato")} disabled={!selectedV1} title="Staccato">·</button>
-            <button className="btn-icon" onClick={() => v1Articulate("accent")} disabled={!selectedV1} title="Accent">&gt;</button>
-            <button className="btn-icon" onClick={() => v1Articulate("tenuto")} disabled={!selectedV1} title="Tenuto">‒</button>
-            <button className="btn-icon" onClick={v1Fermata} disabled={!selectedV1} title="Fermata">𝄐</button>
-            <button className="btn-icon" onClick={v1Tie} disabled={!selectedV1?.noteId} title="Tie (t)">‿</button>
-            <button className="btn-icon" onClick={v1Slur} disabled={!selectedV1} title="Slur (s)">⌒</button>
-          </span>
-          <label className="control" title="Dynamic">
-            Dyn
-            <select value="" onChange={(e) => e.target.value && v1Dynamic(e.target.value)} disabled={!selectedV1}>
-              <option value="">–</option>
-              {["pp", "p", "mp", "mf", "f", "ff"].map((d) => <option key={d} value={d}>{d}</option>)}
-            </select>
-          </label>
-          <span className="subgroup">
-            <span className="subgroup-label">Bar</span>
-            <button className="btn-icon" onClick={v1AddBar} title="Add a measure after this one">＋</button>
-            <button className="btn-icon" onClick={v1RemoveBar} title="Remove this measure">－</button>
-          </span>
-          <label className="control" title="Time signature of this bar">
-            Time
-            <select value={v1TimeValue} onChange={(e) => v1SetTime(e.target.value)}>
-              {["2/4", "3/4", "4/4", "6/8", "3/8", "5/4", "12/8"].map((t) => <option key={t} value={t}>{t}</option>)}
-            </select>
-          </label>
-          <label className="control" title="Key signature of this bar">
-            Key
-            <select value={v1KeyValue} onChange={(e) => v1SetKey(Number(e.target.value))}>
-              {KEY_OPTIONS.map((k) => <option key={k.fifths} value={k.fifths}>{k.label}</option>)}
-            </select>
-          </label>
-          <button className="btn-icon" onClick={v1EditTempo} title="Tempo (bpm)">♩=</button>
-          <button className="btn-icon" onClick={v1EditMeta} title="Title & composer">ℹ</button>
-          <span className="edit-hint">
-            {selectedV1?.noteId
-              ? "A–G pitch · 1–9 value · . dot · +/− accidental · Shift+A–G chord · t tie · s slur · k chord-sym · r rest · ↑/↓ transpose · ←/→ move"
-              : selectedV1?.restBeatId
-                ? "Rest selected — type A–G to make it a note, 1–9 sets the value"
-                : "Click a note or rest, then type A–G to set pitch, 1–9 for the value."}
-          </span>
-        </div>
+        <>
+          <div className="edit-toolbar" role="toolbar" aria-label="Editing tools">
+            {/* Always available: history + delete, pinned so they never move. */}
+            <div className="etb-group" role="group" aria-label="History">
+              <button className="etb-btn" onClick={v1Undo} disabled={!v1EditorRef.current?.canUndo} title="Undo (Cmd+Z)" aria-label="Undo">↶</button>
+              <button className="etb-btn" onClick={v1Redo} disabled={!v1EditorRef.current?.canRedo} title="Redo (Shift+Cmd+Z)" aria-label="Redo">↷</button>
+              <button className="etb-btn" onClick={v1Delete} disabled={v1Sel.kind !== "note"} title="Delete (Del)" aria-label="Delete note">🗑</button>
+            </div>
+
+            {/* Note value (when a note or rest is selected). */}
+            {v1Sel.kind !== "none" && (
+              <div className="etb-group" role="group" aria-label="Note value">
+                <span className="etb-label">Value</span>
+                {DURATION_PALETTE.map((d) => (
+                  <button
+                    key={d.type}
+                    className={"etb-btn" + (v1Sel.noteType === d.type ? " active" : "")}
+                    aria-pressed={v1Sel.noteType === d.type}
+                    aria-label={`${d.label} (${d.key})`}
+                    title={`${d.label} (key ${d.key})`}
+                    onClick={() => v1SetDurationType(d.type)}
+                  >
+                    {d.face}
+                  </button>
+                ))}
+                <button className={"etb-btn" + (v1Sel.dotted ? " active" : "")} aria-pressed={v1Sel.dotted} aria-label="Dotted" title="Dotted (.)" onClick={v1ToggleDotBtn}>
+                  ・
+                </button>
+              </div>
+            )}
+
+            {/* Pitch entry A-G (standard staves). Fret keypad on tab staves. */}
+            {v1Sel.kind !== "none" && !v1Sel.tab && (
+              <div className="etb-group" role="group" aria-label="Pitch">
+                <span className="etb-label">Pitch</span>
+                {(["C", "D", "E", "F", "G", "A", "B"] as v1.NoteStep[]).map((s) => (
+                  <button key={s} className="etb-btn" aria-label={`Pitch ${s}`} title={`Pitch ${s} (${s.toLowerCase()})`} onClick={() => v1SetPitchLetter(s)}>
+                    {s}
+                  </button>
+                ))}
+              </div>
+            )}
+            {v1Sel.kind === "note" && v1Sel.tab && (
+              <div className="etb-group" role="group" aria-label="Fret">
+                <span className="etb-label">Fret</span>
+                {[0, 1, 2, 3, 4, 5, 6, 7].map((f) => (
+                  <button key={f} className="etb-btn" aria-label={`Fret ${f}`} title={`Fret ${f}`} onClick={() => v1SetFretBtn(f)}>
+                    {f}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {/* Accidental + octave (note on a standard staff). */}
+            {v1Sel.kind === "note" && !v1Sel.tab && (
+              <div className="etb-group" role="group" aria-label="Accidental and octave">
+                <span className="etb-label">Accidental</span>
+                <button className="etb-btn" aria-label="Flat" title="Flat (−)" onClick={() => v1SetAlter(-1)}>♭</button>
+                <button className="etb-btn" aria-label="Natural" title="Natural" onClick={() => v1SetAlter(0)}>♮</button>
+                <button className="etb-btn" aria-label="Sharp" title="Sharp (+)" onClick={() => v1SetAlter(1)}>♯</button>
+                <button className="etb-btn" aria-label="Octave up" title="Octave up (Shift+Up)" onClick={() => v1Transpose(12)}>8va</button>
+                <button className="etb-btn" aria-label="Octave down" title="Octave down (Shift+Down)" onClick={() => v1Transpose(-12)}>8vb</button>
+              </div>
+            )}
+
+            {/* Articulations, tie, slur (note only). Color marks active state. */}
+            {v1Sel.kind === "note" && (
+              <div className="etb-group" role="group" aria-label="Articulations and slurs">
+                <span className="etb-label">Marks</span>
+                {MARK_PALETTE.map((m) => (
+                  <button
+                    key={m.type}
+                    className={"etb-btn" + (v1Sel.marks.has(m.type) ? " active" : "")}
+                    aria-pressed={v1Sel.marks.has(m.type)}
+                    aria-label={m.label}
+                    title={m.label}
+                    onClick={() => v1Articulate(m.type)}
+                  >
+                    {m.glyph}
+                  </button>
+                ))}
+                <button className={"etb-btn wide" + (v1Sel.marks.has("fermata") ? " active" : "")} aria-pressed={v1Sel.marks.has("fermata")} aria-label="Fermata" title="Fermata" onClick={v1Fermata}>Hold</button>
+                <button className={"etb-btn" + (v1Sel.marks.has("tie") ? " active" : "")} aria-pressed={v1Sel.marks.has("tie")} aria-label="Tie" title="Tie (t)" onClick={v1Tie}>‿</button>
+                <button className={"etb-btn" + (v1Sel.marks.has("slur") ? " active" : "")} aria-pressed={v1Sel.marks.has("slur")} aria-label="Slur" title="Slur (s)" onClick={v1Slur}>⌒</button>
+              </div>
+            )}
+
+            {/* Dynamics, chord symbol, convert-to-rest (note only). */}
+            {v1Sel.kind === "note" && (
+              <div className="etb-group" role="group" aria-label="Dynamics and chord">
+                <label className="etb-select" title="Dynamic">
+                  <span className="etb-label">Dyn</span>
+                  <select value="" onChange={(e) => e.target.value && v1Dynamic(e.target.value)}>
+                    <option value="">–</option>
+                    {["pp", "p", "mp", "mf", "f", "ff"].map((d) => <option key={d} value={d}>{d}</option>)}
+                  </select>
+                </label>
+                <button className="etb-btn wide" aria-label="Chord symbol" title="Chord symbol (k)" onClick={v1ChordSymbolBtn}>Chord</button>
+                <button className="etb-btn wide" aria-label="Change to rest" title="Change to rest (r)" onClick={v1MakeRestBtn}>Rest</button>
+              </div>
+            )}
+
+            {/* Score-level setup: demoted behind one popover, always reachable. */}
+            <div className="etb-group etb-right" role="group" aria-label="Score settings">
+              <button className={"etb-btn wide" + (scorePanelOpen ? " active" : "")} aria-expanded={scorePanelOpen} aria-haspopup="dialog" title="Bars, time, key, tempo, title" onClick={() => setScorePanelOpen((o) => !o)}>
+                ⚙ Score
+              </button>
+              {scorePanelOpen && (
+                <div className="etb-popover" role="dialog" aria-label="Score settings">
+                  <div className="etb-pop-row">
+                    <span className="etb-label">Measures</span>
+                    <button className="etb-btn" onClick={v1AddBar} aria-label="Add a measure after this one" title="Add measure">＋ Bar</button>
+                    <button className="etb-btn" onClick={v1RemoveBar} aria-label="Remove this measure" title="Remove measure">－ Bar</button>
+                  </div>
+                  <label className="etb-pop-row">
+                    <span className="etb-label">Time</span>
+                    <select value={v1TimeValue} onChange={(e) => v1SetTime(e.target.value)}>
+                      {["2/4", "3/4", "4/4", "6/8", "3/8", "5/4", "12/8"].map((t) => <option key={t} value={t}>{t}</option>)}
+                    </select>
+                  </label>
+                  <label className="etb-pop-row">
+                    <span className="etb-label">Key</span>
+                    <select value={v1KeyValue} onChange={(e) => v1SetKey(Number(e.target.value))}>
+                      {KEY_OPTIONS.map((k) => <option key={k.fifths} value={k.fifths}>{k.label}</option>)}
+                    </select>
+                  </label>
+                  <div className="etb-pop-row">
+                    <button className="etb-btn wide" onClick={v1EditTempo} aria-label="Tempo" title="Tempo (bpm)">♩= Tempo</button>
+                    <button className="etb-btn wide" onClick={v1EditMeta} aria-label="Title and composer" title="Title & composer">ℹ Title</button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Live selection status + the one relevant next action. */}
+          <div className="edit-status" role="status" aria-live="polite">
+            <span className="edit-status-what">{v1Sel.desc}</span>
+            <span className="edit-status-hint">
+              {v1Sel.kind === "none"
+                ? "Click a note or rest to edit it."
+                : v1Sel.kind === "rest"
+                  ? "Type A–G (or tap Pitch) to turn this rest into a note."
+                  : "Type A–G to re-pitch, 1–9 for value, ←/→ to move."}
+            </span>
+          </div>
+        </>
       )}
       {locked && assignment && (
         <div className="edit-band" role="region" aria-label="Assignment">

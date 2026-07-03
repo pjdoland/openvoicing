@@ -102,6 +102,8 @@ body {
 .app > .header,
 .app > .toolbar,
 .app > .edit-band,
+.app > .edit-toolbar,
+.app > .edit-status,
 .app > .tracks,
 .app > .panel,
 .app > .sync-bar,
@@ -889,6 +891,103 @@ body {
   border-left: 3px solid var(--accent);
 }
 
+/* ---- Selection-aware editing toolbar (v1) ---- */
+.edit-toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px 4px;
+  padding: 6px 16px;
+  background: color-mix(in srgb, var(--accent) 8%, var(--panel));
+  border-bottom: 1px solid var(--accent-soft-border);
+  border-left: 3px solid var(--accent);
+}
+.etb-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 8px;
+  border-right: 1px solid var(--border);
+}
+.etb-group:last-child { border-right: none; }
+.etb-right { margin-left: auto; position: relative; }
+.etb-label {
+  font-size: 0.625rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+  margin-right: 2px;
+}
+.etb-btn {
+  min-width: 36px;
+  height: 36px;
+  padding: 0 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--panel);
+  color: var(--fg);
+  font-size: 0.9rem;
+  line-height: 1;
+  cursor: pointer;
+}
+.etb-btn.glyph { font-size: 1.15rem; }
+.etb-btn.wide { min-width: auto; gap: 4px; font-size: 0.8125rem; }
+.etb-btn:hover:not(:disabled) { background: var(--btn-hover); }
+.etb-btn:disabled { opacity: 0.4; cursor: default; }
+/* Color/pressed state is reserved for active toggles only. */
+.etb-btn.active,
+.etb-btn[aria-pressed="true"] {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--focus, #fff);
+}
+.etb-select { display: inline-flex; align-items: center; gap: 4px; font-size: 0.75rem; color: var(--muted-2); }
+.etb-select select, .etb-pop-row select { height: 32px; }
+
+.etb-popover {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 40;
+  min-width: 240px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.28);
+}
+.etb-pop-row { display: flex; align-items: center; gap: 6px; }
+.etb-pop-row .etb-label { min-width: 62px; }
+.etb-pop-row select { flex: 1; }
+
+.edit-status {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  padding: 5px 20px;
+  font-size: 0.8125rem;
+  background: var(--panel-alt);
+  border-bottom: 1px solid var(--border);
+}
+.edit-status-what { font-weight: 600; color: var(--fg); }
+.edit-status-hint { color: var(--muted); }
+
+@media (max-width: 720px) {
+  .etb-label { display: none; }
+  .etb-group { padding: 0 4px; }
+  .etb-btn { min-width: 40px; height: 40px; }
+  .edit-status { flex-direction: column; gap: 2px; }
+}
+
 .inspector {
   display: flex;
   align-items: center;
@@ -1040,6 +1139,8 @@ body {
 }
 .app.closed .toolbar,
 .app.closed .edit-band,
+.app.closed .edit-toolbar,
+.app.closed .edit-status,
 .app.closed .panel,
 .app.closed .tracks,
 .app.closed .score-surface { display: none; }

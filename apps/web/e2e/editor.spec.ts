@@ -29,7 +29,7 @@ test.describe("score editor", () => {
     expect(midis).toEqual([62]);
 
     // Undo from the editing band returns toward C.
-    await page.locator('.edit-band button[aria-label="Undo"]').click();
+    await page.locator('.edit-toolbar button[aria-label="Undo"]').click();
     await page.waitForTimeout(400);
     midis = await page.evaluate(eval(firstBeatMidis()) as () => number[]);
     expect(midis).toEqual([61]);

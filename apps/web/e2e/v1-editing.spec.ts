@@ -36,7 +36,7 @@ test.describe("v1 editing (multi-staff)", () => {
     expect(await page.evaluate(() => (window as any).__ovPlayer.api.score.tracks[0].staves.length)).toBe(2);
 
     await page.getByRole("button", { name: "Edit", exact: true }).click();
-    await expect(page.locator(".edit-band")).toBeVisible();
+    await expect(page.locator(".edit-toolbar")).toBeVisible();
 
     // Select the first note (nearest-note click selection is coordinate-based
     // and covered manually; here we select the note id via the model so the
