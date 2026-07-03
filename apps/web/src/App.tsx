@@ -418,6 +418,14 @@ export function App() {
       w.__ovV1Editor = () => v1EditorRef.current;
       w.__ovSelectedV1 = () => selectedV1Ref.current?.noteId ?? selectedV1Ref.current?.restBeatId ?? null;
       w.__ovSelectV1 = (id: string) => setSelectedV1({ noteId: id });
+      // Test hook: deterministically position the caret on any beat (note or
+      // rest) by id, so e2e flows can move between beats without pixel clicks.
+      w.__ovSelectBeat = (beatId: string) => {
+        const beat = v1EditorRef.current?.findBeat(beatId)?.beat;
+        if (beat) setSelectedV1(beat.notes[0] ? { noteId: beat.notes[0].id } : { restBeatId: beatId });
+      };
+      // Test hook: the current model exported to MusicXML (for round-trip checks).
+      w.__ovExportMusicXml = () => (v1EditorRef.current ? v1.exportMusicXmlV1(v1EditorRef.current.doc) : null);
       // Dev hook: render any MusicXML through the full-fidelity v1 pipeline
       // (import -> v1 model -> alphaTab adapter), the Option C render path.
       w.__ovRenderV1 = (xml: string) => player.renderV1(v1.importMusicXmlV1(xml));
