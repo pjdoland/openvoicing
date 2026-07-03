@@ -93,7 +93,9 @@ function loadScoreIntoPlayer(player: Player, source: ScoreSource): LoadedScore {
     return { editor: null, v1Editor: null };
   }
   if (source.type === "musicxml") {
-    const text = new TextDecoder().decode(source.data);
+    const bytes = new Uint8Array(source.data);
+    // .mxl is a zip container; unwrap it to the root MusicXML document first.
+    const text = v1.isMxl(bytes) ? v1.unwrapMxl(bytes) : new TextDecoder().decode(bytes);
     // Simple scores stay on the lightweight v0 editable path. Multi-staff /
     // multi-voice scores (piano, ensemble) go through the full-fidelity v1
     // model, rendered via the alphaTab adapter, so they are editable too.

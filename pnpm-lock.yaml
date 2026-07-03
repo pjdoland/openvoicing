@@ -132,6 +132,9 @@ importers:
       fast-xml-parser:
         specifier: ^5.9.3
         version: 5.9.3
+      fflate:
+        specifier: ^0.8.3
+        version: 0.8.3
     devDependencies:
       '@types/node':
         specifier: ^26.0.1
