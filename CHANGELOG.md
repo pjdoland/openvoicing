@@ -26,10 +26,15 @@ Work in progress on `main`. Notable recent changes:
   a performance) and follow the notation as it plays, with the same cursor,
   Follow, looping, and tap-sync as audio. Video plays through YouTube's official
   IFrame player (embedded via youtube-nocookie, never downloaded); speed snaps
-  to YouTube's steps. Works in the app and the embeddable player. Add one with
-  **Add YouTube…**, `ovb create --youtube <url>`, or a `youtube` media entry in
-  the bundle. Auto-sync/waveform remain audio-only (attach a paired audio file
-  for those).
+  to YouTube's steps. Works in the app and the embeddable player. Add one via the
+  recording panel's **Add…** menu, `ovb create --youtube <url>`, or a `youtube`
+  media entry in the bundle.
+- **Paired audio for a video.** Attach an audio file to a YouTube recording
+  (**Add… → Audio for waveform & auto-sync…**) to get a waveform, one-click
+  **Auto sync**, and draggable bar markers, while playback stays the video. The
+  audio travels in the bundle as the recording's `audioPath`.
+- The recording panel's separate "Add audio" / "Add YouTube" buttons are
+  consolidated into one **Add…** menu.
 - A provider-agnostic `MediaPlayer` interface in `audio-engine` (`RecordingPlayer`
   and `YouTubePlayer`), so playback is decoupled from the source.
 - Project license files (AGPL-3.0 for the app, MPL-2.0 for the libraries),

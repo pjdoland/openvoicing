@@ -23,6 +23,7 @@ import {
   scoreFileExtension,
   scoreTypeFromFileName,
   type BundleRecording,
+  type RecordingMedia,
   type SavedLoop,
   type ScoreType,
 } from "@openvoicing/bundle";
@@ -294,6 +295,15 @@ export function App() {
   const youtubeRef = useRef<YouTubePlayer | null>(null);
   const videoHostRef = useRef<HTMLDivElement | null>(null);
   const [activeMediaKind, setActiveMediaKind] = useState<"audio" | "youtube">("audio");
+  // The live YouTube player instance, mirrored into state so the recording
+  // panel can bind its waveform playhead to it (video + paired audio).
+  const [youtubeInstance, setYoutubeInstance] = useState<YouTubePlayer | null>(null);
+  // Whether the active video recording has a paired audio file loaded (for the
+  // waveform + auto-sync). Set to false whenever the active media changes.
+  const [hasPairedAudio, setHasPairedAudio] = useState(false);
+  // Guards the RecordingPlayer "loaded" reset when loading paired audio, so the
+  // video's existing sync map and source selection are preserved.
+  const loadingPairedAudioRef = useRef(false);
   function media(): MediaPlayer {
     return youtubeRef.current ?? recording;
   }
@@ -641,6 +651,13 @@ export function App() {
     return recording.on("loaded", ({ channels, sampleRate }) => {
       recordingAudioRef.current = { channels, sampleRate };
       recording.speed = speedRef.current; // carry the current practice tempo over
+      // Paired audio for a video: keep the video as the source and its sync map;
+      // we only want the channels (for the waveform + auto-sync).
+      if (loadingPairedAudioRef.current) {
+        loadingPairedAudioRef.current = false;
+        setHasPairedAudio(true);
+        return;
+      }
       applyPreferred("recording"); // a loaded recording is the focus
       setSyncPoints(null);
       setFollow(false);
@@ -677,6 +694,7 @@ export function App() {
         if (meta.media?.kind === "youtube") {
           setActiveRecId(meta.id);
           setActiveMediaKind("youtube");
+          setHasPairedAudio(false);
           applyPreferred("recording");
           await loadSavedLoops(meta.id);
           const sync = await storage.get<SyncPoint[]>(`sync:${meta.id}`);
@@ -684,6 +702,7 @@ export function App() {
             setSyncPoints(sync);
             setFollow((await storage.get<boolean>("follow")) ?? true);
           }
+          if (!cancelled && meta.media.audioPath) await loadPairedAudioFor(meta.id);
           return;
         }
         const stored = await storage.get<StoredFile>(`recording:${meta.id}`);
@@ -781,6 +800,7 @@ export function App() {
     const id = newRecordingId();
     media().pause();
     setActiveMediaKind("audio");
+    setHasPairedAudio(false);
     await recording.load(buffer);
     void storage.set(`recording:${id}`, { name: file.name, data: copy } satisfies StoredFile);
     saveRecordingsList([...recordingsRef.current, { id, name: file.name }]);
@@ -805,8 +825,41 @@ export function App() {
     setFollow(false);
     setActiveRecId(id);
     setActiveMediaKind("youtube");
+    setHasPairedAudio(false);
     applyPreferred("recording");
-    showToast("YouTube video added. Tap-sync it to the score.");
+    showToast("YouTube video added. Tap-sync it, or attach audio for Auto-sync.");
+  }
+
+  // Attach an audio file to the active YouTube recording, for the waveform and
+  // Auto-sync. Playback stays the video; the audio is decoded, not played.
+  async function addPairedAudio(file: File) {
+    const id = activeRecId;
+    if (activeMediaKind !== "youtube" || !id) return;
+    const buffer = await file.arrayBuffer();
+    const copy = buffer.slice(0);
+    loadingPairedAudioRef.current = true;
+    await recording.load(buffer);
+    void storage.set(`recording:${id}`, { name: file.name, data: copy } satisfies StoredFile);
+    saveRecordingsList(
+      recordingsRef.current.map((r) =>
+        r.id === id && r.media?.kind === "youtube"
+          ? { ...r, media: { ...r.media, audioPath: file.name } }
+          : r,
+      ),
+    );
+    showToast("Audio attached: waveform and Auto-sync are ready.");
+  }
+
+  // Load a video recording's paired audio (if it has one) into the Recording
+  // player for the waveform + auto-sync, without changing the video source.
+  async function loadPairedAudioFor(id: string): Promise<void> {
+    const stored = await storage.get<StoredFile>(`recording:${id}`);
+    if (!stored) {
+      setHasPairedAudio(false);
+      return;
+    }
+    loadingPairedAudioRef.current = true;
+    await recording.load(stored.data);
   }
 
   async function selectRecording(id: string) {
@@ -819,16 +872,19 @@ export function App() {
     if (meta?.media?.kind === "youtube") {
       setActiveRecId(id);
       setActiveMediaKind("youtube");
+      setHasPairedAudio(false);
       applyPreferred("recording");
       await loadSavedLoops(id);
       const sync = await storage.get<SyncPoint[]>(`sync:${id}`);
       setSyncPoints(sync?.length ? sync : null);
       setFollow(Boolean(sync?.length));
+      if (meta.media.audioPath) await loadPairedAudioFor(id);
       return;
     }
     const stored = await storage.get<StoredFile>(`recording:${id}`);
     if (!stored) return;
     setActiveMediaKind("audio");
+    setHasPairedAudio(false);
     await recording.load(stored.data);
     recording.pitchSemitones = pitchSemitones;
     recording.seek(Math.min(position, recording.duration));
@@ -877,12 +933,14 @@ export function App() {
       endSeconds: m.endSeconds,
     });
     youtubeRef.current = yt;
+    setYoutubeInstance(yt);
     void yt.whenReady().then(() => {
       yt.speed = speedRef.current;
     });
     return () => {
       yt.destroy();
       if (youtubeRef.current === yt) youtubeRef.current = null;
+      setYoutubeInstance(null);
       host.replaceChildren();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -1688,9 +1746,19 @@ export function App() {
         ...(sync?.length ? { syncPoints: sync } : {}),
         ...(loops.length ? { loops } : {}),
       };
-      // A YouTube recording is just a reference; no audio bytes to pack.
+      // A YouTube recording references a video; pack its paired audio (if any),
+      // rewriting audioPath from a marker to a real archive path.
       if (meta.media?.kind === "youtube") {
-        manifestRecordings.push({ id: meta.id, name: meta.name, media: meta.media, ...syncLoops });
+        let ytMedia: RecordingMedia = { ...meta.media, audioPath: undefined };
+        if (meta.media.audioPath) {
+          const rec = await storage.get<StoredFile>(`recording:${meta.id}`);
+          if (rec) {
+            const audioPath = `recordings/${meta.id}/${sanitizeName(rec.name)}`;
+            files.set(audioPath, new Uint8Array(rec.data));
+            ytMedia = { ...meta.media, audioPath };
+          }
+        }
+        manifestRecordings.push({ id: meta.id, name: meta.name, media: ytMedia, ...syncLoops });
         continue;
       }
       const rec = await storage.get<StoredFile>(`recording:${meta.id}`);
@@ -1827,7 +1895,18 @@ export function App() {
       for (const entry of manifest.recordings) {
         const id = list.some((r) => r.id === entry.id) ? newRecordingId() : entry.id;
         if (entry.media.kind === "youtube") {
-          list.push({ id, name: entry.name, media: entry.media });
+          // Unpack paired audio (if any) to storage and keep a marker on the meta.
+          let media: RecordingMedia = { ...entry.media, audioPath: undefined };
+          const audioBytes = entry.media.audioPath && bundle.files.get(entry.media.audioPath);
+          if (entry.media.audioPath && audioBytes) {
+            const fileName = entry.media.audioPath.split("/").pop() ?? "audio";
+            void storage.set(`recording:${id}`, {
+              name: fileName,
+              data: audioBytes.slice().buffer as ArrayBuffer,
+            } satisfies StoredFile);
+            media = { ...entry.media, audioPath: fileName };
+          }
+          list.push({ id, name: entry.name, media });
         } else {
           const audioPath = recordingAudioPath(entry.media);
           if (!audioPath) continue;
@@ -1855,7 +1934,9 @@ export function App() {
         setSavedLoops(firstEntry.loops ?? []);
         if (firstEntry.media.kind === "youtube") {
           setActiveMediaKind("youtube");
+          setHasPairedAudio(false);
           applyPreferred("recording");
+          if (firstEntry.media.audioPath) await loadPairedAudioFor(firstId);
         } else {
           setActiveMediaKind("audio");
           const bytes = bundle.files.get(recordingAudioPath(firstEntry.media)!)!;
@@ -2979,6 +3060,9 @@ export function App() {
           <RecordingPanel
             player={recording}
             isVideo={activeMediaKind === "youtube"}
+            playbackMedia={
+              activeMediaKind === "youtube" && hasPairedAudio ? youtubeInstance : null
+            }
             recordings={recordings}
             activeId={activeRecId}
             onSelect={(id) => void selectRecording(id)}
@@ -2987,6 +3071,7 @@ export function App() {
               const url = window.prompt("Paste a YouTube link or video id");
               if (url) void addYouTubeRecording(url);
             }}
+            onAddPairedAudio={(file) => void addPairedAudio(file)}
             onRemove={(id) => void removeRecording(id)}
             syncPoints={syncPoints}
             onMoveSyncPoint={moveSyncPoint}

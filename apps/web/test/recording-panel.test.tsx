@@ -105,7 +105,8 @@ describe("RecordingPanel", () => {
     const onAddFile = vi.fn(async () => {});
     render(<RecordingPanel {...baseProps} onAddFile={onAddFile} />);
     const file = new File([new Uint8Array([1, 2])], "new.mp3", { type: "audio/mpeg" });
-    // The file input is visually hidden; grab it by type.
+    // The file input lives in the "Add…" menu; open it, then grab the input.
+    await user.click(screen.getByRole("button", { name: /Add…/ }));
     const input = document.querySelector('input[type="file"]') as HTMLInputElement;
     await user.upload(input, file);
     expect(onAddFile).toHaveBeenCalledWith(file);

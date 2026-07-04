@@ -45,7 +45,8 @@ Switch to **Practice** mode for these.
 OpenVoicing can line a real audio recording up to the score so playback of the
 recording follows the notation.
 
-1. In **Practice** mode, open the **Recording & sync** panel and add an audio file.
+1. In **Practice** mode, open the **Recording & sync** panel and choose
+   **Add… → Audio file…**.
 2. Use **Auto sync** to align it automatically, or **tap sync** to tap each bar's
    downbeat yourself.
 3. The **Sound** toggle chooses what you hear:
@@ -64,15 +65,17 @@ Instead of an audio file, you can sync the score to a **YouTube video** (for
 example a lesson or a performance), and the notation follows the video as it
 plays.
 
-1. In the **Recording & sync** panel, click **Add YouTube…** and paste a video
-   link (or its id). The video appears above the score, and the **Sound** toggle
-   now offers **Video** / **Notes**.
+1. In the **Recording & sync** panel, open the **Add…** menu and choose
+   **YouTube video…**, then paste a video link (or its id). The video appears
+   above the score, and the **Sound** toggle now offers **Video** / **Notes**.
 2. Sync it with **tap sync**: press play, then tap each bar's downbeat as it goes
-   by. (Auto-sync needs an audio waveform, so it is available only when you also
-   add an audio file.)
+   by.
 3. Play as usual: the cursor follows the video, **Follow** keeps the score in
-   view, and looping works. Speed **snaps to YouTube's steps** (0.25×, 0.5×, …);
-   for finer control, add a matching audio file.
+   view, and looping works. Speed **snaps to YouTube's steps** (0.25×, 0.5×, …).
+4. **For a waveform and Auto-sync** (and finer speed), open **Add… → Audio for
+   waveform & auto-sync…** and attach an audio file of the same performance. The
+   waveform appears under the video; **Auto sync** then aligns every bar at once,
+   and you can drag markers to fine-tune. Playback stays the video.
 
 Notes on YouTube recordings:
 

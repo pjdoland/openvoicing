@@ -12,11 +12,13 @@ import {
   computePeaks,
   computePeaksAsync,
   type LoopRegion,
+  type MediaPlayer,
   type WaveformPeaks,
 } from "@openvoicing/audio-engine";
 import type { SyncPoint } from "@openvoicing/score-model";
 import type { SavedLoop } from "@openvoicing/bundle";
 import type { RecordingMeta } from "./storage";
+import { Popover } from "./ui/Popover";
 
 const WAVE_WIDTH = 1200;
 const WAVE_HEIGHT = 96;
@@ -35,13 +37,21 @@ interface DragState {
 
 interface RecordingPanelProps {
   player: RecordingPlayer;
-  /** True when the active recording is a video (YouTube): no waveform/pitch. */
+  /** True when the active recording is a video (YouTube): no pitch shift. */
   isVideo?: boolean;
+  /**
+   * When set, the waveform playhead + time readout track this source instead of
+   * `player`. Used for a video with paired audio: the waveform comes from
+   * `player` (the loaded audio) but the playhead follows the video.
+   */
+  playbackMedia?: MediaPlayer | null;
   recordings: RecordingMeta[];
   activeId: string | null;
   onSelect: (id: string) => void;
   onAddFile: (file: File) => Promise<void>;
   onAddYouTube?: () => void;
+  /** Attach an audio file to the active video for waveform + auto-sync. */
+  onAddPairedAudio?: (file: File) => void;
   onRemove: (id: string) => void;
   /** Sync anchors to render as draggable markers, or null when unsynced. */
   syncPoints: SyncPoint[] | null;
@@ -62,11 +72,13 @@ interface RecordingPanelProps {
 export function RecordingPanel({
   player,
   isVideo = false,
+  playbackMedia,
   recordings,
   activeId,
   onSelect,
   onAddFile,
   onAddYouTube,
+  onAddPairedAudio,
   onRemove,
   syncPoints,
   onMoveSyncPoint,
@@ -147,6 +159,20 @@ export function RecordingPanel({
       for (const unsub of unsubs) unsub();
     };
   }, [player]);
+
+  // For a video with paired audio, the waveform is the audio (from `player`)
+  // but the playhead should track the video, so follow playbackMedia's clock.
+  useEffect(() => {
+    if (!playbackMedia) return;
+    setPlaying(playbackMedia.playing);
+    const unsubs = [
+      playbackMedia.on("stateChanged", setPlaying),
+      playbackMedia.on("positionChanged", (seconds) => setPosition(seconds)),
+    ];
+    return () => {
+      for (const unsub of unsubs) unsub();
+    };
+  }, [playbackMedia]);
 
   // Peaks are cached per zoom level; recompute when the resolution changes.
   useEffect(() => {
@@ -366,6 +392,16 @@ export function RecordingPanel({
     e.target.value = "";
   }
 
+  function openPairedFile(e: ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (file) onAddPairedAudio?.(file);
+    e.target.value = "";
+  }
+
+  // Show the waveform whenever there's audio to draw: any audio take, or a
+  // video that has a paired audio file (signalled by playbackMedia being set).
+  const showWaveform = !isVideo || !!playbackMedia;
+
   return (
     <section className="recording">
       <div className="recording-toolbar">
@@ -391,15 +427,25 @@ export function RecordingPanel({
             ✕
           </button>
         )}
-        <label className="control open-file">
-          Add audio…
-          <input type="file" accept="audio/*" onChange={openFile} />
-        </label>
-        {onAddYouTube && (
-          <button className="control" onClick={onAddYouTube} title="Add a YouTube video">
-            Add YouTube…
-          </button>
-        )}
+        <Popover label="Add…" className="add-media" title="Add a recording">
+          <div className="add-menu" role="menu">
+            <label className="add-menu-item">
+              <input type="file" accept="audio/*" onChange={openFile} />
+              Audio file…
+            </label>
+            {onAddYouTube && (
+              <button type="button" className="add-menu-item" onClick={onAddYouTube}>
+                YouTube video…
+              </button>
+            )}
+            {isVideo && onAddPairedAudio && (
+              <label className="add-menu-item">
+                <input type="file" accept="audio/*" onChange={openPairedFile} />
+                Audio for waveform &amp; auto-sync…
+              </label>
+            )}
+          </div>
+        </Popover>
         {hasActive && !isVideo && (
           <>
             <label className="control" title="Pitch shift in semitones">
@@ -505,13 +551,15 @@ export function RecordingPanel({
           </>
         )}
       </div>
-      {hasActive && isVideo && (
+      {hasActive && isVideo && !playbackMedia && (
         <p className="hint video-note">
-          Video plays above. Sync it to the score with tap-sync (Auto-sync needs
-          an audio file). Speed snaps to YouTube&rsquo;s steps.
+          Video plays above. Sync it with tap-sync, or use{" "}
+          <strong>Add &rarr; Audio for waveform &amp; auto-sync</strong> to attach
+          an audio file and get a waveform and Auto-sync. Speed snaps to
+          YouTube&rsquo;s steps.
         </p>
       )}
-      {hasActive && !isVideo && (
+      {hasActive && showWaveform && (
         <div
           className="wave-scroll"
           ref={scrollRef}
