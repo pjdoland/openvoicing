@@ -38,6 +38,7 @@ jobs:
           cp -R apps/web/dist/. _site/app/
           cp site/index.html _site/index.html
           cp site/style.css _site/style.css
+          cp site/*.png _site/
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:

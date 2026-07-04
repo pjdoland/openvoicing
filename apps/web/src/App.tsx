@@ -516,6 +516,24 @@ export function App() {
     }
     let disposed = false;
     void (async () => {
+      // Deep link: ?bundle=<url> loads a specific .ovb (e.g. the promo's demo
+      // piece), and &edit=1 opens it in edit mode. Falls through on failure.
+      const qs = new URLSearchParams(window.location.search);
+      const bundleUrl = qs.get("bundle");
+      if (bundleUrl) {
+        try {
+          const resp = await fetch(bundleUrl);
+          if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+          const bytes = new Uint8Array(await resp.arrayBuffer());
+          if (disposed) return;
+          await loadBundleBytes(bytes);
+          if (qs.get("edit") === "1") setEditMode(true);
+          return;
+        } catch (error) {
+          console.error("[openvoicing] failed to load ?bundle", error);
+          // fall through to the stored/demo score below
+        }
+      }
       let stored: (StoredFile & { type?: ScoreType }) | undefined;
       try {
         stored = await storage.get<StoredFile & { type?: ScoreType }>("score");

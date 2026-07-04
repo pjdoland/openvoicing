@@ -104,3 +104,17 @@ body {
   background: #fff;
   cursor: pointer;
 }
+
+/* alphaTab playback cursor + active-bar/beat highlight. Without these the
+   cursor elements exist but are invisible, so playback shows no position. */
+.at-cursor-bar {
+  background: rgba(37, 99, 235, 0.22);
+}
+.at-cursor-beat {
+  background: #2563eb;
+  width: 2px;
+}
+.at-highlight * {
+  fill: #2563eb;
+  stroke: #2563eb;
+}
