@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type ChangeEvent } from "react";
 import { createRoot } from "react-dom/client";
 import { Player } from "@openvoicing/player";
-import { RecordingPlayer } from "@openvoicing/audio-engine";
+import { RecordingPlayer, YouTubePlayer, type MediaPlayer } from "@openvoicing/audio-engine";
 import { mediaTimeAtTick, tickAtMediaTime, type SyncPoint } from "@openvoicing/score-model";
 import { readBundle, recordingAudioPath, type Bundle } from "@openvoicing/bundle";
 import { parseDeepLink } from "./deep-link";
@@ -19,7 +19,7 @@ function formatTime(seconds: number): string {
 function applyDeepLink(
   params: URLSearchParams,
   player: Player,
-  recording: RecordingPlayer,
+  recording: MediaPlayer,
   syncPoints: SyncPoint[] | undefined,
 ): { speed?: number } {
   const preset = parseDeepLink(params);
@@ -51,12 +51,18 @@ function applyDeepLink(
 
 function EmbedApp() {
   const containerRef = useRef<HTMLDivElement>(null);
+  const videoHostRef = useRef<HTMLDivElement>(null);
   const playerRef = useRef<Player | null>(null);
   const recordingRef = useRef<RecordingPlayer | null>(null);
+  // The active playback source: the RecordingPlayer for audio, or a
+  // YouTubePlayer for a video recording. Transport acts on mediaRef.
+  const mediaRef = useRef<MediaPlayer | null>(null);
+  const youtubeRef = useRef<YouTubePlayer | null>(null);
   const syncRef = useRef<SyncPoint[] | null>(null);
   const hasRecordingRef = useRef(false);
   const bundleRef = useRef<Bundle | null>(null);
   const lastBarRef = useRef(-1);
+  const [hasVideo, setHasVideo] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [title, setTitle] = useState("");
   const [ready, setReady] = useState(false);
@@ -111,21 +117,26 @@ function EmbedApp() {
       const points = syncRef.current;
       if (points) recordingRef.current?.seek(mediaTimeAtTick(points, tick));
     });
-    recording.on("stateChanged", setPlaying);
-    recording.on("positionChanged", (current, total) => {
-      setPosition({ current, total });
-      const points = syncRef.current;
-      if (points) {
-        const tick = Math.max(0, Math.round(tickAtMediaTime(points, current)));
-        player.cursorTick = tick;
-        // Follow: keep the playing bar in view (scroll only when it changes).
-        const bar = player.barIndexAtTick(tick);
-        if (bar !== lastBarRef.current) {
-          lastBarRef.current = bar;
-          player.scrollBarIntoView(bar);
+    // Subscribe whichever source is active (audio take or video) to drive the
+    // position readout and the synced, self-scrolling cursor.
+    const bindMedia = (m: MediaPlayer) => {
+      mediaRef.current = m;
+      m.on("stateChanged", setPlaying);
+      m.on("positionChanged", (current, total) => {
+        setPosition({ current, total });
+        const points = syncRef.current;
+        if (points) {
+          const tick = Math.max(0, Math.round(tickAtMediaTime(points, current)));
+          player.cursorTick = tick;
+          // Follow: keep the playing bar in view (scroll only when it changes).
+          const bar = player.barIndexAtTick(tick);
+          if (bar !== lastBarRef.current) {
+            lastBarRef.current = bar;
+            player.scrollBarIntoView(bar);
+          }
         }
-      }
-    });
+      });
+    };
 
     void (async () => {
       try {
@@ -143,10 +154,27 @@ function EmbedApp() {
 
         bundleRef.current = bundle;
         setRecordingIds(manifest.recordings.map((r) => ({ id: r.id, name: r.name })));
-        const rec = manifest.recordings.find((r) => recordingAudioPath(r.media));
-        if (rec) {
+        // Prefer the first recording; a video plays through a YouTubePlayer.
+        const rec =
+          manifest.recordings.find((r) => r.media.kind === "youtube") ??
+          manifest.recordings.find((r) => recordingAudioPath(r.media));
+        if (rec?.media.kind === "youtube") {
+          const yt = new YouTubePlayer(videoHostRef.current!, {
+            videoId: rec.media.videoId,
+            startSeconds: rec.media.startSeconds,
+            endSeconds: rec.media.endSeconds,
+          });
+          youtubeRef.current = yt;
+          bindMedia(yt);
+          hasRecordingRef.current = true;
+          setHasRecording(true);
+          setHasVideo(true);
+          setActiveRecording(rec.id);
+          syncRef.current = rec.syncPoints?.length ? rec.syncPoints : null;
+        } else if (rec) {
           const bytes = bundle.files.get(recordingAudioPath(rec.media)!)!;
           await recording.load(bytes.slice().buffer as ArrayBuffer);
+          bindMedia(recording);
           hasRecordingRef.current = true;
           setHasRecording(true);
           setActiveRecording(rec.id);
@@ -155,7 +183,7 @@ function EmbedApp() {
 
         // Deep-link presets: ?speed=0.75&loop=2-6&t=1.5 (loop/t in seconds,
         // or loop=b3-6 for bar numbers when the recording is synced).
-        const applied = applyDeepLink(params, player, recording, rec?.syncPoints);
+        const applied = applyDeepLink(params, player, mediaRef.current ?? recording, rec?.syncPoints);
         if (applied.speed) setSpeed(applied.speed);
       } catch (err) {
         setError(err instanceof Error ? err.message : String(err));
@@ -165,38 +193,45 @@ function EmbedApp() {
     return () => {
       playerRef.current = null;
       recordingRef.current = null;
+      mediaRef.current = null;
+      youtubeRef.current?.destroy();
+      youtubeRef.current = null;
       player.destroy();
       recording.destroy();
     };
   }, []);
 
   function isPlaying(): boolean {
-    if (hasRecordingRef.current) return recordingRef.current?.playing ?? false;
+    if (hasRecordingRef.current) return mediaRef.current?.playing ?? false;
     return playerRef.current?.playing ?? false;
   }
 
   function togglePlay() {
     if (hasRecordingRef.current) {
-      const recording = recordingRef.current;
-      if (!recording) return;
-      if (recording.playing) recording.pause();
-      else void recording.play();
+      const m = mediaRef.current;
+      if (!m) return;
+      if (m.playing) m.pause();
+      else void m.play();
     } else {
       playerRef.current?.playPause();
     }
   }
 
   function seek(seconds: number) {
-    if (hasRecordingRef.current) recordingRef.current?.seek(seconds);
+    if (hasRecordingRef.current) mediaRef.current?.seek(seconds);
     else playerRef.current?.seekSeconds(seconds);
   }
 
   function applySpeed(value: number) {
-    setSpeed(value);
-    if (hasRecordingRef.current && recordingRef.current) {
-      recordingRef.current.speed = value;
+    if (hasRecordingRef.current && mediaRef.current) {
+      mediaRef.current.speed = value;
+      // YouTube snaps to discrete rates; show what it will actually play.
+      setSpeed(mediaRef.current.speed);
     } else if (playerRef.current) {
       playerRef.current.speed = value;
+      setSpeed(value);
+    } else {
+      setSpeed(value);
     }
   }
 
@@ -207,7 +242,8 @@ function EmbedApp() {
   async function selectRecording(id: string) {
     const bundle = bundleRef.current;
     const recorder = recordingRef.current;
-    if (!bundle || !recorder || id === activeRecording) return;
+    // Video embeds carry a single video source; only audio takes switch here.
+    if (youtubeRef.current || !bundle || !recorder || id === activeRecording) return;
     const entry = bundle.manifest.recordings.find((r) => r.id === id);
     const audioPath = entry && recordingAudioPath(entry.media);
     if (!entry || !audioPath) return;
@@ -328,6 +364,11 @@ function EmbedApp() {
           OpenVoicing
         </a>
       </div>
+      <div
+        className="embed-video"
+        ref={videoHostRef}
+        style={hasVideo ? undefined : { display: "none" }}
+      />
       <div className="embed-score" tabIndex={0} role="region" aria-label="Score">
         <div className="embed-score-inner" ref={containerRef} />
       </div>

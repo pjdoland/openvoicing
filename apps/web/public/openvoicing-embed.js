@@ -45,7 +45,8 @@
     }
 
     var iframe = document.createElement("iframe");
-    iframe.allow = "autoplay; fullscreen";
+    // encrypted-media + picture-in-picture let a nested YouTube video play.
+    iframe.allow = "autoplay; fullscreen; encrypted-media; picture-in-picture";
     iframe.loading = "lazy";
     iframe.style.width = "100%";
     // A plain number, or a numeric string from data-openvoicing-height, is px;
