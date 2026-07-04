@@ -1,19 +1,11 @@
 /// <reference path="./signalsmith-stretch.d.ts" />
 import SignalsmithStretch, { type SignalsmithStretchNode } from "signalsmith-stretch";
+import type { LoopRegion, MediaPlayer, MediaPlayerEvents } from "./media-player";
 
-export interface LoopRegion {
-  start: number;
-  end: number;
-}
+export type { LoopRegion } from "./media-player";
 
-export interface RecordingPlayerEvents {
+export interface RecordingPlayerEvents extends MediaPlayerEvents {
   loaded: (info: { duration: number; channels: Float32Array[]; sampleRate: number }) => void;
-  stateChanged: (playing: boolean) => void;
-  positionChanged: (seconds: number, duration: number) => void;
-  speedChanged: (speed: number) => void;
-  loopChanged: (region: LoopRegion | null) => void;
-  /** Fired each time playback wraps from the end of the loop back to the start. */
-  looped: () => void;
 }
 
 const POSITION_INTERVAL_MS = 50;
@@ -23,7 +15,7 @@ const POSITION_INTERVAL_MS = 50;
  * speed changes preserve pitch. The AudioContext is created lazily on first
  * load/play, which must happen from a user gesture for audio to be audible.
  */
-export class RecordingPlayer {
+export class RecordingPlayer implements MediaPlayer {
   private context: AudioContext | null = null;
   private node: SignalsmithStretchNode | null = null;
   private _duration = 0;
@@ -133,6 +125,11 @@ export class RecordingPlayer {
 
   get position(): number {
     return this._position;
+  }
+
+  /** Decoded audio stretches continuously, so any speed is allowed. */
+  get availableSpeeds(): number[] | null {
+    return null;
   }
 
   /** Playback rate factor, 1 is original speed. Pitch is preserved. */
