@@ -6,7 +6,7 @@ export interface SyncPoint {
 
 export const BUNDLE_FORMAT = "openvoicing-bundle";
 /** Current manifest schema version this app writes. */
-export const BUNDLE_FORMAT_VERSION = 0;
+export const BUNDLE_FORMAT_VERSION = 1;
 /** Oldest version this app can read (migrating forward to current). */
 export const MIN_BUNDLE_FORMAT_VERSION = 0;
 
@@ -26,12 +26,31 @@ export interface SavedLoop {
   end: number;
 }
 
+/**
+ * Where a recording's playback comes from. `audio` is a file packed in the
+ * bundle (self-contained). `youtube` references an external video by id; such
+ * bundles are not fully self-contained (see BundleManifest.external) and may
+ * carry an optional paired audio file (`audioPath`) used only to draw a
+ * waveform and auto-sync in the editor — playback is still the video.
+ */
+export type RecordingMedia =
+  | { kind: "audio"; path: string }
+  | {
+      kind: "youtube";
+      videoId: string;
+      /** Optional clip bounds within the video, in seconds. */
+      startSeconds?: number;
+      endSeconds?: number;
+      /** Optional paired audio file inside the bundle, for waveform/auto-sync. */
+      audioPath?: string;
+    };
+
 export interface BundleRecording {
   id: string;
-  /** Display name, usually the original file name. */
+  /** Display name, usually the original file name or video title. */
   name: string;
-  /** Path of the audio file inside the bundle. */
-  path: string;
+  /** Playback source: a packed audio file or an external video. */
+  media: RecordingMedia;
   /** Sync anchors in absolute score ticks, empty or absent when unsynced. */
   syncPoints?: SyncPoint[];
   /** Named practice loops. */
@@ -58,6 +77,12 @@ export interface BundleManifest {
   assignment?: string;
   score: BundleScore;
   recordings: BundleRecording[];
+  /**
+   * True when the bundle references external media (e.g. a YouTube video) and
+   * is therefore not fully self-contained: playback needs a network connection
+   * and can break if the external media is removed. Set automatically on create.
+   */
+  external?: boolean;
 }
 
 /** An in-memory bundle: the manifest plus the file contents it references. */

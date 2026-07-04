@@ -5,6 +5,7 @@ import {
   MIN_BUNDLE_FORMAT_VERSION,
   type Bundle,
   type BundleManifest,
+  type RecordingMedia,
   type ScoreType,
 } from "./types";
 
@@ -25,7 +26,21 @@ type RawManifest = Record<string, unknown>;
  * v(n)->v(n+1) step here, so older bundles keep opening instead of being
  * rejected outright.
  */
-const MANIFEST_MIGRATIONS: Record<number, (m: RawManifest) => RawManifest> = {};
+const MANIFEST_MIGRATIONS: Record<number, (m: RawManifest) => RawManifest> = {
+  // v0 -> v1: recordings gained a discriminated `media` source. The old
+  // top-level `path` (always an audio file) becomes `media:{kind:"audio",path}`.
+  0: (m) => {
+    const recordings = Array.isArray(m["recordings"]) ? m["recordings"] : [];
+    return {
+      ...m,
+      recordings: (recordings as Array<Record<string, unknown>>).map((r) => {
+        if (r["media"] || typeof r["path"] !== "string") return r;
+        const { path, ...rest } = r;
+        return { ...rest, media: { kind: "audio", path } };
+      }),
+    };
+  },
+};
 
 function migrateManifest(m: RawManifest, fromVersion: number): RawManifest {
   let current = m;
@@ -76,8 +91,24 @@ export function validateManifest(value: unknown): BundleManifest {
   const recordings = m["recordings"];
   if (!Array.isArray(recordings)) fail("missing recordings array");
   for (const r of recordings as Array<Record<string, unknown>>) {
-    if (typeof r["id"] !== "string" || typeof r["path"] !== "string" || typeof r["name"] !== "string") {
-      fail("recording entries need id, name, and path");
+    if (typeof r["id"] !== "string" || typeof r["name"] !== "string") {
+      fail("recording entries need id and name");
+    }
+    const media = r["media"];
+    if (typeof media !== "object" || media === null) fail("recording entries need a media source");
+    const mk = (media as Record<string, unknown>)["kind"];
+    if (mk === "audio") {
+      if (typeof (media as Record<string, unknown>)["path"] !== "string") {
+        fail("audio media needs a path");
+      }
+    } else if (mk === "youtube") {
+      const yt = media as Record<string, unknown>;
+      if (typeof yt["videoId"] !== "string") fail("youtube media needs a videoId");
+      if (yt["audioPath"] !== undefined && typeof yt["audioPath"] !== "string") {
+        fail("youtube media audioPath must be a string");
+      }
+    } else {
+      fail(`unknown recording media kind ${JSON.stringify(mk)}`);
     }
     if (r["syncPoints"] !== undefined) {
       if (!Array.isArray(r["syncPoints"])) fail("syncPoints must be an array");
@@ -101,13 +132,37 @@ export function validateManifest(value: unknown): BundleManifest {
       }
     }
   }
-  return value as BundleManifest;
+  return m as unknown as BundleManifest;
+}
+
+/** The audio file a recording packs into the bundle, if any (none for a bare
+ *  YouTube reference without paired audio). */
+export function recordingAudioPath(media: RecordingMedia): string | undefined {
+  return media.kind === "audio" ? media.path : media.audioPath;
+}
+
+/** Extract a YouTube video id from a full URL or a bare id. Null if not YouTube. */
+export function parseYouTubeId(urlOrId: string): string | null {
+  const s = urlOrId.trim();
+  if (/^[\w-]{11}$/.test(s)) return s; // already an id
+  const m = s.match(
+    /(?:youtube\.com\/(?:watch\?(?:.*&)?v=|embed\/|shorts\/|live\/)|youtu\.be\/)([\w-]{11})/,
+  );
+  return m ? m[1]! : null;
 }
 
 /** Serialize a bundle to .ovb bytes (a ZIP archive). */
 export function createBundle(bundle: Bundle): Uint8Array {
   const manifest = validateManifest(bundle.manifest);
-  const referenced = [manifest.score.path, ...manifest.recordings.map((r) => r.path)];
+  // Flag bundles that reference media not packed inside them (e.g. YouTube).
+  if (manifest.recordings.some((r) => r.media.kind !== "audio")) manifest.external = true;
+  const referenced = [
+    manifest.score.path,
+    ...manifest.recordings.flatMap((r) => {
+      const p = recordingAudioPath(r.media);
+      return p ? [p] : [];
+    }),
+  ];
   for (const path of referenced) {
     if (!bundle.files.has(path)) fail(`manifest references missing file ${path}`);
   }
@@ -150,7 +205,14 @@ export function readBundle(data: Uint8Array): Bundle {
   for (const [path, bytes] of Object.entries(entries)) {
     if (path !== MANIFEST_PATH && !path.endsWith("/")) files.set(path, bytes);
   }
-  for (const path of [manifest.score.path, ...manifest.recordings.map((r) => r.path)]) {
+  const referenced = [
+    manifest.score.path,
+    ...manifest.recordings.flatMap((r) => {
+      const p = recordingAudioPath(r.media);
+      return p ? [p] : [];
+    }),
+  ];
+  for (const path of referenced) {
     if (!files.has(path)) fail(`bundle is missing referenced file ${path}`);
   }
   return { manifest, files };

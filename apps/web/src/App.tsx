@@ -12,8 +12,10 @@ import {
   BUNDLE_FORMAT_VERSION,
   createBundle,
   readBundle,
+  recordingAudioPath,
   scoreFileExtension,
   scoreTypeFromFileName,
+  type BundleRecording,
   type SavedLoop,
   type ScoreType,
 } from "@openvoicing/bundle";
@@ -1550,7 +1552,7 @@ export function App() {
       ? new TextEncoder().encode(v1.exportMusicXmlV1(v1EditorRef.current.doc))
       : new Uint8Array(source.data);
     const files = new Map<string, Uint8Array>([[scorePath, scoreBytes]]);
-    const manifestRecordings = [];
+    const manifestRecordings: BundleRecording[] = [];
     for (const meta of recordings) {
       const rec = await storage.get<StoredFile>(`recording:${meta.id}`);
       if (!rec) continue;
@@ -1567,7 +1569,7 @@ export function App() {
       manifestRecordings.push({
         id: meta.id,
         name: rec.name,
-        path: recPath,
+        media: { kind: "audio", path: recPath },
         ...(sync?.length ? { syncPoints: sync } : {}),
         ...(loops.length ? { loops } : {}),
       });
@@ -1691,7 +1693,11 @@ export function App() {
 
       const list: RecordingMeta[] = [];
       for (const entry of manifest.recordings) {
-        const bytes = bundle.files.get(entry.path)!;
+        // YouTube-backed recordings have no packed audio to play yet; skip them
+        // until video playback support lands.
+        const audioPath = recordingAudioPath(entry.media);
+        if (!audioPath) continue;
+        const bytes = bundle.files.get(audioPath)!;
         const id = list.some((r) => r.id === entry.id) ? newRecordingId() : entry.id;
         void storage.set(`recording:${id}`, {
           name: entry.name,
@@ -1705,9 +1711,9 @@ export function App() {
       }
       saveRecordingsList(list);
 
-      const first = manifest.recordings[0];
-      if (first) {
-        const bytes = bundle.files.get(first.path)!;
+      const first = manifest.recordings.find((r) => recordingAudioPath(r.media));
+      if (first && list.length > 0) {
+        const bytes = bundle.files.get(recordingAudioPath(first.media)!)!;
         await recording.load(bytes.slice().buffer as ArrayBuffer);
         setActiveRecId(list[0]!.id);
         setSavedLoops(first.loops ?? []);

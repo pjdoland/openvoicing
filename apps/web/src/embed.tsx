@@ -3,7 +3,7 @@ import { createRoot } from "react-dom/client";
 import { Player } from "@openvoicing/player";
 import { RecordingPlayer } from "@openvoicing/audio-engine";
 import { mediaTimeAtTick, tickAtMediaTime, type SyncPoint } from "@openvoicing/score-model";
-import { readBundle, type Bundle } from "@openvoicing/bundle";
+import { readBundle, recordingAudioPath, type Bundle } from "@openvoicing/bundle";
 import { parseDeepLink } from "./deep-link";
 import "./embed.css";
 
@@ -143,9 +143,9 @@ function EmbedApp() {
 
         bundleRef.current = bundle;
         setRecordingIds(manifest.recordings.map((r) => ({ id: r.id, name: r.name })));
-        const rec = manifest.recordings[0];
+        const rec = manifest.recordings.find((r) => recordingAudioPath(r.media));
         if (rec) {
-          const bytes = bundle.files.get(rec.path)!;
+          const bytes = bundle.files.get(recordingAudioPath(rec.media)!)!;
           await recording.load(bytes.slice().buffer as ArrayBuffer);
           hasRecordingRef.current = true;
           setHasRecording(true);
@@ -209,8 +209,9 @@ function EmbedApp() {
     const recorder = recordingRef.current;
     if (!bundle || !recorder || id === activeRecording) return;
     const entry = bundle.manifest.recordings.find((r) => r.id === id);
-    if (!entry) return;
-    const bytes = bundle.files.get(entry.path)!;
+    const audioPath = entry && recordingAudioPath(entry.media);
+    if (!entry || !audioPath) return;
+    const bytes = bundle.files.get(audioPath)!;
     await recorder.load(bytes.slice().buffer as ArrayBuffer);
     syncRef.current = entry.syncPoints?.length ? entry.syncPoints : null;
     setActiveRecording(id);

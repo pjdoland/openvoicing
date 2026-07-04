@@ -12,7 +12,8 @@ try {
   console.error("error: build the bundle package first (pnpm --filter @openvoicing/bundle build)");
   process.exit(1);
 }
-const { readBundle, createBundle, scoreTypeFromFileName, BUNDLE_FORMAT, BUNDLE_FORMAT_VERSION } = mod;
+const { readBundle, createBundle, scoreTypeFromFileName, parseYouTubeId, BUNDLE_FORMAT, BUNDLE_FORMAT_VERSION } =
+  mod;
 
 const [cmd, ...args] = process.argv.slice(2);
 
@@ -46,16 +47,31 @@ switch (cmd) {
     // ovb create --score score.musicxml --out out.ovb [--title T] [--recording take.mp3]
     const opts = {};
     for (let i = 0; i < args.length; i += 2) opts[args[i].replace(/^--/, "")] = args[i + 1];
-    if (!opts.score || !opts.out) fail("usage: ovb create --score <file> --out <file.ovb> [--title T] [--recording <audio>]");
+    if (!opts.score || !opts.out)
+      fail(
+        "usage: ovb create --score <file> --out <file.ovb> [--title T] [--recording <audio>] [--youtube <url>]",
+      );
     const files = new Map();
     const scoreType = scoreTypeFromFileName(opts.score);
     const scorePath = `score/${basename(opts.score)}`;
     files.set(scorePath, new Uint8Array(readFileSync(opts.score)));
     const recordings = [];
-    if (opts.recording) {
-      const recPath = `recordings/take1/${basename(opts.recording)}`;
-      files.set(recPath, new Uint8Array(readFileSync(opts.recording)));
-      recordings.push({ id: "take1", name: basename(opts.recording), path: recPath });
+    // --recording packs an audio file. --youtube references a video; combined
+    // with --recording, the audio is packed as paired audio (waveform/sync).
+    const audioPath = opts.recording ? `recordings/take1/${basename(opts.recording)}` : undefined;
+    if (opts.recording) files.set(audioPath, new Uint8Array(readFileSync(opts.recording)));
+    if (opts.youtube) {
+      const videoId = parseYouTubeId(opts.youtube);
+      if (!videoId) fail(`not a YouTube URL or id: ${opts.youtube}`);
+      const media = { kind: "youtube", videoId };
+      if (audioPath) media.audioPath = audioPath;
+      recordings.push({ id: "take1", name: opts.name || videoId, media });
+    } else if (opts.recording) {
+      recordings.push({
+        id: "take1",
+        name: basename(opts.recording),
+        media: { kind: "audio", path: audioPath },
+      });
     }
     const bytes = createBundle({
       manifest: {
@@ -72,6 +88,8 @@ switch (cmd) {
     break;
   }
   default:
-    console.log("ovb <command>\n  validate <file.ovb>   check a bundle is valid\n  inspect  <file.ovb>   print the manifest and file list\n  create   --score <f> --out <f.ovb> [--title T] [--recording <audio>]");
+    console.log(
+      "ovb <command>\n  validate <file.ovb>   check a bundle is valid\n  inspect  <file.ovb>   print the manifest and file list\n  create   --score <f> --out <f.ovb> [--title T] [--recording <audio>] [--youtube <url>]",
+    );
     if (cmd && cmd !== "help") process.exit(1);
 }

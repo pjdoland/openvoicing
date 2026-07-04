@@ -4,9 +4,12 @@ import {
   BUNDLE_FORMAT_VERSION,
   BundleError,
   createBundle,
+  parseYouTubeId,
   readBundle,
+  recordingAudioPath,
   scoreFileExtension,
   scoreTypeFromFileName,
+  validateManifest,
   type Bundle,
 } from "../src/index";
 
@@ -21,7 +24,7 @@ function demoBundle(): Bundle {
         {
           id: "take1",
           name: "take1.wav",
-          path: "recordings/take1.wav",
+          media: { kind: "audio", path: "recordings/take1.wav" },
           syncPoints: [
             { tick: 0, timeSeconds: 0 },
             { tick: 3840, timeSeconds: 2 },
@@ -115,6 +118,87 @@ describe("bundle round-trip", () => {
     const bundle = demoBundle();
     (bundle.manifest.recordings[0] as { syncPoints: unknown }).syncPoints = [{ tick: "a" }];
     expect(() => createBundle(bundle)).toThrow(/numeric tick/);
+  });
+});
+
+describe("recording media (YouTube + audio)", () => {
+  it("round-trips a YouTube recording and flags the bundle external", () => {
+    const bundle = demoBundle();
+    bundle.files.delete("recordings/take1.wav");
+    bundle.manifest.recordings = [
+      {
+        id: "yt",
+        name: "Lesson video",
+        media: { kind: "youtube", videoId: "dQw4w9WgXcQ", startSeconds: 5 },
+        syncPoints: [{ tick: 0, timeSeconds: 5 }],
+      },
+    ];
+    const parsed = readBundle(createBundle(bundle));
+    expect(parsed.manifest.external).toBe(true);
+    expect(parsed.manifest.recordings[0]!.media).toEqual({
+      kind: "youtube",
+      videoId: "dQw4w9WgXcQ",
+      startSeconds: 5,
+    });
+  });
+
+  it("packs paired audio for a YouTube recording", () => {
+    const bundle = demoBundle();
+    bundle.manifest.recordings = [
+      {
+        id: "yt",
+        name: "v",
+        media: { kind: "youtube", videoId: "abcdefghijk", audioPath: "recordings/take1.wav" },
+      },
+    ];
+    const parsed = readBundle(createBundle(bundle));
+    expect(parsed.manifest.recordings[0]!.media).toMatchObject({
+      kind: "youtube",
+      audioPath: "recordings/take1.wav",
+    });
+    expect(parsed.files.get("recordings/take1.wav")).toBeDefined();
+  });
+
+  it("leaves audio-only bundles unflagged", () => {
+    expect(readBundle(createBundle(demoBundle())).manifest.external).toBeUndefined();
+  });
+
+  it("rejects youtube media without a videoId", () => {
+    const bundle = demoBundle();
+    bundle.manifest.recordings = [
+      { id: "y", name: "v", media: { kind: "youtube" } as never },
+    ];
+    expect(() => createBundle(bundle)).toThrow(/videoId/);
+  });
+
+  it("migrates a v0 path-based recording to media", () => {
+    const v0 = {
+      format: BUNDLE_FORMAT,
+      formatVersion: 0,
+      title: "Old",
+      score: { path: "s", type: "alphatex" },
+      recordings: [{ id: "r", name: "take.wav", path: "recordings/take.wav" }],
+    };
+    const m = validateManifest(v0);
+    expect(m.formatVersion).toBe(1);
+    expect(m.recordings[0]!.media).toEqual({ kind: "audio", path: "recordings/take.wav" });
+    expect((m.recordings[0] as { path?: string }).path).toBeUndefined();
+  });
+
+  it("recordingAudioPath returns the packed audio path", () => {
+    expect(recordingAudioPath({ kind: "audio", path: "a.wav" })).toBe("a.wav");
+    expect(recordingAudioPath({ kind: "youtube", videoId: "x", audioPath: "b.wav" })).toBe("b.wav");
+    expect(recordingAudioPath({ kind: "youtube", videoId: "x" })).toBeUndefined();
+  });
+});
+
+describe("parseYouTubeId", () => {
+  it("extracts an id from URLs and bare ids", () => {
+    expect(parseYouTubeId("https://www.youtube.com/watch?v=dQw4w9WgXcQ")).toBe("dQw4w9WgXcQ");
+    expect(parseYouTubeId("https://youtu.be/dQw4w9WgXcQ?t=30")).toBe("dQw4w9WgXcQ");
+    expect(parseYouTubeId("https://www.youtube.com/shorts/dQw4w9WgXcQ")).toBe("dQw4w9WgXcQ");
+    expect(parseYouTubeId("dQw4w9WgXcQ")).toBe("dQw4w9WgXcQ");
+    expect(parseYouTubeId("https://example.com/not-a-video")).toBeNull();
   });
 });
 
