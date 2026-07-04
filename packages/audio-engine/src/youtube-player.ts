@@ -160,6 +160,10 @@ export class YouTubePlayer implements MediaPlayer {
     return this._rates;
   }
 
+  get loopRegion(): LoopRegion | null {
+    return this._loop;
+  }
+
   get speed(): number {
     return this._speed;
   }

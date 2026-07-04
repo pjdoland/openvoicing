@@ -23,6 +23,7 @@ export interface MediaPlayer {
   readonly duration: number;
   readonly position: number;
   readonly playing: boolean;
+  readonly loopRegion: LoopRegion | null;
   speed: number;
   /**
    * The discrete speeds this source supports, or null when speed is continuous.

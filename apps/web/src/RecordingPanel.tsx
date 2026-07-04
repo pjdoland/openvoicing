@@ -35,10 +35,13 @@ interface DragState {
 
 interface RecordingPanelProps {
   player: RecordingPlayer;
+  /** True when the active recording is a video (YouTube): no waveform/pitch. */
+  isVideo?: boolean;
   recordings: RecordingMeta[];
   activeId: string | null;
   onSelect: (id: string) => void;
   onAddFile: (file: File) => Promise<void>;
+  onAddYouTube?: () => void;
   onRemove: (id: string) => void;
   /** Sync anchors to render as draggable markers, or null when unsynced. */
   syncPoints: SyncPoint[] | null;
@@ -58,10 +61,12 @@ interface RecordingPanelProps {
 
 export function RecordingPanel({
   player,
+  isVideo = false,
   recordings,
   activeId,
   onSelect,
   onAddFile,
+  onAddYouTube,
   onRemove,
   syncPoints,
   onMoveSyncPoint,
@@ -390,7 +395,12 @@ export function RecordingPanel({
           Add audio…
           <input type="file" accept="audio/*" onChange={openFile} />
         </label>
-        {hasActive && (
+        {onAddYouTube && (
+          <button className="control" onClick={onAddYouTube} title="Add a YouTube video">
+            Add YouTube…
+          </button>
+        )}
+        {hasActive && !isVideo && (
           <>
             <label className="control" title="Pitch shift in semitones">
               Pitch
@@ -495,7 +505,13 @@ export function RecordingPanel({
           </>
         )}
       </div>
-      {hasActive && (
+      {hasActive && isVideo && (
+        <p className="hint video-note">
+          Video plays above. Sync it to the score with tap-sync (Auto-sync needs
+          an audio file). Speed snaps to YouTube&rsquo;s steps.
+        </p>
+      )}
+      {hasActive && !isVideo && (
         <div
           className="wave-scroll"
           ref={scrollRef}

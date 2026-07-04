@@ -1,3 +1,5 @@
+import type { RecordingMedia } from "@openvoicing/bundle";
+
 const DB_NAME = "openvoicing";
 const STORE_NAME = "session";
 
@@ -9,6 +11,13 @@ export interface StoredFile {
 export interface RecordingMeta {
   id: string;
   name: string;
+  /**
+   * The recording's media source. Absent means a legacy decoded-audio take
+   * whose bytes live under the `recording:<id>` key. A `youtube` source plays
+   * an external video; its optional paired audio (if any) is still under
+   * `recording:<id>` for the waveform/auto-sync.
+   */
+  media?: RecordingMedia;
 }
 
 function openDb(): Promise<IDBDatabase> {

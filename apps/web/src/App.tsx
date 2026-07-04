@@ -1,6 +1,12 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ChangeEvent, type ReactNode, type RefObject } from "react";
 import { Player, type EditSelection, type TrackInfo } from "@openvoicing/player";
-import { alignBarsToOnsets, detectOnsets, RecordingPlayer } from "@openvoicing/audio-engine";
+import {
+  alignBarsToOnsets,
+  detectOnsets,
+  RecordingPlayer,
+  YouTubePlayer,
+  type MediaPlayer,
+} from "@openvoicing/audio-engine";
 import {
   mediaTimeAtTick,
   tickAtMediaTime,
@@ -11,6 +17,7 @@ import {
   BUNDLE_FORMAT,
   BUNDLE_FORMAT_VERSION,
   createBundle,
+  parseYouTubeId,
   readBundle,
   recordingAudioPath,
   scoreFileExtension,
@@ -257,7 +264,7 @@ export function App() {
     // Move the recording playhead to the same spot so pressing Play starts
     // here whichever source is active (synth follows cursorTick already).
     const points = syncPointsRef.current;
-    if (points) recording.seek(mediaTimeAtTick(points, bar.start));
+    if (points) media().seek(mediaTimeAtTick(points, bar.start));
   }
   function jumpToSection(barIndex: number) {
     jumpToBarIndex(barIndex);
@@ -280,6 +287,16 @@ export function App() {
   const containerRef = useRef<HTMLDivElement>(null);
   const playerRef = useRef<Player | null>(null);
   const [recording] = useState(() => new RecordingPlayer());
+  // The active recording is either a decoded audio take (`recording`) or an
+  // external video (a YouTubePlayer, created on demand and mounted in
+  // videoHostRef). Transport acts on media(); audio-only bits (load, pitch,
+  // waveform, onset auto-sync) stay on `recording`.
+  const youtubeRef = useRef<YouTubePlayer | null>(null);
+  const videoHostRef = useRef<HTMLDivElement | null>(null);
+  const [activeMediaKind, setActiveMediaKind] = useState<"audio" | "youtube">("audio");
+  function media(): MediaPlayer {
+    return youtubeRef.current ?? recording;
+  }
   const [playing, setPlaying] = useState(false);
   const [ready, setReady] = useState(false);
   const [speed, setSpeed] = useState(1);
@@ -367,15 +384,22 @@ export function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editMode]);
 
+  const [mediaPlaying, setMediaPlaying] = useState(false);
   useEffect(() => {
+    const m = media();
     const unsubs = [
-      recording.on("stateChanged", (p) => setAnnouncement(p ? "Recording playing" : "Paused")),
-      recording.on("speedChanged", (s) => setAnnouncement(`Speed ${Math.round(s * 100)} percent`)),
+      m.on("stateChanged", (p) => {
+        setMediaPlaying(p);
+        setAnnouncement(p ? "Recording playing" : "Paused");
+      }),
+      m.on("speedChanged", (s) => setAnnouncement(`Speed ${Math.round(s * 100)} percent`)),
     ];
+    setMediaPlaying(m.playing);
     return () => {
       for (const u of unsubs) u();
     };
-  }, [recording]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [recording, activeMediaKind]);
 
   useEffect(() => {
     selectedV1Ref.current = selectedV1;
@@ -391,6 +415,8 @@ export function App() {
   }
 
   const [recordings, setRecordings] = useState<RecordingMeta[]>([]);
+  const recordingsRef = useRef<RecordingMeta[]>([]);
+  recordingsRef.current = recordings;
   const [activeRecId, setActiveRecId] = useState<string | null>(null);
   const [savedLoops, setSavedLoops] = useState<SavedLoop[]>([]);
   const savedLoopsRef = useRef<SavedLoop[]>([]);
@@ -409,7 +435,7 @@ export function App() {
   }
 
   function saveCurrentLoop() {
-    const region = recording.loopRegion;
+    const region = media().loopRegion;
     if (!region || !activeRecId) return;
     const name = window.prompt("Loop name", `Loop ${savedLoops.length + 1}`);
     if (!name) return;
@@ -420,8 +446,8 @@ export function App() {
   }
 
   function recallLoop(loop: SavedLoop) {
-    recording.setLoopRegion({ start: loop.start, end: loop.end });
-    recording.seek(loop.start);
+    media().setLoopRegion({ start: loop.start, end: loop.end });
+    media().seek(loop.start);
   }
 
   function deleteSavedLoop(id: string) {
@@ -431,6 +457,7 @@ export function App() {
   const [syncPoints, setSyncPoints] = useState<SyncPoint[] | null>(null);
   const syncPointsRef = useRef<SyncPoint[] | null>(null);
   const [follow, setFollow] = useState(false);
+  const followRef = useRef(false);
   const [tapCount, setTapCount] = useState<number | null>(null);
   const tapsRef = useRef<number[]>([]);
   // Persistence effects stay quiet until the stored session has been restored,
@@ -440,6 +467,9 @@ export function App() {
   useEffect(() => {
     syncPointsRef.current = syncPoints;
   }, [syncPoints]);
+  useEffect(() => {
+    followRef.current = follow;
+  }, [follow]);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -474,7 +504,7 @@ export function App() {
       // pick the top note.
       if (editModeRef.current) return;
       const points = syncPointsRef.current;
-      if (points) recording.seek(mediaTimeAtTick(points, tick));
+      if (points) media().seek(mediaTimeAtTick(points, tick));
     });
     // Note-level selection for v1 editing: resolve the note nearest the cursor
     // on any staff click, so clicking between stacked notes still targets the
@@ -501,6 +531,15 @@ export function App() {
       const w = window as unknown as Record<string, unknown>;
       w.__ovPlayer = player;
       w.__ovRecording = recording;
+      w.__ovYouTube = () => youtubeRef.current;
+      w.__ovAddYouTube = (url: string) => void addYouTubeRecording(url);
+      // Test hook: install a linear sync map (bar i -> i * step seconds).
+      w.__ovSetLinearSync = (step: number) => {
+        const bars = playerRef.current?.barTicks ?? [];
+        const points = bars.map((b, i) => ({ tick: b.start, timeSeconds: i * step }));
+        setSyncPoints(points);
+        setFollow(true);
+      };
       w.__ovV1Editor = () => v1EditorRef.current;
       w.__ovSelectedV1 = () => selectedV1Ref.current?.noteId ?? selectedV1Ref.current?.restBeatId ?? null;
       w.__ovSelectV1 = (id: string) => setSelectedV1({ noteId: id });
@@ -635,6 +674,18 @@ export function App() {
 
         const storedActive = await storage.get<string>("activeRecording");
         const meta = list.find((r) => r.id === storedActive) ?? list[0]!;
+        if (meta.media?.kind === "youtube") {
+          setActiveRecId(meta.id);
+          setActiveMediaKind("youtube");
+          applyPreferred("recording");
+          await loadSavedLoops(meta.id);
+          const sync = await storage.get<SyncPoint[]>(`sync:${meta.id}`);
+          if (!cancelled && sync?.length) {
+            setSyncPoints(sync);
+            setFollow((await storage.get<boolean>("follow")) ?? true);
+          }
+          return;
+        }
         const stored = await storage.get<StoredFile>(`recording:${meta.id}`);
         if (cancelled || !stored) return;
         await recording.load(stored.data);
@@ -693,8 +744,8 @@ export function App() {
     practiceSaveTimerRef.current = setTimeout(() => {
       void storage.set("practice", {
         speed: speedRef.current,
-        loop: recording.loopRegion,
-        position: recording.position,
+        loop: media().loopRegion,
+        position: media().position,
       });
     }, 600);
   };
@@ -728,20 +779,56 @@ export function App() {
     // decodeAudioData detaches the buffer, so persist a copy.
     const copy = buffer.slice(0);
     const id = newRecordingId();
+    media().pause();
+    setActiveMediaKind("audio");
     await recording.load(buffer);
     void storage.set(`recording:${id}`, { name: file.name, data: copy } satisfies StoredFile);
-    saveRecordingsList([...recordings, { id, name: file.name }]);
+    saveRecordingsList([...recordingsRef.current, { id, name: file.name }]);
     setActiveRecId(id);
     setSavedLoops([]);
   }
 
+  // Attach a YouTube video as a recording (paste a URL or id). It plays the
+  // video, synced to the score; sync it with tap-sync (Auto-sync needs audio).
+  async function addYouTubeRecording(url: string) {
+    const videoId = parseYouTubeId(url);
+    if (!videoId) {
+      window.alert("That does not look like a YouTube link.");
+      return;
+    }
+    const id = newRecordingId();
+    const meta: RecordingMeta = { id, name: `YouTube ${videoId}`, media: { kind: "youtube", videoId } };
+    media().pause();
+    saveRecordingsList([...recordingsRef.current, meta]);
+    setSavedLoops([]);
+    setSyncPoints(null);
+    setFollow(false);
+    setActiveRecId(id);
+    setActiveMediaKind("youtube");
+    applyPreferred("recording");
+    showToast("YouTube video added. Tap-sync it to the score.");
+  }
+
   async function selectRecording(id: string) {
     if (id === activeRecId) return;
+    const meta = recordingsRef.current.find((r) => r.id === id);
+    // Preserve position and play state so two takes A/B at the same spot.
+    const wasPlaying = media().playing;
+    const position = media().position;
+    media().pause();
+    if (meta?.media?.kind === "youtube") {
+      setActiveRecId(id);
+      setActiveMediaKind("youtube");
+      applyPreferred("recording");
+      await loadSavedLoops(id);
+      const sync = await storage.get<SyncPoint[]>(`sync:${id}`);
+      setSyncPoints(sync?.length ? sync : null);
+      setFollow(Boolean(sync?.length));
+      return;
+    }
     const stored = await storage.get<StoredFile>(`recording:${id}`);
     if (!stored) return;
-    // Preserve position and play state so two takes A/B at the same spot.
-    const wasPlaying = recording.playing;
-    const position = recording.position;
+    setActiveMediaKind("audio");
     await recording.load(stored.data);
     recording.pitchSemitones = pitchSemitones;
     recording.seek(Math.min(position, recording.duration));
@@ -766,7 +853,8 @@ export function App() {
       setActiveRecId(null);
       await selectRecording(next[0]!.id);
     } else {
-      recording.pause();
+      media().pause();
+      setActiveMediaKind("audio");
       applyPreferred("synth");
       setActiveRecId(null);
       setSyncPoints(null);
@@ -774,40 +862,69 @@ export function App() {
     }
   }
 
-  // Mirror the recording's playhead into the shared position readout.
+  // Create/tear down the YouTube player for the active video recording. A
+  // layout effect, so the player exists before the passive position/follow
+  // subscriptions below (which bind to media()) run in the same commit.
+  useLayoutEffect(() => {
+    if (activeMediaKind !== "youtube") return;
+    const host = videoHostRef.current;
+    const meta = recordingsRef.current.find((r) => r.id === activeRecId);
+    const m = meta?.media;
+    if (!host || m?.kind !== "youtube") return;
+    const yt = new YouTubePlayer(host, {
+      videoId: m.videoId,
+      startSeconds: m.startSeconds,
+      endSeconds: m.endSeconds,
+    });
+    youtubeRef.current = yt;
+    void yt.whenReady().then(() => {
+      yt.speed = speedRef.current;
+    });
+    return () => {
+      yt.destroy();
+      if (youtubeRef.current === yt) youtubeRef.current = null;
+      host.replaceChildren();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeMediaKind, activeRecId]);
+
+  // Mirror the active media's playhead into the shared position readout. Bound
+  // to media() (audio take or video) and re-subscribed when the source changes.
   useEffect(() => {
-    return recording.on("positionChanged", (seconds, total) => {
+    return media().on("positionChanged", (seconds, total) => {
       if (preferredSourceRef.current !== "recording") return;
       setPosition((prev) => {
         const next = { current: Math.floor(seconds), total: Math.floor(total) };
         return prev.current === next.current && prev.total === next.total ? prev : next;
       });
     });
-  }, [recording]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [recording, activeMediaKind]);
 
   const lastScrollRef = useRef(0);
   useEffect(() => {
     if (!follow || !syncPoints) return;
-    return recording.on("positionChanged", (seconds) => {
+    return media().on("positionChanged", (seconds) => {
       const player = playerRef.current;
       if (!player) return;
       const tick = Math.max(0, Math.round(tickAtMediaTime(syncPoints, seconds)));
       player.cursorTick = tick;
-      // The synth is not playing during recording follow, so alphaTab's own
-      // scroll-on-play never fires; keep the current bar in the notation pane.
+      // The synth is not playing during recording/video follow, so alphaTab's
+      // own scroll-on-play never fires; keep the current bar in the pane.
       const now = performance.now();
       if (now - lastScrollRef.current > 250) {
         lastScrollRef.current = now;
         player.scrollBarIntoView(player.barIndexAtTick(tick));
       }
     });
-  }, [follow, syncPoints, recording]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [follow, syncPoints, recording, activeMediaKind]);
 
   // A loop set on the waveform (drag, saved-loop recall, [ ] keys) flows into
   // the shared loop state, which then brackets the bars and mirrors to the
   // synth. Ignore the echo from our own apply-effect.
   useEffect(() => {
-    return recording.on("loopChanged", (region) => {
+    return media().on("loopChanged", (region) => {
       if (applyingLoopRef.current) return;
       const player = playerRef.current;
       const points = syncPointsRef.current;
@@ -828,12 +945,13 @@ export function App() {
       player.cursorTick = startTick;
       player.scrollBarIntoView(from - 1);
     });
-  }, [recording]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [recording, activeMediaKind]);
 
   useEffect(() => {
     if (!syncedClick || !barTimesRef.current) return;
     lastClickBarRef.current = -1;
-    return recording.on("positionChanged", (seconds) => {
+    return media().on("positionChanged", (seconds) => {
       const times = barTimesRef.current;
       if (!times) return;
       // Fire once per bar as the playhead passes each boundary.
@@ -847,7 +965,8 @@ export function App() {
         playClick(bar === 0);
       }
     });
-  }, [syncedClick, recording]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [syncedClick, recording, activeMediaKind]);
 
   // Sync-map edits share an undo stack, separate from the score editor.
   const syncHistoryRef = useRef<SyncPoint[][]>([]);
@@ -899,10 +1018,10 @@ export function App() {
     const player = playerRef.current;
     if (!player || activeRecIdRef.current === null || preferredSourceRef.current === target) return;
     const points = syncPointsRef.current;
-    const wasPlaying = recording.playing || player.playing;
+    const wasPlaying = media().playing || player.playing;
     if (target === "synth") {
-      const tick = points ? Math.round(tickAtMediaTime(points, recording.position)) : player.cursorTick;
-      recording.pause();
+      const tick = points ? Math.round(tickAtMediaTime(points, media().position)) : player.cursorTick;
+      media().pause();
       applyPreferred("synth");
       if (wasPlaying) player.playFromTick(Math.max(0, tick));
       else player.cursorTick = Math.max(0, tick);
@@ -912,9 +1031,9 @@ export function App() {
       const time = points ? mediaTimeAtTick(points, tick) : 0;
       player.stop();
       applyPreferred("recording");
-      recording.seek(time);
-      if (wasPlaying) void recording.play();
-      setAnnouncement("Playing the performance recording");
+      media().seek(time);
+      if (wasPlaying) void media().play();
+      setAnnouncement(activeMediaKind === "youtube" ? "Playing the video" : "Playing the performance");
     }
   }
 
@@ -966,7 +1085,7 @@ export function App() {
     const points = syncPointsRef.current;
     const player = playerRef.current;
     if (!points || !player) return;
-    const now = recording.position;
+    const now = media().position;
     const bars = player.barTicks;
     // Choose the bar whose predicted time is closest to now.
     let best = 0;
@@ -987,14 +1106,14 @@ export function App() {
   function startTapSync() {
     tapsRef.current = [];
     setTapCount(0);
-    recording.seek(0);
-    void recording.play();
+    media().seek(0);
+    void media().play();
   }
 
   function tap() {
     const player = playerRef.current;
     if (!player || tapsRef.current.length >= barCount) return;
-    tapsRef.current.push(recording.position);
+    tapsRef.current.push(media().position);
     if (tapsRef.current.length >= barCount) {
       finishTapSync();
     } else {
@@ -1004,7 +1123,7 @@ export function App() {
 
   function finishTapSync() {
     const player = playerRef.current;
-    recording.pause();
+    media().pause();
     setTapCount(null);
     if (!player || tapsRef.current.length < 2) return;
     const bars = player.barTicks;
@@ -1017,7 +1136,7 @@ export function App() {
   }
 
   function cancelTapSync() {
-    recording.pause();
+    media().pause();
     setTapCount(null);
   }
 
@@ -1149,17 +1268,17 @@ export function App() {
     // state, and always silence the other source, so the two can never overlap.
     if (preferredSourceRef.current === "recording" && activeRecIdRef.current !== null) {
       playerRef.current?.stop();
-      if (recording.playing) recording.pause();
-      else void recording.play();
+      if (media().playing) media().pause();
+      else void media().play();
     } else {
-      recording.pause();
+      media().pause();
       synthPlayPause();
     }
   };
 
   function transportStop() {
-    recording.pause();
-    recording.seek(0);
+    media().pause();
+    media().seek(0);
     playerRef.current?.stop();
   }
 
@@ -1285,10 +1404,12 @@ export function App() {
   // The single practice-tempo control drives whichever source is heard, so the
   // slowdown carries across an A/B switch between synth and recording.
   function setSynthSpeed(value: number) {
-    speedRef.current = value;
-    setSpeed(value);
     if (playerRef.current) playerRef.current.speed = value;
-    recording.speed = value;
+    media().speed = value;
+    // YouTube only offers discrete rates, so show what it actually plays.
+    const shown = activeMediaKind === "youtube" ? media().speed : value;
+    speedRef.current = shown;
+    setSpeed(shown);
     savePracticeRef.current?.();
   }
 
@@ -1371,16 +1492,16 @@ export function App() {
         case "BracketLeft": {
           if (!onRecording) return;
           e.preventDefault();
-          pendingLoopStartRef.current = recording.position;
+          pendingLoopStartRef.current = media().position;
           return;
         }
         case "BracketRight": {
           if (!onRecording) return;
           e.preventDefault();
           const start = pendingLoopStartRef.current ?? 0;
-          const end = recording.position;
+          const end = media().position;
           if (end > start + 0.1) {
-            recording.setLoopRegion({ start, end });
+            media().setLoopRegion({ start, end });
             pendingLoopStartRef.current = null;
           }
           return;
@@ -1404,8 +1525,8 @@ export function App() {
         const loop = savedLoopsRef.current[Number(digit[1]) - 1];
         if (loop) {
           e.preventDefault();
-          recording.setLoopRegion({ start: loop.start, end: loop.end });
-          recording.seek(loop.start);
+          media().setLoopRegion({ start: loop.start, end: loop.end });
+          media().seek(loop.start);
         }
       }
     };
@@ -1471,18 +1592,19 @@ export function App() {
       const sp = syncPointsRef.current;
       applyingLoopRef.current = true;
       if (region && sp?.length) {
-        recording.setLoopRegion({
+        media().setLoopRegion({
           start: mediaTimeAtTick(sp, region.startTick),
           end: mediaTimeAtTick(sp, region.endTick),
         });
-      } else if (loop && !loopBars && recording.duration > 0) {
-        recording.setLoopRegion({ start: 0, end: recording.duration });
+      } else if (loop && !loopBars && media().duration > 0) {
+        media().setLoopRegion({ start: 0, end: media().duration });
       } else {
-        recording.setLoopRegion(null);
+        media().setLoopRegion(null);
       }
       applyingLoopRef.current = false;
     }
-  }, [loop, loopBars, activeRecId, syncPoints, barCount, recording]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loop, loopBars, activeRecId, syncPoints, barCount, recording, activeMediaKind]);
 
   const barTimes = useMemo(() => {
     const player = playerRef.current;
@@ -1554,8 +1676,6 @@ export function App() {
     const files = new Map<string, Uint8Array>([[scorePath, scoreBytes]]);
     const manifestRecordings: BundleRecording[] = [];
     for (const meta of recordings) {
-      const rec = await storage.get<StoredFile>(`recording:${meta.id}`);
-      if (!rec) continue;
       const sync =
         meta.id === activeRecId
           ? syncPoints
@@ -1564,14 +1684,24 @@ export function App() {
         meta.id === activeRecId
           ? savedLoops
           : ((await storage.get<SavedLoop[]>(`loops:${meta.id}`)) ?? []);
+      const syncLoops = {
+        ...(sync?.length ? { syncPoints: sync } : {}),
+        ...(loops.length ? { loops } : {}),
+      };
+      // A YouTube recording is just a reference; no audio bytes to pack.
+      if (meta.media?.kind === "youtube") {
+        manifestRecordings.push({ id: meta.id, name: meta.name, media: meta.media, ...syncLoops });
+        continue;
+      }
+      const rec = await storage.get<StoredFile>(`recording:${meta.id}`);
+      if (!rec) continue;
       const recPath = `recordings/${meta.id}/${sanitizeName(rec.name)}`;
       files.set(recPath, new Uint8Array(rec.data));
       manifestRecordings.push({
         id: meta.id,
         name: rec.name,
         media: { kind: "audio", path: recPath },
-        ...(sync?.length ? { syncPoints: sync } : {}),
-        ...(loops.length ? { loops } : {}),
+        ...syncLoops,
       });
     }
     return createBundle({
@@ -1692,37 +1822,54 @@ export function App() {
       }
 
       const list: RecordingMeta[] = [];
+      let firstEntry: BundleRecording | null = null;
+      let firstId: string | null = null;
       for (const entry of manifest.recordings) {
-        // YouTube-backed recordings have no packed audio to play yet; skip them
-        // until video playback support lands.
-        const audioPath = recordingAudioPath(entry.media);
-        if (!audioPath) continue;
-        const bytes = bundle.files.get(audioPath)!;
         const id = list.some((r) => r.id === entry.id) ? newRecordingId() : entry.id;
-        void storage.set(`recording:${id}`, {
-          name: entry.name,
-          data: bytes.slice().buffer as ArrayBuffer,
-        } satisfies StoredFile);
+        if (entry.media.kind === "youtube") {
+          list.push({ id, name: entry.name, media: entry.media });
+        } else {
+          const audioPath = recordingAudioPath(entry.media);
+          if (!audioPath) continue;
+          const bytes = bundle.files.get(audioPath)!;
+          void storage.set(`recording:${id}`, {
+            name: entry.name,
+            data: bytes.slice().buffer as ArrayBuffer,
+          } satisfies StoredFile);
+          list.push({ id, name: entry.name });
+        }
         if (entry.syncPoints?.length) void storage.set(`sync:${id}`, entry.syncPoints);
         else void storage.delete(`sync:${id}`);
         if (entry.loops?.length) void storage.set(`loops:${id}`, entry.loops);
         else void storage.delete(`loops:${id}`);
-        list.push({ id, name: entry.name });
+        if (!firstEntry) {
+          firstEntry = entry;
+          firstId = id;
+        }
       }
       saveRecordingsList(list);
 
-      const first = manifest.recordings.find((r) => recordingAudioPath(r.media));
-      if (first && list.length > 0) {
-        const bytes = bundle.files.get(recordingAudioPath(first.media)!)!;
-        await recording.load(bytes.slice().buffer as ArrayBuffer);
-        setActiveRecId(list[0]!.id);
-        setSavedLoops(first.loops ?? []);
-        if (first.syncPoints?.length) {
-          setSyncPoints(first.syncPoints);
+      media().pause();
+      if (firstEntry && firstId) {
+        setActiveRecId(firstId);
+        setSavedLoops(firstEntry.loops ?? []);
+        if (firstEntry.media.kind === "youtube") {
+          setActiveMediaKind("youtube");
+          applyPreferred("recording");
+        } else {
+          setActiveMediaKind("audio");
+          const bytes = bundle.files.get(recordingAudioPath(firstEntry.media)!)!;
+          await recording.load(bytes.slice().buffer as ArrayBuffer);
+        }
+        if (firstEntry.syncPoints?.length) {
+          setSyncPoints(firstEntry.syncPoints);
           setFollow(true);
+        } else {
+          setSyncPoints(null);
+          setFollow(false);
         }
       } else {
-        recording.pause();
+        setActiveMediaKind("audio");
         setActiveRecId(null);
         setSyncPoints(null);
         setFollow(false);
@@ -2377,7 +2524,7 @@ export function App() {
 
   // Every action, for the command palette (Cmd-K) and, where sensible, menus.
   const commands: Command[] = [
-    { id: "play", label: playing || recording.playing ? "Pause" : "Play", group: "Transport", shortcut: "Space", run: () => togglePlayRef.current() },
+    { id: "play", label: playing || mediaPlaying ? "Pause" : "Play", group: "Transport", shortcut: "Space", run: () => togglePlayRef.current() },
     { id: "stop", label: "Stop", group: "Transport", run: () => playerRef.current?.stop(), enabled: ready },
     { id: "half", label: "Toggle half speed", group: "Transport", shortcut: "H", run: () => setSynthSpeed(speedRef.current === 0.5 ? 1 : 0.5) },
     { id: "loop", label: loop ? "Turn loop off" : "Turn loop on", group: "Transport", run: toggleLoop },
@@ -2463,7 +2610,7 @@ export function App() {
     { label: "Show welcome tour", onSelect: () => setShowTour(true) },
   ];
 
-  const isPlaying = playing || recording.playing;
+  const isPlaying = playing || mediaPlaying;
 
   return (
     <div className={`app${standMode ? " stand-mode" : ""}${closed ? " closed" : ""}${noteInputMode ? " note-input" : ""}`}>
@@ -2535,7 +2682,7 @@ export function App() {
       {standMode && (
         <div className="stand-controls">
           <button onClick={() => togglePlayRef.current()} className="stand-play">
-            {playing || recording.playing ? "Pause" : "Play"}
+            {playing || mediaPlaying ? "Pause" : "Play"}
           </button>
           <button onClick={() => setStandMode(false)}>Exit stand mode</button>
         </div>
@@ -2627,9 +2774,13 @@ export function App() {
                 className={preferredSource === "recording" ? "on" : ""}
                 aria-pressed={preferredSource === "recording"}
                 onClick={() => switchSource("recording")}
-                title="Play the reference recording of this piece"
+                title={
+                  activeMediaKind === "youtube"
+                    ? "Play the synced YouTube video"
+                    : "Play the reference recording of this piece"
+                }
               >
-                Performance
+                {activeMediaKind === "youtube" ? "Video" : "Performance"}
               </button>
               <button
                 className={preferredSource === "synth" ? "on" : ""}
@@ -2818,12 +2969,24 @@ export function App() {
           ariaLabel="Recording and sync"
           defaultOpen={activeRecId !== null}
         >
+          {/* The YouTube iframe mounts here when a video take is active. Kept
+              mounted (only hidden) so playback survives collapsing the panel. */}
+          <div
+            className="video-host"
+            ref={videoHostRef}
+            style={activeMediaKind === "youtube" ? undefined : { display: "none" }}
+          />
           <RecordingPanel
             player={recording}
+            isVideo={activeMediaKind === "youtube"}
             recordings={recordings}
             activeId={activeRecId}
             onSelect={(id) => void selectRecording(id)}
             onAddFile={addRecordingFile}
+            onAddYouTube={() => {
+              const url = window.prompt("Paste a YouTube link or video id");
+              if (url) void addYouTubeRecording(url);
+            }}
             onRemove={(id) => void removeRecording(id)}
             syncPoints={syncPoints}
             onMoveSyncPoint={moveSyncPoint}
