@@ -1,3 +1,6 @@
 packages:
   - "packages/*"
   - "apps/*"
+allowBuilds:
+  # Tailwind's optional native file-watcher; not needed for one-off CSS builds.
+  '@parcel/watcher': false

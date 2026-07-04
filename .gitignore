@@ -6,6 +6,7 @@ dist/
 packages/*/dist/
 *.tsbuildinfo
 .turbo/
+site/style.css
 
 # Test / coverage / e2e artifacts
 coverage/

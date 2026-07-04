@@ -13,10 +13,13 @@
     "test": "pnpm -r test",
     "typecheck": "pnpm -r typecheck",
     "test:coverage": "pnpm -r exec vitest run --coverage --coverage.provider=v8 --coverage.reporter=text-summary",
-    "e2e": "pnpm --filter @openvoicing/web e2e"
+    "e2e": "pnpm --filter @openvoicing/web e2e",
+    "build:site": "tailwindcss -i site/input.css -o site/style.css --minify"
   },
   "devDependencies": {
     "@playwright/test": "^1.61.1",
-    "@vitest/coverage-v8": "^4.1.9"
+    "@tailwindcss/cli": "^4.3.2",
+    "@vitest/coverage-v8": "^4.1.9",
+    "tailwindcss": "^4.3.2"
   }
 }

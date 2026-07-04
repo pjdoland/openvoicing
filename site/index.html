@@ -8,235 +8,130 @@
 <meta name="description" content="OpenVoicing is open-source living sheet music: interactive notation that plays, slows down without changing pitch, syncs to real recordings, and embeds anywhere. Built on an open file format, not a hosted service." />
 <meta property="og:title" content="OpenVoicing — living sheet music" />
 <meta property="og:description" content="Interactive notation that plays, slows down without changing pitch, and syncs to real recordings. Open-source and self-hostable." />
-<style>
-  :root{
-    --ink:#111111;
-    --paper:#ffffff;
-    --grey:#6b6b6b;
-    --grey-2:#9a9a9a;
-    --hair:#e4e4e4;
-    --red:#e5231b;
-    --sans:"Helvetica Neue",Helvetica,Arial,"Segoe UI",Roboto,sans-serif;
-    --mono:"SF Mono",ui-monospace,Menlo,Consolas,monospace;
-    --gap:clamp(20px,4vw,40px);
-    --edge:clamp(20px,5vw,72px);
-  }
-  *{box-sizing:border-box}
-  html{-webkit-text-size-adjust:100%}
-  body{
-    margin:0;background:var(--paper);color:var(--ink);
-    font-family:var(--sans);font-size:17px;line-height:1.5;
-    -webkit-font-smoothing:antialiased;font-kerning:normal;
-  }
-  a{color:inherit;text-decoration:none}
-  ::selection{background:var(--red);color:#fff}
-
-  .shell{max-width:1320px;margin:0 auto;padding:0 var(--edge)}
-  .rule{border:0;border-top:1px solid var(--hair);margin:0}
-  .label{font-size:.72rem;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--grey)}
-  .red{color:var(--red)}
-
-  /* masthead */
-  header.top{position:sticky;top:0;z-index:20;background:var(--paper);border-bottom:1px solid var(--ink)}
-  .top .shell{display:flex;align-items:center;gap:28px;height:60px}
-  .brand{font-weight:700;font-size:1.05rem;letter-spacing:-.01em}
-  .brand b{color:var(--red)}
-  .top nav{display:flex;gap:24px;margin-left:20px}
-  .top nav a{font-size:.82rem;color:var(--grey)}
-  .top nav a:hover{color:var(--ink)}
-  .top .spacer{flex:1}
-  .launch{font-size:.82rem;font-weight:600;border:1px solid var(--ink);padding:8px 16px}
-  .launch:hover{background:var(--ink);color:#fff}
-  @media(max-width:720px){.top nav{display:none}}
-
-  /* hero — flush-left grid */
-  .hero{display:grid;grid-template-columns:repeat(12,1fr);gap:var(--gap);padding:clamp(48px,9vw,120px) 0 clamp(36px,6vw,72px)}
-  .hero .eyebrow{grid-column:1/-1;display:flex;align-items:center;gap:14px;margin-bottom:6px}
-  .hero .eyebrow::after{content:"";flex:1;height:1px;background:var(--hair)}
-  .hero h1{
-    grid-column:1/11;margin:0;
-    font-size:clamp(2.6rem,8vw,6.4rem);line-height:.96;font-weight:700;
-    letter-spacing:-.035em;text-wrap:balance;
-  }
-  .hero .sub{grid-column:1/8;margin:clamp(24px,3vw,36px) 0 0;font-size:clamp(1.05rem,1.7vw,1.35rem);color:var(--grey);max-width:44ch}
-  .hero .actions{grid-column:9/13;align-self:end;display:flex;flex-direction:column;gap:12px;align-items:flex-start}
-  .hero .actions .meta{font-size:.82rem;color:var(--grey-2)}
-  .cta{display:inline-flex;align-items:center;gap:10px;font-weight:600;font-size:.95rem;padding:14px 22px;border:1px solid var(--ink)}
-  .cta.solid{background:var(--ink);color:#fff}
-  .cta.solid:hover{background:var(--red);border-color:var(--red)}
-  .cta.line:hover{background:var(--ink);color:#fff}
-  @media(max-width:820px){
-    .hero h1{grid-column:1/-1}
-    .hero .sub{grid-column:1/-1}
-    .hero .actions{grid-column:1/-1;flex-direction:row;flex-wrap:wrap;align-items:center;margin-top:28px}
-  }
-
-  /* demo */
-  .demo{padding:0 0 clamp(40px,7vw,88px)}
-  .demo .head{display:grid;grid-template-columns:repeat(12,1fr);gap:var(--gap);align-items:baseline;padding:22px 0}
-  .demo .head .n{grid-column:1/2;font-size:.9rem;color:var(--red);font-weight:600}
-  .demo .head h2{grid-column:2/8;margin:0;font-size:clamp(1.2rem,2.4vw,1.7rem);font-weight:600;letter-spacing:-.02em}
-  .demo .head p{grid-column:8/13;margin:0;font-size:.92rem;color:var(--grey)}
-  .demo .stage{border:1px solid var(--ink)}
-  .demo .stage > div{display:block}
-  .demo .foot{display:flex;justify-content:space-between;padding:12px 2px 0;font-size:.82rem;color:var(--grey-2);flex-wrap:wrap;gap:8px}
-  @media(max-width:820px){.demo .head h2{grid-column:1/-1}.demo .head .n{display:none}.demo .head p{grid-column:1/-1;margin-top:6px}}
-
-  /* numbered concept rows */
-  .concept{border-top:1px solid var(--ink)}
-  .row{display:grid;grid-template-columns:repeat(12,1fr);gap:var(--gap);padding:clamp(28px,4vw,52px) 0;border-bottom:1px solid var(--hair)}
-  .row .num{grid-column:1/2;font-size:1rem;color:var(--red);font-weight:600;font-variant-numeric:tabular-nums}
-  .row h3{grid-column:2/6;margin:0;font-size:clamp(1.3rem,2.6vw,1.9rem);font-weight:600;letter-spacing:-.02em;line-height:1.05}
-  .row p{grid-column:7/12;margin:0;font-size:clamp(1rem,1.5vw,1.12rem);color:var(--grey);max-width:52ch}
-  .row code{font-family:var(--mono);font-size:.9em;color:var(--ink);border-bottom:2px solid var(--red)}
-  @media(max-width:820px){
-    .row{padding:26px 0}
-    .row .num{grid-column:1/-1;margin-bottom:2px}
-    .row h3{grid-column:1/-1;margin-bottom:10px}
-    .row p{grid-column:1/-1}
-  }
-
-  /* embed pitch */
-  .embed{background:var(--ink);color:var(--paper);margin-top:clamp(40px,7vw,88px)}
-  .embed .shell{display:grid;grid-template-columns:repeat(12,1fr);gap:var(--gap);padding:clamp(44px,7vw,96px) var(--edge)}
-  .embed .label{color:var(--grey-2)}
-  .embed h2{grid-column:1/7;margin:16px 0 0;font-size:clamp(1.8rem,4vw,3rem);font-weight:700;letter-spacing:-.03em;line-height:1;align-self:start}
-  .embed .side{grid-column:7/13;align-self:end}
-  .embed .side p{color:#c4c4c4;margin:0 0 18px}
-  .embed pre{background:#000;border:1px solid #2a2a2a;padding:18px 20px;overflow-x:auto;font-family:var(--mono);font-size:.85rem;line-height:1.6;color:#e8e8e8;margin:0}
-  .embed pre .k{color:#ff8a80}
-  .embed a.doclink{color:#fff;font-weight:600;border-bottom:2px solid var(--red);display:inline-block;margin-top:16px;font-size:.92rem}
-  @media(max-width:820px){.embed h2{grid-column:1/-1}.embed .side{grid-column:1/-1;margin-top:24px}}
-
-  /* audiences */
-  .who{display:grid;grid-template-columns:repeat(3,1fr);gap:0;border-bottom:1px solid var(--ink)}
-  .who .col{padding:clamp(28px,4vw,48px) 0;padding-right:var(--gap);border-top:1px solid var(--ink)}
-  .who .col + .col{border-left:1px solid var(--hair);padding-left:var(--gap)}
-  .who h3{margin:14px 0 6px;font-size:1.1rem;font-weight:600}
-  .who p{margin:0 0 14px;color:var(--grey);font-size:.95rem}
-  .who a{font-weight:600;font-size:.9rem;border-bottom:2px solid var(--red);padding-bottom:1px}
-  @media(max-width:720px){.who{grid-template-columns:1fr}.who .col + .col{border-left:0;padding-left:0}}
-
-  /* footer */
-  footer.foot{padding:40px 0 64px}
-  footer.foot .shell{display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:16px}
-  footer.foot .fine{font-size:.8rem;color:var(--grey-2)}
-  footer.foot a{color:var(--grey);border-bottom:1px solid var(--hair)}
-  footer.foot a:hover{color:var(--ink)}
-</style>
+<link rel="stylesheet" href="./style.css" />
 </head>
-<body>
+<body class="bg-paper text-ink font-sans antialiased">
 
-  <header class="top">
-    <div class="shell">
-      <span class="brand">Open<b>Voicing</b></span>
-      <nav>
-        <a href="#demo">Demo</a>
-        <a href="#concept">The idea</a>
-        <a href="#embed">Embed</a>
-        <a href="https://github.com/pjdoland/openvoicing/blob/main/docs/index.md">Docs</a>
+  <!-- masthead -->
+  <header class="sticky top-0 z-20 bg-paper border-b border-ink">
+    <div class="shell flex items-center gap-x-6 h-15">
+      <a href="./" class="shrink-0 text-[1.05rem] font-bold tracking-tight">Open<span class="text-brand">Voicing</span></a>
+      <nav class="hidden md:flex gap-x-6 ml-3">
+        <a href="#demo" class="text-[.82rem] text-grey hover:text-ink">Demo</a>
+        <a href="#concept" class="text-[.82rem] text-grey hover:text-ink">The idea</a>
+        <a href="#embed" class="text-[.82rem] text-grey hover:text-ink">Embed</a>
+        <a href="https://github.com/pjdoland/openvoicing/blob/main/docs/index.md" class="text-[.82rem] text-grey hover:text-ink">Docs</a>
       </nav>
-      <span class="spacer"></span>
-      <a href="https://github.com/pjdoland/openvoicing" class="top-gh" style="font-size:.82rem;color:var(--grey)">GitHub</a>
-      <a class="launch" href="./app/">Launch the app &rarr;</a>
+      <span class="flex-1"></span>
+      <a href="https://github.com/pjdoland/openvoicing" class="hidden sm:inline text-[.82rem] text-grey hover:text-ink">GitHub</a>
+      <a href="./app/" class="whitespace-nowrap text-[.82rem] font-semibold border border-ink px-4 py-2 transition-colors hover:bg-ink hover:text-paper">Launch&nbsp;the&nbsp;app&nbsp;&rarr;</a>
     </div>
   </header>
 
-  <section class="shell hero">
-    <p class="eyebrow label">Open-source living sheet music</p>
-    <h1>Notation that plays, slows&nbsp;down, and syncs to real&nbsp;recordings.</h1>
-    <p class="sub">OpenVoicing turns a score into something you can practice with and share &mdash; built on an open file format you own, not a service you rent.</p>
-    <div class="actions">
-      <span class="meta label">01 &nbsp;/&nbsp; Try it</span>
-      <a class="cta solid" href="./app/">Launch the app &rarr;</a>
-      <a class="cta line" href="https://github.com/pjdoland/openvoicing">View source</a>
+  <!-- hero -->
+  <section class="shell grid grid-cols-12 gap-x-gutter pt-[clamp(48px,9vw,120px)] pb-[clamp(36px,6vw,72px)]">
+    <p class="col-span-full mb-1.5 flex items-center gap-x-3.5 text-[.72rem] font-semibold uppercase tracking-[.14em] text-grey">
+      Open-source living sheet music
+      <span class="h-px flex-1 bg-hair"></span>
+    </p>
+    <h1 class="col-span-full lg:col-span-10 m-0 text-display font-bold leading-[.96] tracking-[-.035em] text-balance">Notation that plays, slows&nbsp;down, and syncs to real&nbsp;recordings.</h1>
+    <p class="col-span-full md:col-span-7 mt-[clamp(24px,3vw,36px)] max-w-[44ch] text-[clamp(1.05rem,1.7vw,1.35rem)] leading-normal text-grey">OpenVoicing turns a score into something you can practice with and share &mdash; built on an open file format you own, not a service you rent.</p>
+    <div class="col-span-full md:col-start-9 md:col-span-4 md:self-end mt-8 md:mt-0 flex flex-col items-start gap-3">
+      <span class="text-[.72rem] font-semibold uppercase tracking-[.14em] text-greymid">01&nbsp;/&nbsp;Try it</span>
+      <a href="./app/" class="inline-flex items-center gap-x-2.5 border border-ink bg-ink px-[22px] py-3.5 text-[.95rem] font-semibold text-paper transition-colors hover:bg-brand hover:border-brand">Launch the app &rarr;</a>
+      <a href="https://github.com/pjdoland/openvoicing" class="inline-flex items-center gap-x-2.5 border border-ink px-[22px] py-3.5 text-[.95rem] font-semibold transition-colors hover:bg-ink hover:text-paper">View source</a>
     </div>
   </section>
 
-  <section class="shell demo" id="demo">
-    <div class="head">
-      <span class="n">02</span>
-      <h2>See it work</h2>
-      <p>The player below is a real OpenVoicing embed &mdash; Bach's Goldberg Aria, notation synced to a recording.</p>
+  <!-- demo -->
+  <section id="demo" class="shell pb-[clamp(40px,7vw,88px)]">
+    <div class="grid grid-cols-12 gap-x-gutter items-baseline py-[22px]">
+      <span class="hidden md:block col-span-1 text-[.9rem] font-semibold text-brand">02</span>
+      <h2 class="col-span-full md:col-span-6 m-0 text-[clamp(1.2rem,2.4vw,1.7rem)] font-semibold tracking-[-.02em]">See it work</h2>
+      <p class="col-span-full md:col-span-5 mt-1.5 md:mt-0 text-[.92rem] text-grey">The player below is a real OpenVoicing embed &mdash; Bach's Goldberg Aria, notation synced to a recording.</p>
     </div>
-    <div class="stage">
+    <div class="border border-ink">
       <div data-openvoicing-bundle="./app/goldberg-aria.ovb" data-openvoicing-height="720"></div>
     </div>
-    <div class="foot">
+    <div class="flex flex-wrap justify-between gap-2 px-0.5 pt-3 text-[.82rem] text-greymid">
       <span>Press play, then drop the speed to 50% &mdash; the pitch stays put.</span>
-      <span>Use the ⛶ button for fullscreen.</span>
+      <span>Use the &#9906; button for fullscreen.</span>
     </div>
   </section>
 
-  <section class="shell concept" id="concept">
-    <div class="row">
-      <span class="num">01</span>
-      <h3>An open format, not a hosted service</h3>
-      <p>Every piece is a self-contained <code>.ovb</code> file holding the score, its recordings, and the sync map. You own it, host it anywhere, and the player is just static files. No account, no lock-in.</p>
+  <!-- numbered concept rows -->
+  <section id="concept" class="shell border-t border-ink">
+    <div class="grid grid-cols-12 gap-x-gutter py-[clamp(28px,4vw,52px)] border-b border-hair">
+      <span class="col-span-full md:col-span-1 mb-0.5 md:mb-0 text-base font-semibold text-brand tabular-nums">01</span>
+      <h3 class="col-span-full md:col-span-4 m-0 mb-2.5 md:mb-0 text-h3 font-semibold leading-tight tracking-[-.02em]">An open format, not a hosted service</h3>
+      <p class="col-span-full md:col-start-7 md:col-span-5 m-0 max-w-[52ch] text-[clamp(1rem,1.5vw,1.12rem)] text-grey">Every piece is a self-contained <code class="font-mono text-[.9em] text-ink border-b-2 border-brand">.ovb</code> file holding the score, its recordings, and the sync map. You own it, host it anywhere, and the player is just static files. No account, no lock-in.</p>
     </div>
-    <div class="row">
-      <span class="num">02</span>
-      <h3>Practice, not just playback</h3>
-      <p>Slow a passage down without changing pitch, loop it, add a count-in, and follow a metronome. The tools you actually reach for when learning a piece.</p>
+    <div class="grid grid-cols-12 gap-x-gutter py-[clamp(28px,4vw,52px)] border-b border-hair">
+      <span class="col-span-full md:col-span-1 mb-0.5 md:mb-0 text-base font-semibold text-brand tabular-nums">02</span>
+      <h3 class="col-span-full md:col-span-4 m-0 mb-2.5 md:mb-0 text-h3 font-semibold leading-tight tracking-[-.02em]">Practice, not just playback</h3>
+      <p class="col-span-full md:col-start-7 md:col-span-5 m-0 max-w-[52ch] text-[clamp(1rem,1.5vw,1.12rem)] text-grey">Slow a passage down without changing pitch, loop it, add a count-in, and follow a metronome. The tools you actually reach for when learning a piece.</p>
     </div>
-    <div class="row">
-      <span class="num">03</span>
-      <h3>Sync to a real recording</h3>
-      <p>Line a real performance up with the score, bar by bar, so playback of the audio follows the notation &mdash; and you can loop and slow the real thing.</p>
+    <div class="grid grid-cols-12 gap-x-gutter py-[clamp(28px,4vw,52px)] border-b border-hair">
+      <span class="col-span-full md:col-span-1 mb-0.5 md:mb-0 text-base font-semibold text-brand tabular-nums">03</span>
+      <h3 class="col-span-full md:col-span-4 m-0 mb-2.5 md:mb-0 text-h3 font-semibold leading-tight tracking-[-.02em]">Sync to a real recording</h3>
+      <p class="col-span-full md:col-start-7 md:col-span-5 m-0 max-w-[52ch] text-[clamp(1rem,1.5vw,1.12rem)] text-grey">Line a real performance up with the score, bar by bar, so playback of the audio follows the notation &mdash; and you can loop and slow the real thing.</p>
     </div>
-    <div class="row">
-      <span class="num">04</span>
-      <h3>A real editor, and it's yours to keep</h3>
-      <p>Import MusicXML or Guitar Pro, edit notes, voices, ornaments, and dynamics, then export a portable bundle that plays the same everywhere, forever.</p>
+    <div class="grid grid-cols-12 gap-x-gutter py-[clamp(28px,4vw,52px)] border-b border-hair">
+      <span class="col-span-full md:col-span-1 mb-0.5 md:mb-0 text-base font-semibold text-brand tabular-nums">04</span>
+      <h3 class="col-span-full md:col-span-4 m-0 mb-2.5 md:mb-0 text-h3 font-semibold leading-tight tracking-[-.02em]">A real editor, and it's yours to keep</h3>
+      <p class="col-span-full md:col-start-7 md:col-span-5 m-0 max-w-[52ch] text-[clamp(1rem,1.5vw,1.12rem)] text-grey">Import MusicXML or Guitar Pro, edit notes, voices, ornaments, and dynamics, then export a portable bundle that plays the same everywhere, forever.</p>
     </div>
   </section>
 
-  <section class="embed" id="embed">
-    <div class="shell">
-      <p class="label" style="grid-column:1/-1">Embed anywhere</p>
-      <h2>Put any piece on your own site.</h2>
-      <div class="side">
-        <p>Host a bundle anywhere static, drop in the script, and point a div at it. That's the whole integration &mdash; the same player you see above.</p>
-        <pre>&lt;<span class="k">script</span> src="https://your-host/openvoicing-embed.js"&gt;&lt;/<span class="k">script</span>&gt;
-&lt;<span class="k">div</span> data-openvoicing-bundle="https://example.com/tune.ovb"&gt;&lt;/<span class="k">div</span>&gt;</pre>
-        <a class="doclink" href="https://github.com/pjdoland/openvoicing/blob/main/docs/embed-api.md">Embed API reference &rarr;</a>
+  <!-- embed pitch -->
+  <section id="embed" class="mt-[clamp(40px,7vw,88px)] bg-ink text-paper">
+    <div class="shell grid grid-cols-12 gap-x-gutter py-[clamp(44px,7vw,96px)]">
+      <p class="col-span-full text-[.72rem] font-semibold uppercase tracking-[.14em] text-greymid">Embed anywhere</p>
+      <h2 class="col-span-full md:col-span-6 mt-4 text-h2 font-bold leading-none tracking-[-.03em]">Put any piece on your own site.</h2>
+      <div class="col-span-full md:col-start-7 md:col-span-6 mt-6 md:mt-0 md:self-end">
+        <p class="mb-4 text-[#c4c4c4]">Host a bundle anywhere static, drop in the script, and point a div at it. That's the whole integration &mdash; the same player you see above.</p>
+        <pre class="m-0 overflow-x-auto border border-[#2a2a2a] bg-black p-[18px] font-mono text-[.85rem] leading-relaxed text-[#e8e8e8]">&lt;<span class="text-[#ff8a80]">script</span> src="https://your-host/openvoicing-embed.js"&gt;&lt;/<span class="text-[#ff8a80]">script</span>&gt;
+&lt;<span class="text-[#ff8a80]">div</span> data-openvoicing-bundle="https://example.com/tune.ovb"&gt;&lt;/<span class="text-[#ff8a80]">div</span>&gt;</pre>
+        <a href="https://github.com/pjdoland/openvoicing/blob/main/docs/embed-api.md" class="mt-4 inline-block border-b-2 border-brand text-[.92rem] font-semibold text-white">Embed API reference &rarr;</a>
       </div>
     </div>
   </section>
 
+  <!-- audiences -->
   <section class="shell">
-    <div class="who">
-      <div class="col">
-        <span class="label">For musicians</span>
-        <h3>Load, practice, edit.</h3>
-        <p>Open a piece and start playing. No sign-up.</p>
-        <a href="./app/">Open the app &rarr;</a>
+    <div class="grid grid-cols-1 md:grid-cols-3 border-b border-ink">
+      <div class="border-t border-ink py-[clamp(28px,4vw,48px)] pr-gutter">
+        <span class="text-[.72rem] font-semibold uppercase tracking-[.14em] text-grey">For musicians</span>
+        <h3 class="mt-3.5 mb-1.5 text-[1.1rem] font-semibold">Load, practice, edit.</h3>
+        <p class="mb-3.5 text-[.95rem] text-grey">Open a piece and start playing. No sign-up.</p>
+        <a href="./app/" class="border-b-2 border-brand pb-px text-[.9rem] font-semibold">Open the app &rarr;</a>
       </div>
-      <div class="col">
-        <span class="label">For self-hosters</span>
-        <h3>Deploy and embed.</h3>
-        <p>Static hosting, an open format, an embed SDK.</p>
-        <a href="https://github.com/pjdoland/openvoicing/blob/main/docs/deploy-app.md">Deployment guide &rarr;</a>
+      <div class="border-t border-ink py-[clamp(28px,4vw,48px)] pr-gutter md:border-l md:border-l-hair md:pl-gutter">
+        <span class="text-[.72rem] font-semibold uppercase tracking-[.14em] text-grey">For self-hosters</span>
+        <h3 class="mt-3.5 mb-1.5 text-[1.1rem] font-semibold">Deploy and embed.</h3>
+        <p class="mb-3.5 text-[.95rem] text-grey">Static hosting, an open format, an embed SDK.</p>
+        <a href="https://github.com/pjdoland/openvoicing/blob/main/docs/deploy-app.md" class="border-b-2 border-brand pb-px text-[.9rem] font-semibold">Deployment guide &rarr;</a>
       </div>
-      <div class="col">
-        <span class="label">For developers</span>
-        <h3>Open source.</h3>
-        <p>Libraries MPL-2.0, the app AGPL-3.0.</p>
-        <a href="https://github.com/pjdoland/openvoicing/blob/main/CONTRIBUTING.md">Contribute &rarr;</a>
+      <div class="border-t border-ink py-[clamp(28px,4vw,48px)] pr-gutter md:border-l md:border-l-hair md:pl-gutter">
+        <span class="text-[.72rem] font-semibold uppercase tracking-[.14em] text-grey">For developers</span>
+        <h3 class="mt-3.5 mb-1.5 text-[1.1rem] font-semibold">Open source.</h3>
+        <p class="mb-3.5 text-[.95rem] text-grey">Libraries MPL-2.0, the app AGPL-3.0.</p>
+        <a href="https://github.com/pjdoland/openvoicing/blob/main/CONTRIBUTING.md" class="border-b-2 border-brand pb-px text-[.9rem] font-semibold">Contribute &rarr;</a>
       </div>
     </div>
   </section>
 
-  <footer class="foot">
-    <div class="shell">
-      <span class="brand">Open<b>Voicing</b></span>
-      <span class="fine">Free and open source &middot; Engraving by alphaTab</span>
-      <span>
-        <a href="https://github.com/pjdoland/openvoicing">GitHub</a> &nbsp;
-        <a href="https://github.com/pjdoland/openvoicing/blob/main/docs/index.md">Docs</a> &nbsp;
-        <a href="./app/">App</a>
-      </span>
-    </div>
+  <!-- footer -->
+  <footer class="shell flex flex-wrap items-baseline justify-between gap-4 py-10 pb-16">
+    <span class="font-bold">Open<span class="text-brand">Voicing</span></span>
+    <span class="text-[.8rem] text-greymid">Free and open source &middot; Engraving by alphaTab</span>
+    <span class="text-[.82rem] text-grey">
+      <a href="https://github.com/pjdoland/openvoicing" class="border-b border-hair hover:text-ink">GitHub</a>
+      &nbsp;
+      <a href="https://github.com/pjdoland/openvoicing/blob/main/docs/index.md" class="border-b border-hair hover:text-ink">Docs</a>
+      &nbsp;
+      <a href="./app/" class="border-b border-hair hover:text-ink">App</a>
+    </span>
   </footer>
 
   <script src="./app/openvoicing-embed.js"></script>

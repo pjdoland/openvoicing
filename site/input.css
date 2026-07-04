@@ -1,0 +1,34 @@
+@import "tailwindcss";
+
+/* Swiss-modern design tokens. Tailwind v4 generates utilities from these:
+   text-ink, bg-paper, border-hair, text-brand, font-sans, text-display, px-edge... */
+@theme {
+  --color-ink: #111111;
+  --color-paper: #ffffff;
+  --color-grey: #6b6b6b;
+  --color-greymid: #9a9a9a;
+  --color-hair: #e4e4e4;
+  --color-brand: #e5231b;
+
+  --font-sans: "Helvetica Neue", Helvetica, Arial, "Segoe UI", Roboto, sans-serif;
+  --font-mono: "SF Mono", ui-monospace, Menlo, Consolas, monospace;
+
+  --text-display: clamp(2.6rem, 8vw, 6.4rem);
+  --text-h2: clamp(1.8rem, 4vw, 3rem);
+  --text-h3: clamp(1.3rem, 2.6vw, 1.9rem);
+
+  --spacing-edge: clamp(20px, 5vw, 72px);
+  --spacing-gutter: clamp(20px, 4vw, 40px);
+}
+
+/* One container utility for the page gutter + max width. */
+@utility shell {
+  margin-inline: auto;
+  max-width: 1320px;
+  padding-inline: var(--spacing-edge);
+}
+
+::selection {
+  background: var(--color-brand);
+  color: #fff;
+}

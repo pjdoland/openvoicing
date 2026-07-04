@@ -29,12 +29,15 @@ jobs:
       # site (site/index.html) is the Pages root; the app lives one level down.
       - run: pnpm -r build
       - run: OPENVOICING_BASE=/openvoicing/app/ pnpm --filter @openvoicing/web build
+      # Compile the promo site's Tailwind CSS.
+      - run: pnpm build:site
       - name: Assemble Pages site (promo at root, app under /app/)
         run: |
           rm -rf _site
           mkdir -p _site/app
           cp -R apps/web/dist/. _site/app/
           cp site/index.html _site/index.html
+          cp site/style.css _site/style.css
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
