@@ -58,6 +58,30 @@ recording follows the notation.
 
 Turn on **Follow** to keep the score scrolled to the spot that's playing.
 
+## Play along with a YouTube video
+
+Instead of an audio file, you can sync the score to a **YouTube video** (for
+example a lesson or a performance), and the notation follows the video as it
+plays.
+
+1. In the **Recording & sync** panel, click **Add YouTube…** and paste a video
+   link (or its id). The video appears above the score, and the **Sound** toggle
+   now offers **Video** / **Notes**.
+2. Sync it with **tap sync**: press play, then tap each bar's downbeat as it goes
+   by. (Auto-sync needs an audio waveform, so it is available only when you also
+   add an audio file.)
+3. Play as usual: the cursor follows the video, **Follow** keeps the score in
+   view, and looping works. Speed **snaps to YouTube's steps** (0.25×, 0.5×, …);
+   for finer control, add a matching audio file.
+
+Notes on YouTube recordings:
+
+- The video is **embedded, never downloaded** (via YouTube's official player),
+  so playing it needs an internet connection.
+- A bundle that references a YouTube video is marked **external**: it is not a
+  fully self-contained file, and playback breaks if the video is later removed.
+  Audio-only bundles stay fully self-contained and offline-capable.
+
 ## Edit the notation
 
 1. Turn on **Edit** (top-right).

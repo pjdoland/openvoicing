@@ -43,7 +43,7 @@ independent and the app is "just" a client.
 | --- | --- | --- |
 | `score-model` | The `ScoreV1` document format, importers (MusicXML, Guitar Pro), MusicXML export, sync-map math, and the editor (`ScoreEditorV1` with snapshot undo). | Pure, well-tested functions. The best place to start. |
 | `player` | Wraps [alphaTab](https://alphatab.net) behind a renderer-agnostic API: render a `ScoreV1`, highlight beats/notes, synth playback, loop markers. | alphaTab is a *rebuildable render target*, not the source of truth. |
-| `audio-engine` | `RecordingPlayer`: plays a real recording through the [Signalsmith Stretch](https://signalsmith-audio.co.uk/code/stretch/) AudioWorklet so speed changes preserve pitch; region looping; waveform peaks. | Owns the audio clock. |
+| `audio-engine` | A `MediaPlayer` interface with two implementations: `RecordingPlayer` (a real audio take through the [Signalsmith Stretch](https://signalsmith-audio.co.uk/code/stretch/) AudioWorklet, so speed changes preserve pitch; looping; waveform peaks) and `YouTubePlayer` (a video through YouTube's IFrame API; discrete speeds; emulated loop). | Owns the media clock. |
 | `bundle` | The `.ovb` format (a ZIP with a `manifest.json`), plus create/read/validate and the `ovb` CLI. | Bundles carry a `formatVersion`; readers reject unknown majors. |
 | `apps/web` | The React authoring app and the embeddable player page (`embed.html`). Glue only: state, UI, and the sync-point editor live here. | AGPL-3.0; the packages are MPL-2.0. |
 
@@ -53,12 +53,14 @@ The trickiest concept is that playback has **two time bases**:
 
 - **Score time** (ticks) — alphaTab's playback position, driving the synth and the
   moving cursor.
-- **Recording time** (seconds) — the `RecordingPlayer`'s position in the audio.
+- **Media time** (seconds) — the active `MediaPlayer`'s position, whether that is
+  the audio `RecordingPlayer` or the `YouTubePlayer`.
 
 The **sync map** (a list of `SyncPoint`s in the score model) maps between them.
-`mediaTimeAtTick` / `tickAtMediaTime` interpolate, so "jump to bar 20" can move
-both the cursor and the recording playhead, and "follow" can scroll the score to
-the audio position. Sync-confidence flags (blue/amber/red bar markers) are a
+Because it is keyed on seconds, it is source-agnostic: the same follow/cursor/
+loop/tap-sync code drives audio or video unchanged. `mediaTimeAtTick` /
+`tickAtMediaTime` interpolate, so "jump to bar 20" can move both the cursor and
+the media playhead, and "follow" can scroll the score to the media position. Sync-confidence flags (blue/amber/red bar markers) are a
 heuristic over the evenness of sync-point spacing; see `apps/web/src/sync-utils.ts`.
 
 ## Data flow, end to end

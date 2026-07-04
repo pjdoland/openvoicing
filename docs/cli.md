@@ -20,7 +20,7 @@ node packages/bundle/bin/ovb.mjs <command>
 Package a score (and optionally a recording) into a bundle.
 
 ```sh
-ovb create --score <file> --out <file.ovb> [--title <T>] [--recording <audio>]
+ovb create --score <file> --out <file.ovb> [--title <T>] [--recording <audio>] [--youtube <url>]
 ```
 
 | Flag | Required | Meaning |
@@ -29,9 +29,17 @@ ovb create --score <file> --out <file.ovb> [--title <T>] [--recording <audio>]
 | `--out <file.ovb>` | yes | Path to write the bundle to. |
 | `--title <T>` | no | Title stored in the manifest. |
 | `--recording <audio>` | no | An audio file to include (e.g. `.mp3`, `.ogg`, `.wav`). |
+| `--youtube <url>` | no | A YouTube URL or video id to attach as a video recording. |
 
 ```sh
+# Audio recording packed into the bundle:
 ovb create --score song.musicxml --recording take.mp3 --title "My Tune" --out song.ovb
+
+# YouTube video recording (referenced, not downloaded; marks the bundle external):
+ovb create --score song.musicxml --youtube https://youtu.be/VIDEO_ID --out song.ovb
+
+# YouTube video with a paired audio file for the waveform / auto-sync:
+ovb create --score song.musicxml --youtube VIDEO_ID --recording take.mp3 --out song.ovb
 ```
 
 ### `ovb validate`

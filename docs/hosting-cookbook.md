@@ -25,6 +25,22 @@ must send `Access-Control-Allow-Origin`. Most static hosts (GitHub Pages,
 Netlify, S3+CloudFront, Cloudflare Pages) allow this or can be configured to.
 Same-origin hosting needs no CORS.
 
+### YouTube video bundles
+
+If a bundle uses a YouTube video recording, the player loads the official
+YouTube IFrame API and embeds `https://www.youtube-nocookie.com`. When you set
+a Content-Security-Policy, allow those origins so the video can play:
+
+```
+frame-src   https://www.youtube-nocookie.com;
+script-src  https://www.youtube.com;
+```
+
+Nothing is downloaded from YouTube; the video streams through its player, so a
+YouTube-backed bundle needs a network connection (it is marked `external` in
+the manifest). Audio-only bundles are fully self-contained and need none of
+this.
+
 ## Host the whole app / player
 
 Build and deploy the `apps/web/dist` folder:

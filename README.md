@@ -20,8 +20,9 @@ the embeddable player plays those bundles from any static URL.
 
 - **Practice tools that matter** — slow a passage down without changing pitch, loop
   it, add a count-in, and follow a metronome.
-- **Sync to real recordings** — line up a real performance with the score so
-  playback follows the notation, bar by bar.
+- **Sync to real recordings** — line up a real audio performance, or a **YouTube
+  video** (a lesson or a performance), with the score so playback follows the
+  notation, bar by bar.
 - **Own your files** — a `.ovb` bundle is self-contained and portable. No account,
   no lock-in; host and embed it anywhere.
 - **Editable notation** — import MusicXML or Guitar Pro, edit the notes, and export.
@@ -57,6 +58,8 @@ for direction and [CHANGELOG.md](CHANGELOG.md) for recent work.
 - **Recordings:** open an audio file, see its waveform, sync it to the score, click
   to seek, drag to loop, slow it down without changing pitch — via the
   [Signalsmith Stretch](https://signalsmith-audio.co.uk/code/stretch/) AudioWorklet.
+  Or sync a **YouTube video** and follow the notation as it plays (embedded via
+  YouTube's player, never downloaded).
 - **Editor:** MusicXML/Guitar Pro imports become editable documents; edit notes,
   voices, ornaments, dynamics, and lyrics; autosave; export MusicXML or a bundle.
 - **Bundles & embedding:** the `.ovb` open format, the `ovb` CLI, and an

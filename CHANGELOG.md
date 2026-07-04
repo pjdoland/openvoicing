@@ -22,6 +22,16 @@ Work in progress on `main`. Notable recent changes:
 
 ### Added
 
+- **YouTube video recordings.** Sync the score to a YouTube video (a lesson or
+  a performance) and follow the notation as it plays, with the same cursor,
+  Follow, looping, and tap-sync as audio. Video plays through YouTube's official
+  IFrame player (embedded via youtube-nocookie, never downloaded); speed snaps
+  to YouTube's steps. Works in the app and the embeddable player. Add one with
+  **Add YouTube…**, `ovb create --youtube <url>`, or a `youtube` media entry in
+  the bundle. Auto-sync/waveform remain audio-only (attach a paired audio file
+  for those).
+- A provider-agnostic `MediaPlayer` interface in `audio-engine` (`RecordingPlayer`
+  and `YouTubePlayer`), so playback is decoupled from the source.
 - Project license files (AGPL-3.0 for the app, MPL-2.0 for the libraries),
   `SECURITY.md`, `THIRD-PARTY-NOTICES.md`, and contributor issue/PR templates.
 - Documentation set: user guide, architecture overview, self-hosting and embed
@@ -42,6 +52,14 @@ Work in progress on `main`. Notable recent changes:
 - The edit toolbar no longer clips its essential controls (Voice/Value/Pitch)
   on smaller screens; feature groups collapse into "More" instead.
 - Safari audio playback (AudioContext resume within the user gesture).
+
+### Format
+
+- **`.ovb` bundle `formatVersion` 0 → 1.** Recordings now carry a discriminated
+  `media` source (`{ kind: "audio", path }` or `{ kind: "youtube", videoId, … }`)
+  instead of a bare `path`, and the manifest gains an `external` flag for bundles
+  that reference outside media. Version-0 bundles are migrated on read (old
+  `path` → `media: { kind: "audio", path }`), so existing files keep opening.
 
 ---
 
