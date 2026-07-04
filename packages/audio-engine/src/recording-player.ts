@@ -34,6 +34,9 @@ export class RecordingPlayer {
   private _position = 0;
   private _loop: LoopRegion | null = null;
   private _pitchSemitones = 0;
+  /** Decoded audio, held until it can be handed to the worklet (on first play). */
+  private _channels: Float32Array[] | null = null;
+  private _buffersAdded = false;
   /** Silence inserted between loop repeats, with count-in clicks. */
   loopGapSeconds = 0;
   private gapTimer: ReturnType<typeof setTimeout> | null = null;
@@ -76,19 +79,34 @@ export class RecordingPlayer {
   }
 
   async load(data: ArrayBuffer): Promise<void> {
-    const node = await this.ensureNode();
     this.pause();
-    // decodeAudioData resamples to the context rate, so worklet input seconds
-    // line up with the context clock.
-    const buffer = await this.context!.decodeAudioData(data);
+    // Decode without forcing the playback AudioContext into existence. On
+    // Safari, audio only unblocks for a context that is created *and* resumed
+    // within a user gesture, so the playback context is deferred to play().
+    // Decoding itself needs no running context; a throwaway one is fine.
+    // (decodeAudioData resamples to the context rate; a fresh AudioContext uses
+    // the same device rate the playback context will, so seconds still line up.)
+    const decodeCtx = this.context ?? new AudioContext();
+    const buffer = await decodeCtx.decodeAudioData(data);
     const channels: Float32Array[] = [];
-    for (let i = 0; i < buffer.numberOfChannels; i++) channels.push(buffer.getChannelData(i));
-    await node.dropBuffers();
-    await node.addBuffers(channels);
+    // Copy out of the AudioBuffer so we can close the throwaway decode context.
+    for (let i = 0; i < buffer.numberOfChannels; i++) {
+      channels.push(new Float32Array(buffer.getChannelData(i)));
+    }
+    if (decodeCtx !== this.context) void decodeCtx.close();
+    this._channels = channels;
+    this._buffersAdded = false;
     this._duration = buffer.duration;
     this._position = 0;
     this._loop = null;
     this._loadedInfo = { duration: buffer.duration, channels, sampleRate: buffer.sampleRate };
+    // If the playback graph already exists (a prior play unlocked audio), hand
+    // the new audio to the worklet now; otherwise play() will on first use.
+    if (this.node) {
+      await this.node.dropBuffers();
+      await this.node.addBuffers(channels);
+      this._buffersAdded = true;
+    }
     this.emit("loaded", {
       duration: buffer.duration,
       channels,
@@ -198,6 +216,12 @@ export class RecordingPlayer {
     const resuming = this.context.state === "suspended" ? this.context.resume() : undefined;
     const node = await this.ensureNode();
     await resuming;
+    // First play: hand the decoded audio to the (now gesture-created) worklet.
+    if (!this._buffersAdded && this._channels) {
+      await node.dropBuffers();
+      await node.addBuffers(this._channels);
+      this._buffersAdded = true;
+    }
     if (this._loop && (this._position < this._loop.start || this._position >= this._loop.end)) {
       this._position = this._loop.start;
     }

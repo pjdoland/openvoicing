@@ -84,10 +84,13 @@ async function loaded() {
 }
 
 describe("RecordingPlayer.load", () => {
-  it("decodes audio and emits loaded with duration and sample rate", async () => {
+  it("decodes audio and emits loaded; hands buffers to the worklet on first play", async () => {
     const { player, events } = await loaded();
     expect(player.duration).toBe(10);
     expect(events.loaded).toMatchObject({ duration: 10, sampleRate: 44100 });
+    // Buffers are deferred until the play() gesture so Safari unlocks audio.
+    expect(fakeNode.addBuffers).not.toHaveBeenCalled();
+    await player.play();
     expect(fakeNode.addBuffers).toHaveBeenCalledOnce();
   });
 });
