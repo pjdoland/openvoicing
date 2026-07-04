@@ -56,6 +56,7 @@ function EmbedApp() {
   const syncRef = useRef<SyncPoint[] | null>(null);
   const hasRecordingRef = useRef(false);
   const bundleRef = useRef<Bundle | null>(null);
+  const lastBarRef = useRef(-1);
   const [error, setError] = useState<string | null>(null);
   const [title, setTitle] = useState("");
   const [ready, setReady] = useState(false);
@@ -115,7 +116,14 @@ function EmbedApp() {
       setPosition({ current, total });
       const points = syncRef.current;
       if (points) {
-        player.cursorTick = Math.max(0, Math.round(tickAtMediaTime(points, current)));
+        const tick = Math.max(0, Math.round(tickAtMediaTime(points, current)));
+        player.cursorTick = tick;
+        // Follow: keep the playing bar in view (scroll only when it changes).
+        const bar = player.barIndexAtTick(tick);
+        if (bar !== lastBarRef.current) {
+          lastBarRef.current = bar;
+          player.scrollBarIntoView(bar);
+        }
       }
     });
 
@@ -319,7 +327,9 @@ function EmbedApp() {
           OpenVoicing
         </a>
       </div>
-      <div className="embed-score" ref={containerRef} tabIndex={0} role="region" aria-label="Score" />
+      <div className="embed-score" tabIndex={0} role="region" aria-label="Score">
+        <div className="embed-score-inner" ref={containerRef} />
+      </div>
     </div>
   );
 }
