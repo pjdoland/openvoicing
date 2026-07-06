@@ -223,12 +223,14 @@ textarea {
   z-index: 30;
   display: flex;
   align-items: center;
-  /* One stable, non-wrapping row so Play (left) and Edit (right) never jump to a
-     second row and become moving targets. The transport and the right anchor are
-     pinned; the navigation zone shrinks to absorb the squeeze. No overflow on the
-     bar itself, which would clip the Loop / Speed / Sound dropdowns. */
-  flex-wrap: nowrap;
+  /* Content-driven wrap: a single row whenever everything fits (so Play and Edit
+     stay put on desktop), but zones wrap to a second row as intact units when
+     they do not, instead of the nav zone collapsing and its contents overlapping
+     the record/time zones. No overflow on the bar itself, which would clip the
+     Loop / Speed / Sound dropdowns. */
+  flex-wrap: wrap;
   gap: 14px;
+  row-gap: 6px;
   padding: 10px 20px;
   background: var(--panel);
   border-bottom: 1px solid var(--border);
@@ -1139,13 +1141,20 @@ button.speed-value {
   line-height: 1.7;
 }
 .tour-lede { margin: 0 0 12px; }
-.tour-ethos { color: var(--muted); font-size: 13px; margin: 8px 0 0; }
+/* The two secondary notes share one muted style and consistent spacing. */
+.tour-demo,
+.tour-ethos {
+  color: var(--muted);
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  margin: 6px 0 0;
+}
 .tour-ethos code { font-size: 0.95em; }
 .tour-verbs { list-style: none; padding-left: 0; margin: 0 0 12px; }
 .tour-verbs li { padding: 6px 0; border-top: 1px solid var(--border); }
 .tour-verbs li:first-child { border-top: 0; }
-.tour-demo { color: var(--muted); font-size: 0.8125rem; margin: 0 0 16px; }
-.tour-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: stretch; }
+/* Breathing room between the notes and the action buttons. */
+.tour-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: stretch; margin-top: 20px; }
 
 .tour-dismiss {
   display: inline-flex;
@@ -1316,8 +1325,9 @@ button.speed-value {
 /* Navigation is the one zone allowed to shrink (its Jump-to field narrows)
    before anything overflows, so the pinned transport and Edit hold their spots. */
 .tb-zone.tb-nav {
-  flex-shrink: 1;
-  min-width: 0;
+  /* Stay intact and wrap as a unit rather than shrinking to zero and letting the
+     bar field + Sections menu overlap the neighbouring zones. */
+  flex-shrink: 0;
 }
 .tb-zone.tb-nav .navigate,
 .tb-zone.tb-nav .bars-input {
@@ -1701,7 +1711,15 @@ button.speed-value {
   font-weight: 600;
   cursor: pointer;
 }
-.panel-chevron { transition: transform 0.15s ease; }
+.panel-chevron {
+  display: inline-flex;
+  justify-content: center;
+  width: 1em;
+  font-size: 0.85rem;
+  line-height: 1;
+  color: var(--muted);
+  transition: transform 0.15s ease;
+}
 .panel-chevron.open { transform: rotate(90deg); }
 .panel-actions { display: flex; gap: 8px; align-items: center; }
 .panel-body { padding: 0 20px 10px; }

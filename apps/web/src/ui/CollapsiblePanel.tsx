@@ -40,7 +40,7 @@ export function CollapsiblePanel({
           onClick={() => setOpen((v) => !v)}
         >
           <span aria-hidden="true" className={open ? "panel-chevron open" : "panel-chevron"}>
-            ▸
+            ▶
           </span>
           <span className="panel-title">{title}</span>
         </button>
