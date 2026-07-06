@@ -22,6 +22,19 @@ Work in progress on `main`. Notable recent changes:
 
 ### Added
 
+- **UX overhaul from a seven-expert review (vs. commercial tools).** Highlights:
+  a single stable transport row (Play/Edit never reflow); a clickable speed
+  readout with tempo presets + coarse steps; a seekable position scrubber;
+  actionable sync status ("N of M synced, K need checking") with a colorblind
+  cue and a "Next flagged" jump; sparse tap-sync (Skip + interpolate) and per-bar
+  marker fixes (P / I); place / resize / hide the video (audio keeps playing);
+  a meter-aware count-in and a loop **speed trainer**; **notation glyphs** +
+  key-cap badges on the value palette; styled inline prompts replacing
+  window.prompt; **chord fingering diagrams** with a click-to-draw mini-fretboard.
+- **File-owned practice, no account.** Sections, named bar-range **passages**,
+  per-section **practiced** ticks, and a per-piece **notebook** all live inside
+  the `.ovb` and drive the synth and every recording alike. A Prev/Next section
+  stepper (Page Up/Down) and the passages recall by number key.
 - **YouTube video recordings.** Sync the score to a YouTube video (a lesson or
   a performance) and follow the notation as it plays, with the same cursor,
   Follow, looping, and tap-sync as audio. Video plays through YouTube's official
