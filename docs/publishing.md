@@ -5,10 +5,10 @@ so the reusable packages are published to npm under the MPL-2.0 license.
 
 ## Packages intended for npm
 
-- `@openvoicing/score-model` — document format and converters
-- `@openvoicing/bundle` — `.ovb` reader/writer and the `ovb` CLI
-- `@openvoicing/audio-engine` — time-stretch and analysis
-- `@openvoicing/player` — the rendering/playback wrapper
+- `@openvoicing/score-model`, document format and converters
+- `@openvoicing/bundle`, `.ovb` reader/writer and the `ovb` CLI
+- `@openvoicing/audio-engine`, time-stretch and analysis
+- `@openvoicing/player`, the rendering/playback wrapper
 
 Each is currently consumed as TypeScript source inside the monorepo. Before a
 first npm release they need a build step that emits `.js` + `.d.ts` (the

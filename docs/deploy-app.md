@@ -15,11 +15,11 @@ pnpm build
 
 The static site lands in `apps/web/dist/`:
 
-- `index.html` — the authoring app
-- `embed.html` — the embeddable player page
-- `openvoicing-embed.js` + `openvoicing-embed.d.ts` — the embed SDK
-- `alphatab/` — the notation renderer's worker and font assets
-- `soundfont/` — the General MIDI soundfont for "Notes" playback (~24 MB)
+- `index.html`, the authoring app
+- `embed.html`, the embeddable player page
+- `openvoicing-embed.js` + `openvoicing-embed.d.ts`, the embed SDK
+- `alphatab/`, the notation renderer's worker and font assets
+- `soundfont/`, the General MIDI soundfont for "Notes" playback (~24 MB)
 
 Upload the contents of `dist/` to any static host (Netlify, Cloudflare Pages,
 GitHub Pages, S3+CloudFront, Nginx, ...). There is no server to run.
@@ -47,7 +47,7 @@ mis-handle it.
 - **Content-Type:** `application/zip` (do not let the host guess `text/html`).
 - **CORS:** if the bundle is on a different origin than the page embedding it, send
   `Access-Control-Allow-Origin` for that origin (or `*` for public bundles).
-- **Caching:** bundles are immutable once published — give them a long
+- **Caching:** bundles are immutable once published, give them a long
   `Cache-Control: public, max-age=31536000, immutable` and change the URL when the
   content changes (content-hashed filenames work well).
 
@@ -100,7 +100,7 @@ See [embed-api.md](embed-api.md) for options, methods, and events.
 
 `openvoicing-embed.js` resolves its player page (`embed.html`) **relative to its
 own script URL**, so keep the two files together. Whether you host them yourself
-or from a CDN, **pin a version** — point `<script src>` at an immutable, versioned
+or from a CDN, **pin a version**, point `<script src>` at an immutable, versioned
 path (e.g. `/v1/openvoicing-embed.js`), not a "latest" URL, so a player update
 can't silently break your live embeds.
 

@@ -7,7 +7,7 @@ the [deployment guide](deploy-app.md).
 
 ## Quick start
 
-Declarative — add the script and a div with a bundle URL:
+Declarative: add the script and a div with a bundle URL:
 
 ```html
 <script src="https://your-host/openvoicing-embed.js"></script>
@@ -16,7 +16,7 @@ Declarative — add the script and a div with a bundle URL:
 
 Every matching `div` on the page is upgraded automatically on load.
 
-Programmatic — drive it from JavaScript:
+Programmatic, drive it from JavaScript:
 
 ```js
 const player = OpenVoicing.create("#slot", {
@@ -37,18 +37,18 @@ player.seek(30);
 
 | Option | Type | Default | Meaning |
 | --- | --- | --- | --- |
-| `bundle` | `string` | — | Bundle URL. Falls back to the element's `data-openvoicing-bundle`. |
+| `bundle` | `string` |, | Bundle URL. Falls back to the element's `data-openvoicing-bundle`. |
 | `player` | `string` | `embed.html` next to the script | The player page URL. |
 | `height` | `number \| string` | `480` | Iframe height in px (number) or any CSS length (string). |
-| `title` | `string` | — | Iframe title for assistive technology. |
+| `title` | `string` |, | Iframe title for assistive technology. |
 | `lazy` | `boolean` | `false` | Load the player when scrolled near, instead of immediately. |
-| `params` | `Record<string, string \| number>` | — | Extra query params passed to the player, e.g. `{ speed: 0.75, loop: "2-6" }`. |
+| `params` | `Record<string, string \| number>` |, | Extra query params passed to the player, e.g. `{ speed: 0.75, loop: "2-6" }`. |
 
 ### Data attributes (declarative)
 
-- `data-openvoicing-bundle` — the bundle URL (required unless `bundle` is passed).
-- `data-openvoicing-player` — override the player page URL.
-- `data-openvoicing-height` — override the height.
+- `data-openvoicing-bundle`, the bundle URL (required unless `bundle` is passed).
+- `data-openvoicing-player`, override the player page URL.
+- `data-openvoicing-height`, override the height.
 
 ## The player object
 

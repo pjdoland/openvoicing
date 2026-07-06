@@ -18,13 +18,13 @@ guide walks through each. Nothing here requires any technical background.
 2. Press **Play** (or the spacebar). The notation highlights the note that's
    sounding and scrolls to follow along.
 3. Up in the top-right, the mode toggle switches between:
-   - **Listen** — a clean player for just viewing and playing.
-   - **Practice** — reveals the practice tools (tempo, looping, recording sync).
+   - **Listen**, a clean player for just viewing and playing.
+   - **Practice**, reveals the practice tools (tempo, looping, recording sync).
 4. To use your own music, choose **File → Open score file** and pick a MusicXML
    (`.musicxml`, `.xml`, `.mxl`) or Guitar Pro file, or **File → New score** to
    start blank.
 
-Your work is saved automatically in your browser — the header shows **"All changes
+Your work is saved automatically in your browser, the header shows **"All changes
 saved."** There is no Save button to hunt for.
 
 ## Practice a passage
@@ -95,7 +95,7 @@ Notes on YouTube recordings:
 4. To rename the piece, open the **⚙ Score** button in the edit toolbar and choose
    **Title** (it also sets the composer, tempo, time signature, and key).
 
-Nothing needs saving — edits autosave, and **Delete** only clears the selected note
+Nothing needs saving, edits autosave, and **Delete** only clears the selected note
 to a rest and is undoable with **⌘/Ctrl+Z**. See the full
 [keyboard shortcuts](#keyboard-shortcuts) below.
 
@@ -104,7 +104,7 @@ to a rest and is undoable with **⌘/Ctrl+Z**. See the full
 - **Name it:** Edit → **⚙ Score → Title**.
 - **Export a bundle:** **File → Export bundle** writes a single `.ovb` file
   containing the score, any recording, and the sync map. It is self-contained and
-  shareable — anyone with the file (or the embeddable player pointed at it) sees
+  shareable, anyone with the file (or the embeddable player pointed at it) sees
   the same interactive piece, no account needed.
 - You can also export plain **MusicXML** to open the score in other notation apps.
 
@@ -165,7 +165,7 @@ this table mirrors it).
 ## FAQ
 
 **Does slowing down change the pitch?**
-No. Speed and pitch are independent — slowing the tempo keeps every note at its
+No. Speed and pitch are independent, slowing the tempo keeps every note at its
 correct pitch, for both the notation playback and a synced recording.
 
 **Where are my changes saved? Is there a Save button?**
@@ -174,12 +174,12 @@ header shows "All changes saved." Reloading restores your last session. To keep 
 copy or move it elsewhere, export an `.ovb` bundle or MusicXML.
 
 **Can I share a piece without the app?**
-Yes — export an `.ovb` bundle. It's a single self-contained file that holds the
+Yes, export an `.ovb` bundle. It's a single self-contained file that holds the
 score, recording, and sync. Share the file, or embed the player pointed at it.
 
 **Why is a bar marked amber or red?**
 Those are sync-confidence flags. Amber/red means that bar's sync marker is spaced
-differently from its neighbors, so it *might* be misaligned — or it might be a real
+differently from its neighbors, so it *might* be misaligned, or it might be a real
 tempo change. Blue means it looks well aligned. See
 [play along with a recording](#play-along-with-a-real-recording).
 

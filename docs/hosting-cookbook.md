@@ -60,9 +60,9 @@ Platform notes:
 
 Preset the player with query params on `embed.html` (or via the SDK `params`):
 
-- `speed=0.75` — playback speed
+- `speed=0.75`, playback speed
 - `loop=8-14` (seconds) or `loop=b3-6` (bar numbers, when synced)
-- `t=12` — start position in seconds
+- `t=12`, start position in seconds
 
 ```html
 <div

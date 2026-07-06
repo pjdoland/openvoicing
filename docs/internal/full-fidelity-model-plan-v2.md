@@ -1,4 +1,4 @@
-# Editable & Exportable Everywhere — Plan v2 (council-refined)
+# Editable & Exportable Everywhere, Plan v2 (council-refined)
 
 Supersedes the v1 draft. v1 recommended "Option C" (a parallel full-fidelity
 model rendered by constructing alphaTab `Score` objects). A six-member expert
@@ -12,10 +12,10 @@ product actually needs.**
   `Score` construction *is* supported (`renderScore`, `@since 0.9.4`) **but** the
   caller must run `consolidate → finish(settings) → rebuildRepeatGroups`
   itself, and everything crosses a **worker JSON-serialization boundary** whose
-  `ScoreSerializer` coverage — not the class surface — is the true fidelity
+  `ScoreSerializer` coverage, not the class surface, is the true fidelity
   ceiling. All tick/bounds/cursor data is finish-derived. Keep alphaTex as a
   fallback, don't rush to drop it.
-- **MusicXML/notation:** v1's model was fidelity-capped in three fatal ways —
+- **MusicXML/notation:** v1's model was fidelity-capped in three fatal ways:
   duration as ticks at a fixed PPQ 960 (can't represent prime/nested tuplets),
   **no transposition** (breaks every transposing-instrument score), and global
   key/time (breaks polymeter). Rhythm must be **symbolic** (note-type + dots +
@@ -28,11 +28,11 @@ product actually needs.**
 - **Editing UX:** the single, staff-less `BeatAddress` is the load-bearing
   weakness; need an **ID-based layered cursor**. Both the current
   snapshot-per-keystroke undo *and* v1's proposed command+inverse are wrong
-  targets — use **patch-based undo** (derive inverses for free). The edit
+  targets, use **patch-based undo** (derive inverses for free). The edit
   preview still round-trips through lossy alphaTex, contradicting "render
   fidelity == edit fidelity."
 - **QA:** today's "round-trip" test compares `import(export(import(x)))` to
-  `import(x)` — importer loss is **invisible**. A real harness must canonicalize
+  `import(x)`, importer loss is **invisible**. A real harness must canonicalize
   and compare against the **original source**; but see the scope verdict below,
   which may make most of that unnecessary.
 - **Scope/delivery (the pivotal dissent):** v1 (and B) each build a **second
@@ -46,16 +46,16 @@ product actually needs.**
 The council surfaced that "full-fidelity editable **model**" conflates two
 different goals with wildly different costs:
 
-- **Goal A — "everything is editable and exportable" for the operations that
+- **Goal A, "everything is editable and exportable" for the operations that
   matter** (change pitch, change duration, add/delete note, lyrics) on *any*
-  score, with lossless export. This is what the product — a practice / sync /
-  teaching tool — actually needs.
-- **Goal B — "a model that can represent and edit *every* notation feature"**
+  score, with lossless export. This is what the product, a practice / sync /
+  teaching tool, actually needs.
+- **Goal B, "a model that can represent and edit *every* notation feature"**
   (ornaments, hairpins, cross-staff beaming, voltas…). Multi-quarter; per the
-  scope lead, likely a "solution looking for a problem" here — nobody edits a
+  scope lead, likely a "solution looking for a problem" here, nobody edits a
   hairpin in a practice tool; they fix it upstream and re-import.
 
-## Architecture: Option D — edit-by-patch on the source (recommended path to Goal A)
+## Architecture: Option D, edit-by-patch on the source (recommended path to Goal A)
 
 Neither B (mutate alphaTab's private model) nor C (parallel model + programmatic
 render). Instead:
@@ -63,13 +63,13 @@ render). Instead:
 1. **Source of truth = the original MusicXML** (`.mxl` = unzip → patch → rezip).
    The bundle already keeps it.
 2. **Edits are a list of operations** keyed by `(partId, measure, staff, voice,
-   note-position)` — the same (bar, tick) addressing the sync anchors already
-   use — applied by mutating just those DOM nodes.
+   note-position)`, the same (bar, tick) addressing the sync anchors already
+   use, applied by mutating just those DOM nodes.
 3. **Render = feed the patched MusicXML to alphaTab's own importer** (the native
    path already shipped) → full fidelity, no programmatic `Score`, no coupling
    to alphaTab internals, no alphaTex on this path.
 4. **Export = serialize the patched DOM.** Untouched material is preserved
-   node-for-node **by construction** — this *deletes* the round-trip-completeness
+   node-for-node **by construction**, this *deletes* the round-trip-completeness
    problem, the canonical-form harness, and the golden corpus from the critical
    path.
 5. **Undo/redo = pop the edit list.** Trivial and correct.
@@ -84,12 +84,12 @@ never re-model the score.
 **Honest limits of D:** it gives *full-fidelity render + edit the common
 operations + lossless export*, not arbitrary notation editing. Complex notation
 edits (ornaments/dynamics/structure) are awkward as raw DOM patches. If real
-demand appears, specific features graduate to a richer model later — but that is
+demand appears, specific features graduate to a richer model later, but that is
 pull-based, not pre-built.
 
 **Kill criterion (from the council):** if the DOM-patch *addressing* forces us to
 parse each part into a full tick/voice grid (because of `<backup>/<forward>`
-arithmetic), we've secretly rebuilt an importer — stop and re-evaluate B at that
+arithmetic), we've secretly rebuilt an importer, stop and re-evaluate B at that
 point, since we'd be paying model cost either way.
 
 ## Real bug to fix regardless of path
@@ -109,11 +109,11 @@ fix this (persist edits into the exported bundle).
   voice/staff addressing).
 - Re-render via alphaTab's MusicXML importer on a **debounced** apply.
 - Undo/redo (edit-list pop). **Selection is visible** in the score and
-  **survives re-render** (scroll + re-mark) — a gap that exists even today.
+  **survives re-render** (scroll + re-mark), a gap that exists even today.
 - Export MusicXML with edits applied, everything else verbatim.
 - **Bundle save persists edits** (fixes the bug above).
 - ~6 `load → edit → export → reload → assert` e2e tests (extend
-  `editor.spec.ts`) — no golden corpus.
+  `editor.spec.ts`), no golden corpus.
 - Timebox trip-wire: not shippable in 4 weeks → descope to pitch-only; pitch-only
   not shippable in 2 weeks → architecture is wrong, halt and reassess.
 
@@ -143,7 +143,7 @@ edit fidelity (keep GP read-only); retiring alphaTex.
 
 The council's near-unanimous engineering read: **pursue Goal A via Option D**,
 ship the Goldberg-editable slice in ~a month, and let full-notation editing
-(Goal B) be pulled in feature-by-feature only when a real user needs it — rather
+(Goal B) be pulled in feature-by-feature only when a real user needs it, rather
 than pre-building a second notation engine. Goal B remains possible later; D does
 not paint us into a corner (the source is always preserved).
 

@@ -51,9 +51,9 @@ independent and the app is "just" a client.
 
 The trickiest concept is that playback has **two time bases**:
 
-- **Score time** (ticks) — alphaTab's playback position, driving the synth and the
+- **Score time** (ticks), alphaTab's playback position, driving the synth and the
   moving cursor.
-- **Media time** (seconds) — the active `MediaPlayer`'s position, whether that is
+- **Media time** (seconds), the active `MediaPlayer`'s position, whether that is
   the audio `RecordingPlayer` or the `YouTubePlayer`.
 
 The **sync map** (a list of `SyncPoint`s in the score model) maps between them.

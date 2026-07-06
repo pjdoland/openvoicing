@@ -1,6 +1,6 @@
-# Full-Fidelity Editable Model — Plan v3 (committed: Option C)
+# Full-Fidelity Editable Model, Plan v3 (committed: Option C)
 
-Decision: **Option C** — own a rich, renderer-agnostic semantic music document
+Decision: **Option C**, own a rich, renderer-agnostic semantic music document
 model; alphaTab is a render target, not the source of truth or fidelity ceiling.
 This v3 is the committed roadmap; v1/v2 record the reasoning and the six-member
 council review that shaped it.
@@ -37,25 +37,25 @@ council review that shaped it.
 
 ## Phases (each ships value; gate = fidelity ratchet, never down)
 
-- **P0 — Keystone spikes + harness (no UI).**
+- **P0, Keystone spikes + harness (no UI).**
   1. Render adapter: build an alphaTab `Score` programmatically, run the finish
      pipeline, render, and assert `masterBars[].start`/`calculateDuration`/
-     bounds are correct. **De-risks the whole architecture — do first.**
+     bounds are correct. **De-risks the whole architecture, do first.**
   2. `CanonicalScore` + source-comparing round-trip harness; seed the corpus.
   3. New semantic schema types behind a flag; `startTick` derived; validator.
   4. Version-range gate + migration scaffold; bundle model slot; fix
      edits-dropped-on-export bug.
-- **P1 — Staves & clefs → the Goldberg becomes editable.** Import multi-staff to
+- **P1, Staves & clefs → the Goldberg becomes editable.** Import multi-staff to
   the new model; render via the adapter; ID cursor + patch undo; edit
   pitch/duration/add/delete/lyric across staves/voices; retire the read-only
   routing for the edit subset; MusicXML/MIDI export from the model. Gate:
   multistaff + polyphony corpus at tier-0 100%; Goldberg editable e2e.
-- **P2 — Core notation.** Slurs, articulations, ornaments, dynamics, grace
-  notes — model + render + import/export + edit ops + inspector UX (Basic/
+- **P2, Core notation.** Slurs, articulations, ornaments, dynamics, grace
+  notes, model + render + import/export + edit ops + inspector UX (Basic/
   Advanced). Gate: notation corpus tier-1 ≥90%; tier-0 stays 100%.
-- **P3 — Structure.** Repeats, voltas, endings, barlines, breaks, directions,
+- **P3, Structure.** Repeats, voltas, endings, barlines, breaks, directions,
   printed-vs-`<sound>` tempo. MIDI round-trip (pitch-only) incl. repeat expand.
-- **P4 — Breadth.** Guitar Pro / `.mxl` fidelity, chord symbols, multi-verse
+- **P4, Breadth.** Guitar Pro / `.mxl` fidelity, chord symbols, multi-verse
   lyrics, fingering; polish the editing UX.
 
 ## Non-goals / guardrails

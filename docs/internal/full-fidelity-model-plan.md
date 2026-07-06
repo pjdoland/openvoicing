@@ -1,4 +1,4 @@
-# Full-Fidelity Editable Model — Plan (draft for council review)
+# Full-Fidelity Editable Model, Plan (draft for council review)
 
 ## Goal
 
@@ -33,7 +33,7 @@ global `bars[]` carrying effective time signature / key / tempo. Pipelines:
 
 - **No staff level.** A part has voices but no staves; a grand staff (2 staves,
   treble+bass) cannot be represented. `toAlphaTex` emits a single `{score}`
-  staff and **only `voices[0]`** — the whole reason `isMultiStaffMusicXml`
+  staff and **only `voices[0]`**, the whole reason `isMultiStaffMusicXml`
   routes piano scores to the read-only native path.
 - **No clefs / clef changes.**
 - **Missing notation:** ornaments (trill/mordent/turn), articulations
@@ -51,12 +51,12 @@ global `bars[]` carrying effective time signature / key / tempo. Pipelines:
 
 ## Architectural options
 
-### Option A — Expand `ScoreDocument`, keep alphaTex render bridge
+### Option A, Expand `ScoreDocument`, keep alphaTex render bridge
 Grow our schema to cover the above and extend `toAlphaTex`. Cheapest structurally
 but bounded by alphaTex's expressiveness (ornaments, dynamics, cross-staff, grace
 notes are limited/absent) → render stays lossy. **Rejected** as the render path.
 
-### Option B — Adopt alphaTab's model as the edit substrate
+### Option B, Adopt alphaTab's model as the edit substrate
 Edit `api.score` (alphaTab `Score/Track/Staff/Bar/Voice/Beat/Note`) in place,
 serialize that to our bundle, and write our own alphaTab→MusicXML exporter.
 No reinvention; full fidelity by construction. Risks: alphaTab's model is not a
@@ -64,7 +64,7 @@ stable *mutation* API; undo/redo, serialization, and MusicXML export all become
 our responsibility against an internal shape that can change between alphaTab
 versions; tight coupling.
 
-### Option C — Mirror model + programmatic render (recommended)
+### Option C, Mirror model + programmatic render (recommended)
 Expand our model to the **standard hierarchy that maps 1:1 to alphaTab's**
 (`score → part → staff(+clef) → bar → voice → beat → note`, plus attributes and
 notation), and **render by constructing alphaTab `Score` objects
@@ -125,15 +125,15 @@ keep opening. Define forward-compat rules for `unknown` blobs.
 
 ## Phased roadmap (proposed)
 
-- **P0 — Foundations & harness.** New schema types behind a flag; MusicXML
+- **P0, Foundations & harness.** New schema types behind a flag; MusicXML
   round-trip harness + corpus; `unknown` pass-through; no UI change.
-- **P1 — Staves & clefs.** Model staves; import multi-staff; programmatic
+- **P1, Staves & clefs.** Model staves; import multi-staff; programmatic
   alphaTab render; the Goldberg becomes editable (notes) & round-trips. Retire
   `isMultiStaffMusicXml` read-only routing.
-- **P2 — Core notation.** Slurs, articulations, ornaments, dynamics, grace
-  notes — model, render, import/export, edit ops.
-- **P3 — Structure.** Repeats, voltas, endings, barlines, breaks, directions.
-- **P4 — Breadth.** Guitar Pro import fidelity, chord symbols, multi-verse
+- **P2, Core notation.** Slurs, articulations, ornaments, dynamics, grace
+  notes, model, render, import/export, edit ops.
+- **P3, Structure.** Repeats, voltas, endings, barlines, breaks, directions.
+- **P4, Breadth.** Guitar Pro import fidelity, chord symbols, multi-verse
   lyrics, fingering; polish edit UX (inspector for the new attributes).
 
 ## Risks / open questions
