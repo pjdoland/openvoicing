@@ -1353,6 +1353,31 @@ button.speed-value {
    labeled cards so the collapsed view is the same map, just vertical. */
 .etb-more-popover { flex-direction: column; align-items: stretch; min-width: 220px; }
 .etb-more-popover .etb-group { justify-content: flex-start; flex-wrap: wrap; }
+/* Note-value / pitch buttons: a notation glyph or letter with a small key-cap
+   badge in the corner so the shortcut is learned through everyday clicking. */
+.etb-note { position: relative; }
+.note-glyph {
+  font-family: "alphaTab", serif;
+  font-size: 1.5em;
+  line-height: 1;
+  display: inline-block;
+}
+.keycap {
+  position: absolute;
+  right: 1px;
+  bottom: 0;
+  font-size: 8px;
+  line-height: 1;
+  padding: 1px 2px;
+  border-radius: 2px;
+  color: var(--muted);
+  background: var(--accent-soft);
+  font-variant-numeric: tabular-nums;
+}
+.etb-btn.active .keycap {
+  color: var(--on-accent, #fff);
+  background: rgba(255, 255, 255, 0.25);
+}
 .etb-more-section { display: flex; flex-direction: column; gap: 4px; padding-bottom: 6px; }
 .etb-more-section + .etb-more-section { border-top: 1px solid var(--border); padding-top: 6px; }
 .etb-pop-row { display: flex; align-items: center; gap: 6px; }

@@ -132,12 +132,20 @@ const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
 // The common note values as a tappable palette. Faces show the value as a
 // fraction of a whole note (reliable everywhere) with the number-key hint.
-const DURATION_PALETTE: Array<{ type: v1.NoteType; face: string; label: string; key: string }> = [
-  { type: "whole", face: "1", label: "Whole note", key: "1" },
-  { type: "half", face: "½", label: "Half note", key: "2" },
-  { type: "quarter", face: "¼", label: "Quarter note", key: "3" },
-  { type: "eighth", face: "⅛", label: "Eighth note", key: "4" },
-  { type: "16th", face: "1⁄16", label: "16th note", key: "5" },
+// `glyph` is the SMuFL codepoint (rendered in alphaTab's Bravura font, which is
+// always loaded); `face` is the fraction shown if the music font fails to load.
+const DURATION_PALETTE: Array<{
+  type: v1.NoteType;
+  glyph: string;
+  face: string;
+  label: string;
+  key: string;
+}> = [
+  { type: "whole", glyph: "", face: "1", label: "Whole note", key: "1" },
+  { type: "half", glyph: "", face: "½", label: "Half note", key: "2" },
+  { type: "quarter", glyph: "", face: "¼", label: "Quarter note", key: "3" },
+  { type: "eighth", glyph: "", face: "⅛", label: "Eighth note", key: "4" },
+  { type: "16th", glyph: "", face: "1⁄16", label: "16th note", key: "5" },
 ];
 
 // Articulation toggles: glyph + accessible label + key hint.
@@ -2680,8 +2688,9 @@ export function App() {
       <div className="etb-group" role="group" aria-label="Note value" key="value">
         <span className="etb-label">Value</span>
         {DURATION_PALETTE.map((d) => (
-          <button key={d.type} className={"etb-btn" + (v1Sel.noteType === d.type ? " active" : "")} aria-pressed={v1Sel.noteType === d.type} aria-label={`${d.label} (${d.key})`} title={`${d.label} (key ${d.key})`} onClick={() => v1SetDurationType(d.type)}>
-            {d.face}
+          <button key={d.type} className={"etb-btn etb-note" + (v1Sel.noteType === d.type ? " active" : "")} aria-pressed={v1Sel.noteType === d.type} aria-label={`${d.label} (${d.key})`} title={`${d.label} (key ${d.key})`} onClick={() => v1SetDurationType(d.type)}>
+            <span className="note-glyph" aria-hidden="true">{d.glyph}</span>
+            <span className="keycap" aria-hidden="true">{d.key}</span>
           </button>
         ))}
         <button className={"etb-btn" + (v1Sel.dotted ? " active" : "")} aria-pressed={v1Sel.dotted} aria-label="Dotted" title="Dotted (.)" onClick={v1ToggleDotBtn}>・</button>
@@ -2691,7 +2700,7 @@ export function App() {
       <div className="etb-group" role="group" aria-label="Pitch" key="pitch">
         <span className="etb-label">Pitch</span>
         {(["C", "D", "E", "F", "G", "A", "B"] as v1.NoteStep[]).map((s) => (
-          <button key={s} className="etb-btn" aria-label={`Pitch ${s}`} title={`Pitch ${s} (${s.toLowerCase()})`} onClick={() => v1SetPitchLetter(s)}>{s}</button>
+          <button key={s} className="etb-btn etb-note" aria-label={`Pitch ${s}`} title={`Pitch ${s} (${s.toLowerCase()})`} onClick={() => v1SetPitchLetter(s)}>{s}<span className="keycap" aria-hidden="true">{s.toLowerCase()}</span></button>
         ))}
       </div>
     );
