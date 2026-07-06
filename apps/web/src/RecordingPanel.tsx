@@ -496,17 +496,22 @@ export function RecordingPanel({
             </span>
             {loop && (
               <>
-                <button onClick={clearLoop}>
-                  Clear loop ({formatTime(loop.start)} to {formatTime(loop.end)})
+                <button onClick={clearLoop} title={`Clear the loop (${formatTime(loop.start)} to ${formatTime(loop.end)})`}>
+                  Clear loop
                 </button>
-                <span className="position" title="Loop repetitions">
-                  ×{repeats}
+                <span className="loop-range" title="Loop region">
+                  {formatTime(loop.start)} to {formatTime(loop.end)}
                 </span>
+                {repeats > 0 && (
+                  <span className="rtb-reps" title="Times this loop has repeated">
+                    Looped {repeats}×
+                  </span>
+                )}
                 <button onClick={onSaveLoop} title="Save this loop with a name">
                   Save loop
                 </button>
-                <label className="control" title="Silence with count-in between loop repeats">
-                  Gap
+                <label className="control" title="Silence (with count-in) inserted between loop repeats">
+                  Pause between reps
                   <select
                     value={gap}
                     onChange={(e) => {
@@ -515,7 +520,7 @@ export function RecordingPanel({
                       if (playerRef.current) playerRef.current.loopGapSeconds = value;
                     }}
                   >
-                    <option value={0}>off</option>
+                    <option value={0}>None</option>
                     <option value={1}>1s</option>
                     <option value={2}>2s</option>
                     <option value={3}>3s</option>

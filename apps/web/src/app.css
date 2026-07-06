@@ -457,9 +457,23 @@ body {
 }
 
 .zoom-controls button {
-  min-width: 30px;
-  min-height: 30px;
+  min-width: var(--ctl-h);
+  min-height: var(--ctl-h);
   padding: 2px 6px;
+}
+
+/* Loop readout: static and tabular so the row does not reflow as the loop moves
+   (the time used to live inside the Clear-loop button label). */
+.loop-range {
+  font-variant-numeric: tabular-nums;
+  color: var(--muted);
+  white-space: nowrap;
+  min-width: 11ch;
+}
+.rtb-reps {
+  font-variant-numeric: tabular-nums;
+  color: var(--muted);
+  white-space: nowrap;
 }
 
 .sync-lane {
@@ -1820,7 +1834,7 @@ button.speed-value {
 
 /* alphaTab's built-in playback-range selection fills the full width of every
    system the range touches, bleeding onto bars outside the loop. Hide it and
-   bracket just the loop's first/last bars ourselves (see .ov-loop-bracket). */
+   draw one continuous region per staff row ourselves (see .ov-loop-region). */
 .at-selection {
   display: none;
 }
@@ -1830,17 +1844,21 @@ button.speed-value {
   pointer-events: none;
   z-index: 2;
 }
-.ov-loop-bracket {
+/* One continuous outlined region across the loop's bars: a very faint accent
+   wash plus a continuous bottom rule, with vertical end walls only at the true
+   first/last bar. Kept far below the active bar's 22% fill so the playing cell
+   still reads as the brightest thing; the two never merge into one band. */
+.ov-loop-region {
   position: absolute;
   box-sizing: border-box;
+  background: color-mix(in srgb, var(--accent) 7%, transparent);
+  border-bottom: 2.5px solid var(--accent);
 }
-/* Just an accent edge at the loop boundaries; no fill (that reads as the active
-   bar and clutters the notes). */
-.ov-loop-bracket.start {
-  border-left: 3px solid var(--accent);
+.ov-loop-region.at-start {
+  border-left: 2.5px solid var(--accent);
 }
-.ov-loop-bracket.end {
-  border-right: 3px solid var(--accent);
+.ov-loop-region.at-end {
+  border-right: 2.5px solid var(--accent);
 }
 
 /* Selected-note highlight for editing (drawn over the beat's note bounds). */

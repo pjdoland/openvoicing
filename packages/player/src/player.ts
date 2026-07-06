@@ -324,7 +324,7 @@ export class Player {
     }
   }
 
-  /** Bracket the first and last bars of a looped range, or clear with null. */
+  /** Outline a looped bar range as one continuous region, or clear with null. */
   setLoopMarkers(range: { startBar: number; endBar: number } | null): void {
     this.loopRange = range;
     this.renderLoopMarkers();
@@ -354,19 +354,43 @@ export class Player {
     layer.textContent = "";
     const range = this.loopRange;
     if (!range) return;
-    const draw = (barIndex: number, side: "start" | "end") => {
-      const b = this.barBounds(barIndex);
-      if (!b) return;
+    const bl = this.api.renderer?.boundsLookup as
+      | { staffSystems?: Array<{ bars: Array<{ index: number; realBounds: { x: number; y: number; w: number; h: number } }> }> }
+      | undefined;
+    if (!bl?.staffSystems) return;
+    const lo = Math.min(range.startBar, range.endBar);
+    const hi = Math.max(range.startBar, range.endBar);
+    // One continuous span per staff system (row): union the bounds of every
+    // in-range bar on that row. The vertical end walls appear only on the rows
+    // holding the true first/last bar, so a multi-line loop reads as one region.
+    for (const sys of bl.staffSystems) {
+      let minX = Infinity;
+      let maxX = -Infinity;
+      let minY = Infinity;
+      let maxY = -Infinity;
+      let hasStart = false;
+      let hasEnd = false;
+      let any = false;
+      for (const bar of sys.bars) {
+        if (bar.index < lo || bar.index > hi) continue;
+        any = true;
+        const b = bar.realBounds;
+        minX = Math.min(minX, b.x);
+        maxX = Math.max(maxX, b.x + b.w);
+        minY = Math.min(minY, b.y);
+        maxY = Math.max(maxY, b.y + b.h);
+        if (bar.index === lo) hasStart = true;
+        if (bar.index === hi) hasEnd = true;
+      }
+      if (!any) continue;
       const el = document.createElement("div");
-      el.className = `ov-loop-bracket ${side}`;
-      el.style.left = `${b.x}px`;
-      el.style.top = `${b.y}px`;
-      el.style.width = `${b.w}px`;
-      el.style.height = `${b.h}px`;
-      layer!.appendChild(el);
-    };
-    draw(range.startBar, "start");
-    draw(range.endBar, "end");
+      el.className = `ov-loop-region${hasStart ? " at-start" : ""}${hasEnd ? " at-end" : ""}`;
+      el.style.left = `${minX}px`;
+      el.style.top = `${minY}px`;
+      el.style.width = `${maxX - minX}px`;
+      el.style.height = `${maxY - minY}px`;
+      layer.appendChild(el);
+    }
   }
 
   /**
