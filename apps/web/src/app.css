@@ -656,18 +656,30 @@ body {
    room so it never truncates to a confusing fragment. */
 .navigate .bars-input { width: clamp(112px, 20vw, 150px); }
 
-.speed-value {
-  min-width: 42px;
-  text-align: center;
-  font-variant-numeric: tabular-nums;
-}
-
-/* Speed readout is a button that opens a preset/numeric menu. */
+/* The whole speed control is one readout button that opens presets + slider +
+   input; there are no separate +/- buttons (scroll or arrow-key to nudge). */
 .speed-control {
   position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ctl-gap);
 }
 button.speed-value {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 42px;
+  justify-content: center;
+  font-variant-numeric: tabular-nums;
   cursor: pointer;
+}
+.speed-caret {
+  font-size: 0.7em;
+  color: var(--muted);
+}
+.speed-slider {
+  width: 100%;
+  accent-color: var(--accent);
 }
 .speed-menu {
   position: absolute;

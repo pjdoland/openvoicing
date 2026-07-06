@@ -17,21 +17,32 @@ describe("clampSpeed", () => {
 });
 
 describe("SpeedControl component", () => {
-  it("shows the current speed and steps within bounds", async () => {
+  it("nudges tempo with arrow keys on the readout", async () => {
     const user = userEvent.setup();
     const onChange = vi.fn();
-    const { rerender } = render(<SpeedControl value={1} onChange={onChange} />);
+    render(<SpeedControl value={1} onChange={onChange} />);
 
-    expect(screen.getByText("100%")).toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: "Slower" }));
+    const readout = screen.getByRole("button", { name: /100%/ });
+    expect(readout).toBeInTheDocument();
+    readout.focus();
+    await user.keyboard("{ArrowDown}");
     expect(onChange).toHaveBeenCalledWith(0.95);
-
-    await user.click(screen.getByRole("button", { name: "Faster" }));
+    await user.keyboard("{ArrowUp}");
     expect(onChange).toHaveBeenCalledWith(1.05);
+    // Shift makes the step coarse (25%).
+    await user.keyboard("{Shift>}{ArrowUp}{/Shift}");
+    expect(onChange).toHaveBeenCalledWith(1.25);
+  });
 
-    // At the floor, Slower is disabled.
-    rerender(<SpeedControl value={SPEED_MIN} onChange={onChange} />);
-    expect(screen.getByRole("button", { name: "Slower" })).toBeDisabled();
+  it("opens a popover with presets and a tempo slider", async () => {
+    const user = userEvent.setup();
+    const onChange = vi.fn();
+    render(<SpeedControl value={1} onChange={onChange} />);
+
+    await user.click(screen.getByRole("button", { name: /100%/ }));
+    expect(screen.getByRole("slider", { name: "Tempo" })).toBeInTheDocument();
+    await user.click(screen.getByRole("menuitemradio", { name: "50%" }));
+    expect(onChange).toHaveBeenCalledWith(0.5);
   });
 
   it("uses a custom label", () => {

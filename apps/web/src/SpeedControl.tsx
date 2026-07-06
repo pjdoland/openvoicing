@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type WheelEvent } from "react";
+import { useEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent, type WheelEvent } from "react";
 
 export const SPEED_MIN = 0.25;
 export const SPEED_MAX = 1.5;
@@ -44,10 +44,20 @@ export function SpeedControl({
     onChange(clampSpeed(value + dir * (coarse ? SPEED_COARSE : SPEED_STEP)));
   const pct = Math.round(value * 100);
   const onWheel = (e: WheelEvent) => step(e.deltaY < 0 ? 1 : -1, e.shiftKey);
+  // Arrow keys nudge tempo without opening the popover (Shift = coarse).
+  const onValueKey = (e: ReactKeyboardEvent) => {
+    if (e.key === "ArrowUp" || e.key === "ArrowRight") {
+      e.preventDefault();
+      step(1, e.shiftKey);
+    } else if (e.key === "ArrowDown" || e.key === "ArrowLeft") {
+      e.preventDefault();
+      step(-1, e.shiftKey);
+    }
+  };
 
   return (
     <span
-      className="control zoom-controls speed-control"
+      className="control speed-control"
       role="group"
       aria-label={label ?? "Playback speed"}
       ref={rootRef}
@@ -55,29 +65,15 @@ export function SpeedControl({
     >
       {label ?? "Speed"}
       <button
-        title="Slower (−, 5%; Shift for 25%)"
-        aria-label="Slower"
-        onClick={(e) => step(-1, e.shiftKey)}
-        disabled={value <= SPEED_MIN}
-      >
-        −
-      </button>
-      <button
         className="speed-value"
-        title="Set tempo"
+        title="Set tempo (scroll or arrow keys to nudge; hold Shift for 25%)"
         aria-haspopup="menu"
         aria-expanded={open}
         onClick={() => setOpen((o) => !o)}
+        onKeyDown={onValueKey}
       >
         {pct}%
-      </button>
-      <button
-        title="Faster (=, 5%; Shift for 25%)"
-        aria-label="Faster"
-        onClick={(e) => step(1, e.shiftKey)}
-        disabled={value >= SPEED_MAX}
-      >
-        +
+        <span className="speed-caret" aria-hidden="true">▾</span>
       </button>
       {open && (
         <div className="popover-panel speed-menu" role="menu">
@@ -97,9 +93,20 @@ export function SpeedControl({
               </button>
             ))}
           </div>
+          <input
+            className="speed-slider"
+            type="range"
+            min={SPEED_MIN * 100}
+            max={SPEED_MAX * 100}
+            step={5}
+            value={pct}
+            aria-label="Tempo"
+            onChange={(e) => onChange(clampSpeed(Number(e.target.value) / 100))}
+          />
           <label className="speed-numeric">
             Set
             <input
+              key={pct}
               type="number"
               min={25}
               max={150}
@@ -111,6 +118,7 @@ export function SpeedControl({
                   setOpen(false);
                 }
               }}
+              onBlur={(e) => onChange(clampSpeed(Number(e.currentTarget.value) / 100))}
             />
             %
           </label>
