@@ -3757,37 +3757,33 @@ export function App() {
                   <button onClick={startTapSync}>Start tap sync</button>
                   {syncPoints ? (
                     <>
-                      <label className="control">
-                        <input type="checkbox" checked={follow} onChange={(e) => setFollow(e.target.checked)} />
-                        Follow
-                      </label>
-                      <label className="control" title="Click on each bar of the recording">
-                        <input type="checkbox" checked={syncedClick} onChange={(e) => setSyncedClick(e.target.checked)} />
-                        Click
-                      </label>
+                      <span className="sync-subgroup" role="group" aria-label="Playback">
+                        <span className="subgroup-label">Playback</span>
+                        <label className="control">
+                          <input type="checkbox" checked={follow} onChange={(e) => setFollow(e.target.checked)} />
+                          Follow
+                        </label>
+                        <label className="control" title="Play a click on each bar of the recording">
+                          <input type="checkbox" checked={syncedClick} onChange={(e) => setSyncedClick(e.target.checked)} />
+                          Click track
+                        </label>
+                      </span>
                       <button onClick={undoSync} disabled={!syncCanUndo} title="Undo sync edit (Cmd+Z)">
                         Undo sync
                       </button>
                       {flaggedCount > 0 && (
-                        <button onClick={jumpToNextFlagged} title="Seek to the next bar that needs checking">
+                        <button
+                          className="btn-primary"
+                          onClick={jumpToNextFlagged}
+                          title={`Seek to the next of ${flaggedCount} bars that need checking`}
+                        >
                           Next flagged ({flaggedCount})
                         </button>
                       )}
-                      <span className="hint" role="status">
+                      <span className="hint sync-status-cluster" role="status">
                         {syncPoints.length} of {barCount} bars synced
-                        {syncConfidence
-                          ? flaggedCount > 0
-                            ? `, ${flaggedCount} need checking`
-                            : ", all look aligned"
-                          : ""}
+                        {syncConfidence && flaggedCount === 0 ? ", all look aligned" : ""}
                       </span>
-                      {syncConfidence && (
-                        <span className="sync-legend">
-                          <span className="lg lg-good">● good</span>
-                          <span className="lg lg-fair">▲ check</span>
-                          <span className="lg lg-poor">✕ off</span>
-                        </span>
-                      )}
                     </>
                   ) : (
                     <span className="hint">not synced yet; Auto sync or tap each bar&rsquo;s downbeat</span>

@@ -657,6 +657,17 @@ export function RecordingPanel({
           </div>
         </div>
       )}
+      {syncConfidence && (
+        <div className="sync-legend" aria-hidden="true">
+          <span className="lg lg-good">● aligned</span>
+          {syncConfidence.some((c) => c !== "good") && (
+            <>
+              <span className="lg lg-fair">▲ check</span>
+              <span className="lg lg-poor">✕ off</span>
+            </>
+          )}
+        </div>
+      )}
     </section>
   );
 }

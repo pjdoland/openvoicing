@@ -413,6 +413,13 @@ body {
   font-size: 0.8125rem;
   cursor: pointer;
 }
+/* The one actionable jump is the focal point; keep its primary fill against the
+   generic .sync-bar button rule above. */
+.sync-bar .btn-primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--on-accent);
+}
 
 .recording-toolbar .open-file {
   margin-left: 0;
@@ -546,11 +553,27 @@ body {
 }
 
 /* Legend for the sync markers. */
+/* Legend now sits under the waveform, keyed to the markers it documents (not in
+   the dense sync bar, where it competed with the status text). */
 .sync-legend {
-  display: inline-flex;
-  gap: 10px;
-  font-size: 12px;
+  display: flex;
+  gap: 12px;
+  padding: 4px 20px;
+  font-size: 0.6875rem;
   color: var(--muted);
+}
+/* The status text is pushed to its own right-hand zone; the Follow/Click toggles
+   read as one grouped control. */
+.sync-status-cluster {
+  margin-left: auto;
+}
+.sync-subgroup {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 2px 8px;
+  border: 1px solid var(--accent-soft-border);
+  border-radius: var(--ctl-radius);
 }
 .sync-legend .lg-good {
   color: #2563eb;
