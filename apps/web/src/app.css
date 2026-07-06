@@ -286,12 +286,27 @@ body {
   background: var(--panel-alt);
 }
 
-/* YouTube video panel: a compact 16:9 frame the iframe fills. */
-.video-host {
+/* YouTube video panel: a compact 16:9 frame the iframe fills, with size and
+   hide controls. Hiding moves the iframe off-screen (not display:none) so audio
+   and the synced cursor keep running. */
+.video-wrap {
+  position: relative;
   width: 100%;
   max-width: 480px;
-  aspect-ratio: 16 / 9;
   margin: 10px 12px;
+}
+.video-wrap.large {
+  max-width: 760px;
+}
+.video-controls {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+.video-host {
+  width: 100%;
+  aspect-ratio: 16 / 9;
   background: #000;
   border-radius: 8px;
   overflow: hidden;
@@ -301,6 +316,13 @@ body {
   width: 100%;
   height: 100%;
   border: 0;
+}
+.video-wrap.video-off .video-host {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
 }
 .video-note {
   margin: 0 12px 8px;

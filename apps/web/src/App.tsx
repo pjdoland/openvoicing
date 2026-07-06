@@ -317,6 +317,8 @@ export function App() {
   // waveform, onset auto-sync) stay on `recording`.
   const youtubeRef = useRef<YouTubePlayer | null>(null);
   const videoHostRef = useRef<HTMLDivElement | null>(null);
+  const [videoLarge, setVideoLarge] = useState(false);
+  const [videoHidden, setVideoHidden] = useState(false);
   const [activeMediaKind, setActiveMediaKind] = useState<"audio" | "youtube">("audio");
   // The live YouTube player instance, mirrored into state so the recording
   // panel can bind its waveform playhead to it (video + paired audio).
@@ -3404,12 +3406,38 @@ export function App() {
           defaultOpen={activeRecId !== null}
         >
           {/* The YouTube iframe mounts here when a video take is active. Kept
-              mounted (only hidden) so playback survives collapsing the panel. */}
+              mounted (only resized/moved off-screen) so playback and the synced
+              cursor survive hiding the video or collapsing the panel. */}
           <div
-            className="video-host"
-            ref={videoHostRef}
+            className={
+              "video-wrap" +
+              (videoLarge ? " large" : "") +
+              (videoHidden ? " video-off" : "")
+            }
             style={activeMediaKind === "youtube" ? undefined : { display: "none" }}
-          />
+          >
+            <div className="video-controls">
+              <button
+                className="btn-icon"
+                onClick={() => setVideoHidden((v) => !v)}
+                title={videoHidden ? "Show the video" : "Hide the video (audio keeps playing)"}
+                aria-pressed={videoHidden}
+              >
+                {videoHidden ? "Show video" : "Hide"}
+              </button>
+              {!videoHidden && (
+                <button
+                  className="btn-icon"
+                  onClick={() => setVideoLarge((v) => !v)}
+                  title={videoLarge ? "Smaller video" : "Larger video"}
+                  aria-pressed={videoLarge}
+                >
+                  {videoLarge ? "Smaller" : "Larger"}
+                </button>
+              )}
+            </div>
+            <div className="video-host" ref={videoHostRef} />
+          </div>
           <RecordingPanel
             player={recording}
             isVideo={activeMediaKind === "youtube"}
