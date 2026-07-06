@@ -291,21 +291,25 @@ export function RecordingPanel({
     pinchStartRef.current = null;
   }
 
-  // Keyboard alternative for seek/loop on the focusable waveform.
+  // Keyboard alternative for seek/loop on the focusable waveform. Transport
+  // actions target whatever actually plays: the video when this is a video take
+  // with paired audio (the RecordingPlayer only supplies the waveform and must
+  // stay silent), otherwise the RecordingPlayer itself.
   function onWaveKeyDown(e: ReactKeyboardEvent<HTMLDivElement>) {
     const player = playerRef.current;
-    if (!player || duration === 0) return;
+    const transport = playbackMedia ?? player;
+    if (!player || !transport || duration === 0) return;
     if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
       e.preventDefault();
       const step = e.shiftKey ? 5 : 1;
-      player.seek(player.position + (e.key === "ArrowRight" ? step : -step));
+      transport.seek(transport.position + (e.key === "ArrowRight" ? step : -step));
     } else if (e.key === "Home") {
       e.preventDefault();
-      player.seek(0);
+      transport.seek(0);
     } else if (e.key === " " || e.key === "Enter") {
       e.preventDefault();
-      if (player.playing) player.pause();
-      else void player.play();
+      if (transport.playing) transport.pause();
+      else void transport.play();
     }
   }
 
@@ -337,12 +341,13 @@ export function RecordingPanel({
 
   function onPointerUp(e: PointerEvent<HTMLCanvasElement>) {
     const player = playerRef.current;
+    const transport = playbackMedia ?? player;
     setDrag(null);
-    if (!drag || !player || duration === 0) return;
+    if (!drag || !player || !transport || duration === 0) return;
     let from = (Math.min(drag.startX, drag.currentX) / contentWidth) * duration;
     let to = (Math.max(drag.startX, drag.currentX) / contentWidth) * duration;
     if (Math.abs(drag.currentX - drag.startX) < 4) {
-      player.seek(from);
+      transport.seek(from);
       return;
     }
     // Synced loops snap to bar boundaries; hold Alt for exact placement.
@@ -354,7 +359,7 @@ export function RecordingPanel({
         to = snappedTo;
       }
     }
-    player.setLoopRegion({ start: from, end: to });
+    transport.setLoopRegion({ start: from, end: to });
   }
 
   function onMarkerPointerDown(e: PointerEvent<HTMLDivElement>, index: number) {
@@ -394,7 +399,7 @@ export function RecordingPanel({
   }
 
   function clearLoop() {
-    playerRef.current?.setLoopRegion(null);
+    (playbackMedia ?? playerRef.current)?.setLoopRegion(null);
   }
 
   async function openFile(e: ChangeEvent<HTMLInputElement>) {

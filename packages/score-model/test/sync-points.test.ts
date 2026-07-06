@@ -24,6 +24,13 @@ describe("mediaTimeAtTick", () => {
     const shuffled = [points[2]!, points[0]!, points[1]!];
     expect(mediaTimeAtTick(shuffled, 1920)).toBe(12);
   });
+
+  it("extrapolates before the first anchor along the first segment", () => {
+    // First segment slope is 4s / 3840 ticks, so tick -1920 -> 8s. The old code
+    // used the whole-range first-to-last secant, which would give ~8.33.
+    expect(mediaTimeAtTick(points, -1920)).toBe(8);
+    expect(tickAtMediaTime(points, 8)).toBe(-1920);
+  });
 });
 
 describe("tickAtMediaTime", () => {

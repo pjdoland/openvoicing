@@ -389,7 +389,10 @@ function accToAlter(acc: string | undefined): number {
 
 /** Emit a chord-symbol string as a <harmony> element. */
 function harmonyLines(text: string): string[] {
-  const m = /^([A-G])(#*|b*)([^/]*)(?:\/([A-G])(#*|b*))?$/.exec(text);
+  // Accidentals: a run of sharps OR flats. `(#*|b*)` would never reach the `b*`
+  // branch (the `#*` branch always matches empty first), dropping flat roots; a
+  // single `[#b]*` class captures either.
+  const m = /^([A-G])([#b]*)([^/]*)(?:\/([A-G])([#b]*))?$/.exec(text);
   if (!m) return [];
   const [, rootStep, rootAcc, suffix = "", bassStep, bassAcc] = m;
   const rootAlter = accToAlter(rootAcc);

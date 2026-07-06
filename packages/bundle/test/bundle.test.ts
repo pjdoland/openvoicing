@@ -203,6 +203,26 @@ describe("recording media (YouTube + audio)", () => {
     expect(readBundle(createBundle(demoBundle())).manifest.external).toBeUndefined();
   });
 
+  it("rejects non-numeric youtube clip bounds", () => {
+    const bundle = demoBundle();
+    bundle.files.delete("recordings/take1.wav");
+    bundle.manifest.recordings = [
+      { id: "y", name: "v", media: { kind: "youtube", videoId: "dQw4w9WgXcQ", startSeconds: "5" } as never },
+    ];
+    expect(() => createBundle(bundle)).toThrow(/startSeconds/);
+  });
+
+  it("does not mutate the caller's manifest", () => {
+    const bundle = demoBundle();
+    bundle.files.delete("recordings/take1.wav");
+    bundle.manifest.recordings = [
+      { id: "y", name: "v", media: { kind: "youtube", videoId: "dQw4w9WgXcQ" } },
+    ];
+    createBundle(bundle);
+    // `external` must be written onto the archived copy, not the caller's object.
+    expect(bundle.manifest.external).toBeUndefined();
+  });
+
   it("rejects youtube media without a videoId", () => {
     const bundle = demoBundle();
     bundle.manifest.recordings = [

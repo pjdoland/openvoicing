@@ -17,8 +17,10 @@ function interpolate(
   const first = sorted[0]!;
   if (sorted.length === 1) return first.y;
 
+  // Default to the first segment so an x before the first anchor extrapolates
+  // along the adjacent slope, not the whole-range first-to-last secant.
   let lo = first;
-  let hi = sorted[sorted.length - 1]!;
+  let hi = sorted[1]!;
   for (let i = 0; i < sorted.length - 1; i++) {
     if (sorted[i]!.x <= x) {
       lo = sorted[i]!;

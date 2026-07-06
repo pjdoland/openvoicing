@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { importMusicXmlV1, exportMusicXmlV1 } from "../src/v1";
+import { importMusicXmlV1, exportMusicXmlV1, ScoreEditorV1 } from "../src/v1";
 
 // A guitar tab part: standard 6-string tuning, TAB clef, and a note carrying
 // string/fret (5th string / 3rd fret = C3).
@@ -50,5 +50,17 @@ describe("v1 tablature", () => {
     expect(reimported.parts[0]!.staves[0]!.tuning).toEqual([64, 59, 55, 50, 45, 40]);
     const note = reimported.parts[0]!.measures[0]!.voices[0]!.beats[0]!.notes[0]!;
     expect([note.string, note.fret]).toEqual([5, 3]);
+  });
+
+  it("setFret spells the pitch from the MIDI tuning without an octave shift", () => {
+    const editor = new ScoreEditorV1(importMusicXmlV1(TAB));
+    const noteId = editor.doc.parts[0]!.measures[0]!.voices[0]!.beats[0]!.notes[0]!.id;
+    const noteAt = () => editor.doc.parts[0]!.measures[0]!.voices[0]!.beats[0]!.notes[0]!;
+    // String 5 is A2 (MIDI 45); fret 3 is C3, fret 0 the open A2. A missing MIDI
+    // -> octave*12 conversion would spell these an octave high (C4 / A3).
+    editor.setFret(noteId, 3);
+    expect([noteAt().step, noteAt().octave]).toEqual(["C", 3]);
+    editor.setFret(noteId, 0);
+    expect([noteAt().step, noteAt().octave]).toEqual(["A", 2]);
   });
 });

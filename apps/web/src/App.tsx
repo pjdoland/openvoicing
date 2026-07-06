@@ -331,6 +331,13 @@ export function App() {
     const next = Math.max(0, Math.min(sortedSections.length - 1, base + dir));
     jumpToBarIndex(sortedSections[next]!.barIndex);
   }
+  // The global keydown effect is bound once (deps [recording]), so PageUp/Down
+  // must read the current sections/stepper through refs, not the stale closure
+  // captured at mount (sections load asynchronously after mount).
+  const stepSectionRef = useRef(stepSection);
+  stepSectionRef.current = stepSection;
+  const sortedSectionsRef = useRef(sortedSections);
+  sortedSectionsRef.current = sortedSections;
   function toggleSectionPracticed(barIndex: number) {
     const next = sections.map((s) =>
       s.barIndex === barIndex ? { ...s, practiced: !s.practiced } : s,
@@ -366,10 +373,16 @@ export function App() {
   // videoHostRef). Transport acts on media(); audio-only bits (load, pitch,
   // waveform, onset auto-sync) stay on `recording`.
   const youtubeRef = useRef<YouTubePlayer | null>(null);
+  // Position + play state to restore once a newly-selected video is ready, so
+  // A/B-ing takes keeps the spot (the player is created async by a layout effect).
+  const pendingResumeRef = useRef<{ position: number; playing: boolean } | null>(null);
   const videoHostRef = useRef<HTMLDivElement | null>(null);
   const [videoLarge, setVideoLarge] = useState(false);
   const [videoHidden, setVideoHidden] = useState(false);
   const [activeMediaKind, setActiveMediaKind] = useState<"audio" | "youtube">("audio");
+  // Declared here (not with the other recording state below) so the early media
+  // subscriptions can list it as a dependency and re-bind when the take changes.
+  const [activeRecId, setActiveRecId] = useState<string | null>(null);
   // The live YouTube player instance, mirrored into state so the recording
   // panel can bind its waveform playhead to it (video + paired audio).
   const [youtubeInstance, setYoutubeInstance] = useState<YouTubePlayer | null>(null);
@@ -497,7 +510,7 @@ export function App() {
       for (const u of unsubs) u();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [recording, activeMediaKind]);
+  }, [recording, activeMediaKind, activeRecId]);
 
   // Speed trainer: drop to the start tempo when enabled, then step the tempo up
   // every N loop repetitions until the target. A loop wrap is signalled by the
@@ -528,7 +541,7 @@ export function App() {
       unsubPlayer?.();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [rampOn, rampStart, rampStep, rampEvery, rampTarget, recording, activeMediaKind]);
+  }, [rampOn, rampStart, rampStep, rampEvery, rampTarget, recording, activeMediaKind, activeRecId]);
 
   // Turning the trainer on implies looping the passage (otherwise it can never
   // step). Enable loop; the user still chooses the bar range.
@@ -552,7 +565,6 @@ export function App() {
   const [recordings, setRecordings] = useState<RecordingMeta[]>([]);
   const recordingsRef = useRef<RecordingMeta[]>([]);
   recordingsRef.current = recordings;
-  const [activeRecId, setActiveRecId] = useState<string | null>(null);
   const [savedLoops, setSavedLoops] = useState<SavedLoop[]>([]);
   const savedLoopsRef = useRef<SavedLoop[]>([]);
   useEffect(() => {
@@ -1001,6 +1013,9 @@ export function App() {
     const position = media().position;
     media().pause();
     if (meta?.media?.kind === "youtube") {
+      // The video player is (re)created by the layout effect; hand it the spot
+      // and play state to restore when it becomes ready.
+      pendingResumeRef.current = { position, playing: wasPlaying };
       setActiveRecId(id);
       setActiveMediaKind("youtube");
       setHasPairedAudio(false);
@@ -1067,6 +1082,12 @@ export function App() {
     setYoutubeInstance(yt);
     void yt.whenReady().then(() => {
       yt.speed = speedRef.current;
+      const resume = pendingResumeRef.current;
+      pendingResumeRef.current = null;
+      if (resume) {
+        if (resume.position > 0) yt.seek(resume.position);
+        if (resume.playing) void yt.play();
+      }
     });
     return () => {
       yt.destroy();
@@ -1088,7 +1109,7 @@ export function App() {
       });
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [recording, activeMediaKind]);
+  }, [recording, activeMediaKind, activeRecId]);
 
   // When the user scrolls the notation by hand, auto-follow yields for a moment
   // so they can look elsewhere (e.g. read ahead) without being yanked back to
@@ -1128,7 +1149,7 @@ export function App() {
       }
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [follow, syncPoints, recording, activeMediaKind]);
+  }, [follow, syncPoints, recording, activeMediaKind, activeRecId]);
 
   // A loop set on the waveform (drag, saved-loop recall, [ ] keys) flows into
   // the shared loop state, which then brackets the bars and mirrors to the
@@ -1156,7 +1177,7 @@ export function App() {
       player.scrollBarIntoView(from - 1);
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [recording, activeMediaKind]);
+  }, [recording, activeMediaKind, activeRecId]);
 
   useEffect(() => {
     if (!syncedClick || !barTimesRef.current) return;
@@ -1176,7 +1197,7 @@ export function App() {
       }
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [syncedClick, recording, activeMediaKind]);
+  }, [syncedClick, recording, activeMediaKind, activeRecId]);
 
   // Sync-map edits share an undo stack, separate from the score editor.
   const syncHistoryRef = useRef<SyncPoint[][]>([]);
@@ -1384,7 +1405,9 @@ export function App() {
   }
 
   function clampSyncMove(points: SyncPoint[], index: number, timeSeconds: number): SyncPoint[] {
-    return clampSyncMovePure(points, index, timeSeconds, recording.duration);
+    // Bound against whatever is actually playing (the video for a YouTube take);
+    // recording.duration is 0 for a video with no paired audio.
+    return clampSyncMovePure(points, index, timeSeconds, media().duration);
   }
 
   // Drag pushes one history entry on pointer-down, then updates without stacking.
@@ -1688,9 +1711,16 @@ export function App() {
     const player = playerRef.current;
     if (!ed || !player) return 4;
     const barIndex = player.barIndexAtTick(player.cursorTick);
-    const bars = ed.doc.bars as ReadonlyArray<{ timeSignature?: { beats?: number } }>;
-    const bar = bars[barIndex] ?? bars[0];
-    return bar?.timeSignature?.beats ?? 4;
+    // The v1 time signature lives on Measure.attributes.time (not on the bar) and
+    // carries forward until the next change, so scan up to this bar for the meter
+    // in force. Reading bar.timeSignature always missed and fell back to 4.
+    const measures = ed.doc.parts[0]?.measures ?? [];
+    let beats = 4;
+    for (let i = 0; i <= barIndex && i < measures.length; i++) {
+      const b = measures[i]?.attributes?.time?.beats;
+      if (b) beats = b;
+    }
+    return beats;
   }
 
   // A count-in that matches the meter (beats per bar x count-in bars), runs at
@@ -1814,9 +1844,9 @@ export function App() {
         }
         case "PageUp":
         case "PageDown": {
-          if (editModeRef.current || sortedSections.length === 0) return;
+          if (editModeRef.current || sortedSectionsRef.current.length === 0) return;
           e.preventDefault();
-          stepSection(e.code === "PageUp" ? -1 : 1);
+          stepSectionRef.current(e.code === "PageUp" ? -1 : 1);
           return;
         }
         case "Minus":
@@ -2234,10 +2264,13 @@ export function App() {
       setPassages(importedPassages);
       void storage.set("passages", importedPassages);
 
-      // Opening a bundle replaces the session's recordings.
+      // Opening a bundle replaces the session's recordings. Clear all three
+      // per-recording keys (matching removeRecording) so saved loops are not
+      // orphaned in storage.
       for (const meta of recordings) {
         void storage.delete(`recording:${meta.id}`);
         void storage.delete(`sync:${meta.id}`);
+        void storage.delete(`loops:${meta.id}`);
       }
 
       const list: RecordingMeta[] = [];

@@ -592,11 +592,19 @@ export class ScoreEditorV1 {
     return this.edit((doc) => {
       const at = where === "after" ? barIndex + 1 : barIndex;
       if (at < 0 || at > doc.bars.length) return false;
-      const ref = doc.bars[Math.min(Math.max(0, barIndex), doc.bars.length - 1)];
-      doc.bars.splice(at, 0, { id: newId("bar"), index: at, durationTicks: ref?.durationTicks ?? 4 * PPQ });
+      // Meter in force at the insertion point, from the bars that remain before
+      // it. Scanning up to `at` (not at-1) would inherit a time-signature change
+      // that begins on the measure being pushed forward, and copying the
+      // reference bar's durationTicks would then disagree with the filled rests.
+      const metricPart = doc.parts[0];
+      const barTime = metricPart
+        ? effectiveTime(metricPart, Math.max(0, at - 1))
+        : { beats: 4, beatUnit: 4 };
+      const barTicks = barTime.beats * ((PPQ * 4) / barTime.beatUnit);
+      doc.bars.splice(at, 0, { id: newId("bar"), index: at, durationTicks: barTicks });
       doc.directions = doc.directions.map((d) => (d.barIndex >= at ? { ...d, barIndex: d.barIndex + 1 } : d));
       for (const part of doc.parts) {
-        const time = effectiveTime(part, at);
+        const time = effectiveTime(part, Math.max(0, at - 1));
         part.measures.splice(at, 0, {
           id: newId("measure"),
           barIndex: at,
@@ -754,7 +762,9 @@ export class ScoreEditorV1 {
       if (!tuning || string === undefined) return false;
       loc.note.fret = fret;
       const open = tuning[string - 1];
-      if (open !== undefined) Object.assign(loc.note, spell(open + fret));
+      // Tunings are MIDI note numbers (alphaTab convention); spell() works in the
+      // model's octave*12 space, which is 12 lower, so drop an octave first.
+      if (open !== undefined) Object.assign(loc.note, spell(open + fret - 12));
       return true;
     });
   }
@@ -774,7 +784,9 @@ function syncFret(loc: NoteLocation | undefined): void {
   const tuning = tuningFor(loc);
   const open = tuning?.[loc.note.string - 1];
   if (open === undefined) return;
-  const fret = chromaticValue(loc.note) - open;
+  // chromaticValue is in the model's octave*12 space; the tuning is MIDI (12
+  // higher), so lift the note to MIDI before differencing against the open string.
+  const fret = chromaticValue(loc.note) + 12 - open;
   if (fret >= 0) loc.note.fret = fret;
 }
 

@@ -178,6 +178,10 @@ function EmbedApp() {
           setHasVideo(true);
           setActiveRecording(rec.id);
           syncRef.current = rec.syncPoints?.length ? rec.syncPoints : null;
+          // Wait for the video to report its duration; applyDeepLink routes speed/
+          // seek/loop to the media only when duration > 0, and a fresh
+          // YouTubePlayer reports 0 until it is ready.
+          await yt.whenReady();
         } else if (rec) {
           const bytes = bundle.files.get(recordingAudioPath(rec.media)!)!;
           await recording.load(bytes.slice().buffer as ArrayBuffer);

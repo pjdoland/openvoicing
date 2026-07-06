@@ -201,12 +201,21 @@ export class YouTubePlayer implements MediaPlayer {
     const tick = (): void => {
       if (!this.yt) return;
       let t = this.yt.getCurrentTime();
-      const loopEnd = this._loop?.end ?? this.end;
-      const loopStart = this._loop?.start ?? this.start;
-      if (loopEnd != null && t >= loopEnd - 0.03) {
-        this.yt.seekTo(loopStart, true);
-        t = loopStart;
-        if (this._loop) this.emit("looped");
+      if (this._loop) {
+        // A/B loop: wrap from the loop end back to the loop start.
+        if (t >= this._loop.end - 0.03) {
+          this.yt.seekTo(this._loop.start, true);
+          t = this._loop.start;
+          this.emit("looped");
+        }
+      } else if (this.end != null && t >= this.end - 0.03) {
+        // A bare clip end (no loop) stops at the end, the way decoded audio
+        // halts at its duration, instead of restarting forever.
+        this.pause();
+        t = this.end;
+        this._position = t;
+        this.emit("positionChanged", t, this._duration);
+        return;
       }
       this._position = t;
       this.emit("positionChanged", t, this._duration);

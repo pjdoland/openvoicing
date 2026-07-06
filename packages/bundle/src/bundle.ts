@@ -131,6 +131,11 @@ export function validateManifest(value: unknown): BundleManifest {
       if (yt["audioPath"] !== undefined && typeof yt["audioPath"] !== "string") {
         fail("youtube media audioPath must be a string");
       }
+      for (const k of ["startSeconds", "endSeconds"] as const) {
+        if (yt[k] !== undefined && typeof yt[k] !== "number") {
+          fail(`youtube media ${k} must be a number`);
+        }
+      }
     } else {
       fail(`unknown recording media kind ${JSON.stringify(mk)}`);
     }
@@ -177,7 +182,9 @@ export function parseYouTubeId(urlOrId: string): string | null {
 
 /** Serialize a bundle to .ovb bytes (a ZIP archive). */
 export function createBundle(bundle: Bundle): Uint8Array {
-  const manifest = validateManifest(bundle.manifest);
+  // Shallow-clone: validateManifest returns the caller's object as-is when no
+  // migration runs, and we must not write `external` back onto their manifest.
+  const manifest = { ...validateManifest(bundle.manifest) };
   // Flag bundles that reference media not packed inside them (e.g. YouTube).
   if (manifest.recordings.some((r) => r.media.kind !== "audio")) manifest.external = true;
   const referenced = [

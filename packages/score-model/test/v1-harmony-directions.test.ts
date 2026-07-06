@@ -30,6 +30,19 @@ describe("harmony + direction round-trip", () => {
     expect((words?.content as { text: string } | undefined)?.text).toBe("rit.");
   });
 
+  it("exports a flat chord root with its accidental", () => {
+    const doc = createEmptyScoreV1({ bars: 1, beats: 4 });
+    const editor = new ScoreEditorV1(doc);
+    const beats = doc.parts[0]!.measures[0]!.voices[0]!.beats;
+    editor.restToNoteByName(beats[0]!.id, "E");
+    editor.setChordSymbol(beats[0]!.id, "Ebm7");
+    const xml = exportMusicXmlV1(editor.doc);
+    expect(xml).toContain("<root-step>E</root-step>");
+    expect(xml).toContain("<root-alter>-1</root-alter>");
+    // The flat must not be swallowed into the kind text (the old regex bug).
+    expect(xml).not.toContain('text="bm7"');
+  });
+
   it("round-trips a metronome mark and is idempotent on a second pass", () => {
     const doc = createEmptyScoreV1({ bars: 1 });
     doc.directions.push({
