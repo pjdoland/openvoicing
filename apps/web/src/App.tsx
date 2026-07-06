@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ChangeEvent, type ReactNode, type RefObject } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ChangeEvent, type PointerEvent as ReactPointerEvent, type ReactNode, type RefObject } from "react";
 import { Player, type EditSelection, type TrackInfo } from "@openvoicing/player";
 import {
   alignBarsToOnsets,
@@ -1243,6 +1243,33 @@ export function App() {
     marker?.focus();
   }
 
+  // Seek the active source to a fraction of the piece, so the transport's
+  // position readout doubles as a scrubber (no need to open the media panel).
+  function seekToFraction(fraction: number) {
+    const total = position.total;
+    if (!total) return;
+    const t = Math.max(0, Math.min(total, fraction * total));
+    if (preferredSourceRef.current === "recording" && activeRecIdRef.current !== null) {
+      media().seek(t);
+    } else {
+      playerRef.current?.seekSeconds(t);
+    }
+  }
+  function onScrubPointerDown(e: ReactPointerEvent<HTMLDivElement>) {
+    const track = e.currentTarget;
+    const rect = track.getBoundingClientRect();
+    const at = (clientX: number) => seekToFraction((clientX - rect.left) / rect.width);
+    track.setPointerCapture(e.pointerId);
+    at(e.clientX);
+    const move = (ev: PointerEvent) => at(ev.clientX);
+    const up = () => {
+      track.removeEventListener("pointermove", move);
+      track.removeEventListener("pointerup", up);
+    };
+    track.addEventListener("pointermove", move);
+    track.addEventListener("pointerup", up);
+  }
+
   useEffect(() => {
     if (tapCount === null) return;
     const onKey = (e: KeyboardEvent) => {
@@ -1562,7 +1589,8 @@ export function App() {
         case "Minus":
         case "Equal": {
           e.preventDefault();
-          const delta = e.code === "Minus" ? -0.05 : 0.05;
+          const base = e.shiftKey ? 0.25 : 0.05;
+          const delta = e.code === "Minus" ? -base : base;
           setSynthSpeed(clampSpeed(speedRef.current + delta));
           return;
         }
@@ -2911,7 +2939,6 @@ export function App() {
           </Popover>
           {activeRecId !== null && (
             <>
-            <span className="tb-zone-label">Sound</span>
             <div className="mode-toggle source-toggle" role="group" aria-label="Sound source">
               <button
                 className={preferredSource === "recording" ? "on" : ""}
@@ -2958,7 +2985,7 @@ export function App() {
         )}
 
         {/* Navigation */}
-        <div className="tb-zone" role="group" aria-label="Navigation">
+        <div className="tb-zone tb-nav" role="group" aria-label="Navigation">
           <span className="tb-zone-label">Jump to</span>
           <NavigateControl
             barCount={barCount}
@@ -2991,9 +3018,33 @@ export function App() {
         )}
 
         <div className="tb-zone tb-right">
-          <span className="position">
-            {formatTime(position.current)} / {formatTime(position.total)}
-          </span>
+          <div
+            className="transport-scrubber"
+            role="slider"
+            tabIndex={0}
+            aria-label="Playback position, click or drag to seek"
+            aria-valuemin={0}
+            aria-valuemax={Math.round(position.total)}
+            aria-valuenow={Math.round(position.current)}
+            aria-valuetext={`${formatTime(position.current)} of ${formatTime(position.total)}`}
+            title="Click or drag to seek"
+            onPointerDown={onScrubPointerDown}
+            onKeyDown={(e) => {
+              if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
+                e.preventDefault();
+                const delta = e.key === "ArrowLeft" ? -5 : 5;
+                seekToFraction((position.current + delta) / (position.total || 1));
+              }
+            }}
+          >
+            <span
+              className="scrub-fill"
+              style={{ width: `${position.total ? (position.current / position.total) * 100 : 0}%` }}
+            />
+            <span className="position">
+              {formatTime(position.current)} / {formatTime(position.total)}
+            </span>
+          </div>
           {canEdit && (
             <button
               className={editMode ? "btn-primary" : "btn-icon"}

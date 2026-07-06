@@ -204,7 +204,11 @@ body {
   z-index: 30;
   display: flex;
   align-items: center;
-  flex-wrap: wrap;
+  /* One stable, non-wrapping row so Play (left) and Edit (right) never jump to a
+     second row and become moving targets. The transport and the right anchor are
+     pinned; the navigation zone shrinks to absorb the squeeze. No overflow on the
+     bar itself, which would clip the Loop / Speed / Sound dropdowns. */
+  flex-wrap: nowrap;
   gap: 14px;
   padding: 10px 20px;
   background: var(--panel);
@@ -395,6 +399,9 @@ body {
 
 .hint {
   color: var(--muted);
+  /* Load-bearing text (sync status, tips) read at music-stand distance: a 13px
+     floor keeps it legible and calm even in stand mode. */
+  font-size: max(0.8125rem, 13px);
 }
 
 .wave-scroll {
@@ -566,6 +573,81 @@ body {
   min-width: 42px;
   text-align: center;
   font-variant-numeric: tabular-nums;
+}
+
+/* Speed readout is a button that opens a preset/numeric menu. */
+.speed-control {
+  position: relative;
+}
+button.speed-value {
+  cursor: pointer;
+}
+.speed-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px;
+  min-width: 200px;
+}
+.speed-presets {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 4px;
+}
+.speed-preset {
+  padding: 5px 6px;
+  font-variant-numeric: tabular-nums;
+}
+.speed-preset.on {
+  background: var(--accent-soft);
+  border-color: var(--accent-soft-border);
+}
+.speed-numeric {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+}
+.speed-numeric input {
+  width: 4.5em;
+}
+
+/* The transport position readout doubles as a click/drag scrubber. */
+.transport-scrubber {
+  position: relative;
+  display: flex;
+  align-items: center;
+  min-width: 118px;
+  height: 26px;
+  padding: 0 9px;
+  border-radius: 5px;
+  background: var(--accent-soft);
+  border: 1px solid var(--accent-soft-border);
+  cursor: pointer;
+  overflow: hidden;
+  user-select: none;
+  touch-action: none;
+}
+.transport-scrubber .scrub-fill {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  background: color-mix(in srgb, var(--accent) 24%, transparent);
+  pointer-events: none;
+}
+.transport-scrubber .position {
+  position: relative;
+  z-index: 1;
+  white-space: nowrap;
+}
+.transport-scrubber:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
 }
 
 .toast {
@@ -1007,9 +1089,20 @@ body {
   width: 1px;
   background: var(--border);
 }
+.tb-zone { flex-shrink: 0; }
 .tb-zone.tb-transport { padding-left: 0; }
 .tb-zone.tb-right { margin-left: auto; }
 .tb-zone.tb-right::after { display: none; }
+/* Navigation is the one zone allowed to shrink (its Jump-to field narrows)
+   before anything overflows, so the pinned transport and Edit hold their spots. */
+.tb-zone.tb-nav {
+  flex-shrink: 1;
+  min-width: 0;
+}
+.tb-zone.tb-nav .navigate,
+.tb-zone.tb-nav .bars-input {
+  min-width: 0;
+}
 
 .tb-zone-label {
   font-size: 0.625rem;
@@ -1449,11 +1542,18 @@ body {
 
 /* ===================== Responsive layout ===================== */
 
-/* Header and toolbar wrap gracefully instead of forcing a min width. */
+/* Header wraps gracefully; the toolbar stays a single non-wrapping row (see the
+   base .toolbar rule) so Play and Edit never become moving targets. */
 .header { flex-wrap: wrap; }
 .menubar { flex-wrap: wrap; justify-content: flex-end; }
-.toolbar { flex-wrap: wrap; row-gap: 6px; }
-.tb-zone { flex-wrap: wrap; row-gap: 6px; }
+
+/* On phone-width screens a single row genuinely can't hold every control, so
+   fall back to graceful wrapping there (desktop/tablet keep the stable row). */
+@media (max-width: 900px) {
+  .toolbar { flex-wrap: wrap; row-gap: 6px; }
+  .tb-zone { flex-wrap: wrap; row-gap: 6px; }
+  .tb-zone.tb-right { margin-left: 0; }
+}
 
 /* Floating surfaces never exceed the viewport. */
 .menu-list { max-width: min(280px, 92vw); }
@@ -1525,9 +1625,14 @@ body {
   color: var(--fg);
   min-height: 32px;
 }
+/* Quieter active state than solid accent: in practice view the saturated blue
+   is reserved for the playback cursor and the primary Play button, so the
+   active source segment uses a soft tint + accent text + inset ring instead. */
 .source-toggle button.on {
-  background: var(--accent);
-  color: var(--on-accent, #fff);
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-weight: 600;
+  box-shadow: inset 0 0 0 1.5px var(--accent);
 }
 
 /* File inputs triggered programmatically from menus: Safari will not open the
