@@ -1750,15 +1750,27 @@ button.speed-value {
 /* A single row can't hold every control forever, so fall back to graceful
    wrapping before it would overflow/overlap. Listen mode is sparse (wraps only
    on phones); Practice mode carries many more controls, so it wraps earlier. */
+/* When the toolbar wraps, each zone stays a tight inline group and its uppercase
+   label is dropped (it otherwise sits on its own row above the control, which is
+   what padded the phone toolbar to ~5 tall rows). Meaning is carried by the
+   controls' own icons and their aria-labels/titles. Labels return in the stable
+   single row. Only the toolbar's zone labels are hidden, not sync/popover ones. */
 @media (max-width: 900px) {
   .toolbar { flex-wrap: wrap; row-gap: 6px; }
-  .tb-zone { flex-wrap: wrap; row-gap: 6px; }
+  .tb-zone { flex-wrap: nowrap; }
   .tb-zone.tb-right { margin-left: 0; }
+  .toolbar .tb-zone-label { display: none; }
 }
 @media (max-width: 1120px) {
   .app.advanced .toolbar { flex-wrap: wrap; row-gap: 6px; }
-  .app.advanced .tb-zone { flex-wrap: wrap; row-gap: 6px; }
+  .app.advanced .tb-zone { flex-wrap: nowrap; }
   .app.advanced .tb-zone.tb-right { margin-left: 0; }
+  .app.advanced .toolbar .tb-zone-label { display: none; }
+}
+/* Below phone width the typed bar field is redundant with the tap-friendly
+   section stepper + Sections menu; drop it to save a row. */
+@media (max-width: 480px) {
+  .tb-nav .bars-input { display: none; }
 }
 
 /* Floating surfaces never exceed the viewport. */
