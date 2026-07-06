@@ -121,6 +121,18 @@ describe("bundle round-trip", () => {
     ]);
   });
 
+  it("round-trips practiced flags and the notebook", () => {
+    const bundle = demoBundle();
+    bundle.manifest.sections = [
+      { barIndex: 0, label: "Intro", practiced: true },
+      { barIndex: 16, label: "Verse" },
+    ];
+    bundle.manifest.notebook = "Work on the run at bar 40.";
+    const parsed = readBundle(createBundle(bundle));
+    expect(parsed.manifest.sections?.[0]).toEqual({ barIndex: 0, label: "Intro", practiced: true });
+    expect(parsed.manifest.notebook).toBe("Work on the run at bar 40.");
+  });
+
   it("rejects malformed sections", () => {
     const bundle = demoBundle();
     (bundle.manifest as { sections: unknown }).sections = [{ barIndex: "a", label: "x" }];

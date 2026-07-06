@@ -39,7 +39,7 @@ import { Menu, type MenuItem } from "./ui/Menu";
 import { Popover } from "./ui/Popover";
 import { CollapsiblePanel, resetLayout } from "./ui/CollapsiblePanel";
 import { CommandPalette } from "./ui/CommandPalette";
-import { NavigateControl } from "./ui/NavigateControl";
+import { NavigateControl, type Section } from "./ui/NavigateControl";
 import { TextPrompt, type TextPromptRequest } from "./ui/TextPrompt";
 import { ChordEditor, EMPTY_CHORD } from "./ui/ChordEditor";
 import type { Command } from "./ui/commands";
@@ -250,10 +250,16 @@ export function App() {
   const scoreInputRef = useRef<HTMLInputElement>(null);
   const bundleInputRef = useRef<HTMLInputElement>(null);
   const audioInputRef = useRef<HTMLInputElement>(null);
-  const [sections, setSections] = useState<Array<{ barIndex: number; label: string }>>([]);
+  const [sections, setSections] = useState<Section[]>([]);
+  const [notebook, setNotebook] = useState("");
+  const [notebookOpen, setNotebookOpen] = useState(false);
   useEffect(() => {
-    void storage.get<Array<{ barIndex: number; label: string }>>("sections").then((s) => setSections(s ?? []));
+    void storage.get<Section[]>("sections").then((s) => setSections(s ?? []));
+    void storage.get<string>("notebook").then((n) => setNotebook(n ?? ""));
   }, []);
+  useEffect(() => {
+    if (hydratedRef.current) void storage.set("notebook", notebook);
+  }, [notebook]);
   function currentBarIndex(): number {
     const player = playerRef.current;
     if (!player) return 0;
@@ -316,6 +322,14 @@ export function App() {
     const next = Math.max(0, Math.min(sortedSections.length - 1, base + dir));
     jumpToBarIndex(sortedSections[next]!.barIndex);
   }
+  function toggleSectionPracticed(barIndex: number) {
+    const next = sections.map((s) =>
+      s.barIndex === barIndex ? { ...s, practiced: !s.practiced } : s,
+    );
+    setSections(next);
+    void storage.set("sections", next);
+  }
+  const practicedCount = sections.filter((s) => s.practiced).length;
   function renameSection(barIndex: number) {
     const existing = sections.find((s) => s.barIndex === barIndex);
     askText({
@@ -2027,6 +2041,7 @@ export function App() {
         ...(scoreArtist ? { attribution: { artist: scoreArtist } } : {}),
         ...(assignment ? { assignment } : {}),
         ...(sections.length ? { sections } : {}),
+        ...(notebook.trim() ? { notebook } : {}),
         score: { path: scorePath, type: source.type },
         recordings: manifestRecordings,
       },
@@ -2137,10 +2152,11 @@ export function App() {
       if (player) adoptEditor(loadScoreIntoPlayer(player, source));
       void storage.set("score", { name: source.name, type: source.type, data: scoreData });
       saveAssignment(manifest.assignment ?? "");
-      // The section map travels with the piece.
+      // The section map + practice notebook travel with the piece.
       const importedSections = manifest.sections ?? [];
       setSections(importedSections);
       void storage.set("sections", importedSections);
+      setNotebook(manifest.notebook ?? "");
 
       // Opening a bundle replaces the session's recordings.
       for (const meta of recordings) {
@@ -2949,6 +2965,8 @@ export function App() {
   ];
 
   const viewMenu: MenuItem[] = [
+    { label: "Practice notebook…", onSelect: () => setNotebookOpen(true) },
+    { divider: true },
     { label: "Theme", heading: true },
     { label: "Light", checked: settings.theme === "light", onSelect: () => settings.setTheme("light") },
     { label: "Dark", checked: settings.theme === "dark", onSelect: () => settings.setTheme("dark") },
@@ -3103,6 +3121,27 @@ export function App() {
         </div>
       )}
       {textPrompt && <TextPrompt request={textPrompt} onClose={() => setTextPrompt(null)} />}
+      {notebookOpen && (
+        <div className="prompt-backdrop" role="dialog" aria-modal="true" aria-label="Practice notebook" onMouseDown={() => setNotebookOpen(false)}>
+          <div className="prompt-card notebook-card" onMouseDown={(e) => e.stopPropagation()}>
+            <label className="prompt-label">
+              Practice notebook
+              <textarea
+                className="notebook-input"
+                autoFocus
+                rows={8}
+                value={notebook}
+                placeholder="What to work on, fingerings, reminders…"
+                onChange={(e) => setNotebook(e.target.value)}
+              />
+            </label>
+            <p className="hint">Saved with this piece and travels inside the .ovb file.</p>
+            <div className="prompt-actions">
+              <button className="btn-primary" onClick={() => setNotebookOpen(false)}>Done</button>
+            </div>
+          </div>
+        </div>
+      )}
       {chordEdit && (
         <div className="prompt-backdrop" role="dialog" aria-modal="true" aria-label="Chord" onMouseDown={() => setChordEdit(null)}>
           <div className="prompt-card chord-card" onMouseDown={(e) => e.stopPropagation()}>
@@ -3362,6 +3401,7 @@ export function App() {
             onAddSection={addSection}
             onRenameSection={renameSection}
             onDeleteSection={deleteSection}
+            onTogglePracticed={toggleSectionPracticed}
           />
         </div>
 

@@ -72,6 +72,8 @@ export interface BundleAttribution {
 export interface BundleSection {
   barIndex: number;
   label: string;
+  /** The learner's own progress flag; travels in the file, no account. */
+  practiced?: boolean;
 }
 
 export interface BundleManifest {
@@ -83,6 +85,8 @@ export interface BundleManifest {
   assignment?: string;
   /** The piece's section map, so it travels with the file (no account). */
   sections?: BundleSection[];
+  /** The learner's free-text practice notebook for this piece. */
+  notebook?: string;
   score: BundleScore;
   recordings: BundleRecording[];
   /**

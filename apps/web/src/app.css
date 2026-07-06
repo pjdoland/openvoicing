@@ -1853,3 +1853,17 @@ button.speed-value {
 .chord-editor .chord-cell { cursor: pointer; }
 .chord-editor .chord-cell:hover { fill: var(--accent-soft); }
 .chord-editor .chord-fretlabel { font-size: 11px; fill: var(--muted); }
+
+/* Practice notebook (c12). */
+.notebook-card { min-width: 420px; max-width: 92vw; }
+.notebook-input {
+  width: 100%;
+  min-height: 160px;
+  padding: 10px;
+  border: 1px solid var(--border-strong);
+  border-radius: 6px;
+  font: inherit;
+  font-weight: 400;
+  resize: vertical;
+}
+.section-readout .practiced-count { color: #4a9e63; }

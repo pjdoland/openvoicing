@@ -96,6 +96,9 @@ export function validateManifest(value: unknown): BundleManifest {
       }
     }
   }
+  if (m["notebook"] !== undefined && typeof m["notebook"] !== "string") {
+    fail("notebook must be a string");
+  }
   const recordings = m["recordings"];
   if (!Array.isArray(recordings)) fail("missing recordings array");
   for (const r of recordings as Array<Record<string, unknown>>) {

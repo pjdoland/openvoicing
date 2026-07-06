@@ -4,6 +4,7 @@ import { Menu } from "./Menu";
 export interface Section {
   barIndex: number;
   label: string;
+  practiced?: boolean;
 }
 
 /**
@@ -22,6 +23,7 @@ export function NavigateControl({
   onAddSection,
   onRenameSection,
   onDeleteSection,
+  onTogglePracticed,
 }: {
   barCount: number;
   sections: Section[];
@@ -34,7 +36,9 @@ export function NavigateControl({
   onAddSection: () => void;
   onRenameSection: (barIndex: number) => void;
   onDeleteSection: (barIndex: number) => void;
+  onTogglePracticed?: (barIndex: number) => void;
 }) {
+  const practicedCount = sections.filter((s) => s.practiced).length;
   const [value, setValue] = useState("");
 
   function go(text: string) {
@@ -56,8 +60,18 @@ export function NavigateControl({
       ? ([{ divider: true }, { label: "Sections", heading: true }] as const)
       : []),
     ...sections.flatMap((s) => [
-      { label: `Go to ${s.label} (bar ${s.barIndex + 1})`, onSelect: () => onJumpSection(s.barIndex) },
+      { label: `${s.practiced ? "✓ " : ""}Go to ${s.label} (bar ${s.barIndex + 1})`, onSelect: () => onJumpSection(s.barIndex) },
     ]),
+    ...(onTogglePracticed && sections.length
+      ? [
+          { divider: true } as const,
+          { label: `Practiced (${practicedCount}/${sections.length})`, heading: true } as const,
+          ...sections.map((s) => ({
+            label: `${s.practiced ? "✓" : "○"} ${s.label}`,
+            onSelect: () => onTogglePracticed(s.barIndex),
+          })),
+        ]
+      : []),
     ...(sections.length && !locked ? [{ divider: true } as const] : []),
     ...(!locked
       ? sections.map((s) => ({
@@ -103,8 +117,13 @@ export function NavigateControl({
           >
             ‹
           </button>
-          <span className="section-readout" aria-live="polite" title="Current section">
+          <span
+            className="section-readout"
+            aria-live="polite"
+            title={`Current section${practicedCount ? `; ${practicedCount} of ${sections.length} practiced` : ""}`}
+          >
             {currentSection > 0 ? currentSection : "–"} / {sections.length}
+            {practicedCount > 0 && <span className="practiced-count"> · {practicedCount}✓</span>}
           </span>
           <button
             className="btn-icon"
