@@ -664,7 +664,6 @@ button.speed-value {
   gap: 6px;
 }
 .ramp-config .num-input {
-  width: 3.4em;
   margin: 0 4px;
 }
 
@@ -995,17 +994,22 @@ button.speed-value {
 .tour-verbs li { padding: 6px 0; border-top: 1px solid var(--border); }
 .tour-verbs li:first-child { border-top: 0; }
 .tour-demo { color: var(--muted); font-size: 0.8125rem; margin: 0 0 16px; }
-.tour-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.tour-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: stretch; }
 
 .tour-dismiss {
-  padding: 8px 20px;
+  display: inline-flex;
+  align-items: center;
+  min-height: 36px;
+  padding: 6px 16px;
   border: 1px solid var(--accent);
-  border-radius: 8px;
+  border-radius: 6px;
   background: var(--accent);
-  color: #fff;
+  color: var(--on-accent, #fff);
+  font-size: 0.875rem;
   font-weight: 600;
   cursor: pointer;
 }
+.tour-dismiss:hover { filter: brightness(1.06); }
 
 @media print {
   .header, .toolbar, .tracks, .recording, .sync-bar, .assignment-bar, .footer,
@@ -1211,6 +1215,53 @@ button.speed-value {
 .btn-icon:hover:not(:disabled) { background: var(--btn-hover); }
 .btn-icon.on { border-color: var(--accent); color: var(--focus); }
 .btn-icon:disabled { opacity: 0.5; cursor: default; }
+
+/* ---- Consistent control sizing across popovers, menus, and modals ---- */
+/* Secondary button, matching .btn-primary's height so pairs line up. */
+.btn-sm {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 36px;
+  padding: 6px 16px;
+  border: 1px solid var(--border-strong);
+  border-radius: 6px;
+  background: var(--panel);
+  color: var(--fg);
+  font-size: 0.875rem;
+  cursor: pointer;
+}
+.btn-sm:hover:not(:disabled) { background: var(--btn-hover); }
+.btn-sm:disabled { opacity: 0.5; cursor: default; }
+
+/* Number steppers: one consistent, aligned size everywhere. */
+.num-input {
+  width: 58px;
+  height: 34px;
+  padding: 2px 4px 2px 8px;
+  border: 1px solid var(--border-strong);
+  border-radius: 6px;
+  background: var(--panel);
+  color: var(--fg);
+  font: inherit;
+  font-size: 0.875rem;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Buttons inside popovers are compact and share the steppers' height, so a row
+   of steppers + apply/clear icons lines up instead of the icons ballooning. */
+.popover-panel button {
+  min-width: 0;
+  min-height: 34px;
+  padding: 6px 12px;
+}
+.popover-panel .btn-icon {
+  width: 34px;
+  height: 34px;
+  padding: 6px;
+  justify-content: center;
+}
 
 /* Editing band */
 .edit-band {
@@ -1841,10 +1892,12 @@ button.speed-value {
 
 /* Chord fingering editor (c14). */
 .chord-card { min-width: 300px; }
-.chord-diagram-edit { display: flex; gap: 14px; align-items: center; }
-.chord-fret-control { display: flex; flex-direction: column; gap: 6px; align-items: flex-start; font-size: 13px; }
-.chord-fret-control > div, .chord-fret-control { }
-.chord-fret-num { font-variant-numeric: tabular-nums; min-width: 1.5em; text-align: center; }
+.chord-diagram-edit { display: flex; gap: 16px; align-items: flex-start; }
+.chord-fret-control { display: flex; flex-direction: column; gap: 10px; align-items: flex-start; font-size: 13px; }
+.fret-stepper { display: inline-flex; align-items: center; gap: 6px; }
+.fret-stepper .btn-icon { width: 30px; height: 30px; min-width: 30px; min-height: 30px; padding: 0; }
+.chord-fret-num { font-variant-numeric: tabular-nums; min-width: 1.6em; text-align: center; }
+.chord-fret-control .hint { max-width: 15ch; }
 .chord-editor .chord-nut { fill: var(--fg); }
 .chord-editor .chord-line { stroke: var(--border-strong); stroke-width: 1; }
 .chord-editor .chord-dot { fill: var(--accent); }

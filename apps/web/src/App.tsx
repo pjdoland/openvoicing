@@ -165,7 +165,7 @@ const MARK_PALETTE: Array<{ type: v1.ArticulationType; glyph: string; label: str
  * in tier order (see renderEditToolbar). Uses a ResizeObserver, rAF-throttled.
  */
 // Priority+ overflow for the edit toolbar. Rather than guess from viewport
-// width (which ignores the variable pinned width — e.g. the Voice group only
+// width (which ignores the variable pinned width, e.g. the Voice group only
 // appears on multi-voice bars), start at the top tier and step down until the
 // pinned cluster (History/Mode/Voice/Value/Pitch) stops clipping. The pinned
 // cluster has overflow-x:auto, so it clips internally without the toolbar ever
@@ -173,7 +173,7 @@ const MARK_PALETTE: Array<{ type: v1.ArticulationType; glyph: string; label: str
 function useToolbarTier(ref: RefObject<HTMLElement | null>, active: boolean): number {
   const [tier, setTier] = useState(3);
   // Bumped on every resize to force a re-render (and thus a fresh step-down
-  // pass) even when the tier is already at the top — otherwise resizing from a
+  // pass) even when the tier is already at the top; otherwise resizing from a
   // wide layout would no-op setTier(3) and never re-measure.
   const [, setResizeNonce] = useState(0);
   useLayoutEffect(() => {
@@ -1596,7 +1596,7 @@ export function App() {
   }
 
   // The wordmark is a "home" escape hatch (hallway test C16): return to the
-  // clean default view of the current piece. Non-destructive — edits are
+  // clean default view of the current piece. Non-destructive; edits are
   // autosaved, so this only exits edit mode and closes transient UI.
   function goHome() {
     setEditMode(false);
@@ -2388,7 +2388,7 @@ export function App() {
     if (["ArrowUp", "ArrowDown", "Delete", "Backspace"].includes(e.code)) {
       e.preventDefault();
       if (!sel?.noteId) {
-        setAnnouncement(sel ? "This is a rest — type A–G to make it a note" : "Click a note to select it first");
+        setAnnouncement(sel ? "This is a rest; type A-G to make it a note" : "Click a note to select it first");
         return;
       }
       if (e.code === "ArrowUp") {
@@ -2771,7 +2771,7 @@ export function App() {
       <div className="etb-group" role="group" aria-label="History" key="history">
         <button className="etb-btn" onClick={v1Undo} disabled={!v1EditorRef.current?.canUndo} title="Undo (Cmd+Z)" aria-label="Undo">↶</button>
         <button className="etb-btn" onClick={v1Redo} disabled={!v1EditorRef.current?.canRedo} title="Redo (Shift+Cmd+Z)" aria-label="Redo">↷</button>
-        <button className="etb-btn" onClick={v1Delete} disabled={!note} title="Delete note — clears the selected note to a rest (Del; undo with Cmd+Z)" aria-label="Delete note"><TrashIcon /></button>
+        <button className="etb-btn" onClick={v1Delete} disabled={!note} title="Delete note: clears the selected note to a rest (Del; undo with Cmd+Z)" aria-label="Delete note"><TrashIcon /></button>
       </div>
     );
     const modeGroup = (
@@ -3141,12 +3141,12 @@ export function App() {
             <h2>Welcome to OpenVoicing</h2>
             <p className="tour-lede">OpenVoicing turns sheet music into an interactive practice tool. There are three things you can do with a piece:</p>
             <ul className="tour-verbs">
-              <li><strong>Play</strong> it at any tempo &mdash; slow down without changing pitch.</li>
-              <li><strong>Practice</strong> it &mdash; loop a passage, or play along with a recording or a YouTube video, the notation following as it plays.</li>
-              <li><strong>Edit</strong> it &mdash; change the notes yourself.</li>
+              <li><strong>Play</strong> it at any tempo: slow down without changing pitch.</li>
+              <li><strong>Practice</strong> it: loop a passage, or play along with a recording or a YouTube video, the notation following as it plays.</li>
+              <li><strong>Edit</strong> it: change the notes yourself.</li>
             </ul>
             <p className="tour-demo">A demo piece is loaded, so you can try everything right now.</p>
-            <p className="tour-ethos">Every piece is a single <code>.ovb</code> file you own &mdash; host it anywhere, no account.</p>
+            <p className="tour-ethos">Every piece is a single <code>.ovb</code> file you own. Host it anywhere, no account.</p>
             <div className="tour-actions">
               <button className="tour-dismiss" onClick={dismissTour}>Explore the demo</button>
               <button className="btn-sm" onClick={() => { dismissTour(); scoreInputRef.current?.click(); }}>Load a file</button>
@@ -3199,25 +3199,31 @@ export function App() {
                 onChange={(d) => setChordEdit({ ...chordEdit, diagram: d })}
               />
               <div className="chord-fret-control">
-                <span>First fret</span>
-                <button
-                  onClick={() => {
-                    const d = chordEdit.diagram ?? EMPTY_CHORD;
-                    setChordEdit({ ...chordEdit, diagram: { ...d, firstFret: Math.max(1, d.firstFret - 1) } });
-                  }}
-                >
-                  −
-                </button>
-                <span className="chord-fret-num">{(chordEdit.diagram ?? EMPTY_CHORD).firstFret}</span>
-                <button
-                  onClick={() => {
-                    const d = chordEdit.diagram ?? EMPTY_CHORD;
-                    setChordEdit({ ...chordEdit, diagram: { ...d, firstFret: Math.min(20, d.firstFret + 1) } });
-                  }}
-                >
-                  +
-                </button>
-                <span className="hint">click cells to fret; markers above = open/mute</span>
+                <span className="fret-stepper">
+                  First fret
+                  <button
+                    className="btn-icon"
+                    aria-label="Lower first fret"
+                    onClick={() => {
+                      const d = chordEdit.diagram ?? EMPTY_CHORD;
+                      setChordEdit({ ...chordEdit, diagram: { ...d, firstFret: Math.max(1, d.firstFret - 1) } });
+                    }}
+                  >
+                    −
+                  </button>
+                  <span className="chord-fret-num">{(chordEdit.diagram ?? EMPTY_CHORD).firstFret}</span>
+                  <button
+                    className="btn-icon"
+                    aria-label="Raise first fret"
+                    onClick={() => {
+                      const d = chordEdit.diagram ?? EMPTY_CHORD;
+                      setChordEdit({ ...chordEdit, diagram: { ...d, firstFret: Math.min(20, d.firstFret + 1) } });
+                    }}
+                  >
+                    +
+                  </button>
+                </span>
+                <span className="hint">Click cells to fret; markers above the nut = open or mute.</span>
               </div>
             </div>
             <div className="prompt-actions">
@@ -3542,7 +3548,7 @@ export function App() {
             <div className="edit-coach" role="note">
               <span className="edit-coach-icon" aria-hidden="true">🎵</span>
               <span>
-                <strong>This score is empty.</strong> The squiggles are silent <strong>rests</strong>, one per beat &mdash;
+                <strong>This score is empty.</strong> The squiggles are silent <strong>rests</strong>, one per beat;
                 the highlighted one is where your next note goes. Tap a <strong>Pitch</strong> button (or press{" "}
                 <kbd>A</kbd>–<kbd>G</kbd>) to place it, set its <strong>value</strong> (how long it lasts) with{" "}
                 <kbd>1</kbd>–<kbd>9</kbd>, and <kbd>→</kbd> moves to the next beat.

@@ -567,7 +567,7 @@ export function RecordingPanel({
         <div className="rec-empty">
           <p>
             Play along with a <strong>YouTube video</strong> or an{" "}
-            <strong>audio recording</strong> — the notation follows as it plays.
+            <strong>audio recording</strong>. The notation follows as it plays.
           </p>
           <div className="rec-empty-actions">
             {onAddYouTube && (
