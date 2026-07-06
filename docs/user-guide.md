@@ -50,8 +50,8 @@ recording follows the notation.
 2. Use **Auto sync** to align it automatically, or **tap sync** to tap each bar's
    downbeat yourself.
 3. The **Sound** toggle chooses what you hear:
-   - **Performance** — the real recording.
-   - **Notes** — the computer playing the written notation.
+   - **Recording** (or **Video** for YouTube): the real recording.
+   - **Notes**: the computer playing the written notation.
 4. The colored numbers above the waveform are **sync-confidence flags**: **blue** =
    looks well aligned, **amber** = worth a glance, **red** = probably needs
    nudging (drag the marker into place). A genuine tempo change or fermata can

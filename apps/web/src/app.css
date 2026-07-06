@@ -415,8 +415,50 @@ body {
   background: color-mix(in srgb, var(--panel) 90%, var(--accent));
   border: 1px solid var(--accent-soft-border);
 }
-.pitch-stepper {
-  gap: 4px;
+/* Single-control fields (Pitch, Zoom): a label plus one segmented pill, no card
+   box, so they take less room and read as one control instead of three buttons
+   in a bordered card. Multi-control groups (Take, Loop) stay cards. */
+.rtb-field {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+/* Segmented stepper: - value + fused into a single pill with divider lines. */
+.seg-stepper {
+  display: inline-flex;
+  align-items: stretch;
+  height: var(--ctl-h);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--ctl-radius);
+  overflow: hidden;
+}
+.recording-toolbar .seg-stepper button {
+  min-width: 26px;
+  min-height: auto;
+  padding: 0 6px;
+  border: 0;
+  border-radius: 0;
+  background: var(--panel);
+  color: var(--fg);
+  cursor: pointer;
+}
+.recording-toolbar .seg-stepper button:hover:not(:disabled) {
+  background: var(--btn-hover);
+}
+.recording-toolbar .seg-stepper button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+.seg-value {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 30px;
+  padding: 0 4px;
+  border-left: 1px solid var(--border-strong);
+  border-right: 1px solid var(--border-strong);
+  font-variant-numeric: tabular-nums;
 }
 
 .recording-toolbar button,

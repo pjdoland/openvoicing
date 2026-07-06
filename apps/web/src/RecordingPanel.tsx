@@ -462,9 +462,9 @@ export function RecordingPanel({
         </span>
         {hasActive && !isVideo && (
           <>
-            <span className="rtb-group" role="group" aria-label="Pitch">
+            <span className="rtb-field">
               <span className="tb-zone-label" title="Pitch shift in semitones">Pitch</span>
-              <span className="control pitch-stepper">
+              <span className="seg-stepper" role="group" aria-label="Pitch">
                 <button
                   aria-label="Pitch down"
                   onClick={() => onPitchChange(pitchSemitones - 1)}
@@ -472,7 +472,7 @@ export function RecordingPanel({
                 >
                   −
                 </button>
-                <span className="speed-value">
+                <span className="seg-value">
                   {pitchSemitones > 0 ? `+${pitchSemitones}` : pitchSemitones}
                 </span>
                 <button
@@ -484,13 +484,13 @@ export function RecordingPanel({
                 </button>
               </span>
             </span>
-            <span className="rtb-group" role="group" aria-label="Waveform zoom">
+            <span className="rtb-field">
               <span className="tb-zone-label" title="Waveform zoom">Zoom</span>
-              <span className="control zoom-controls">
+              <span className="seg-stepper" role="group" aria-label="Waveform zoom">
                 <button aria-label="Zoom out" onClick={() => changeZoom(Math.max(1, zoom / 2))} disabled={zoom <= 1}>
                   −
                 </button>
-                <span className="speed-value">{zoom}×</span>
+                <span className="seg-value">{zoom}×</span>
                 <button
                   aria-label="Zoom in"
                   onClick={() => changeZoom(Math.min(MAX_ZOOM, zoom * 2))}

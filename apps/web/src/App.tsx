@@ -3423,7 +3423,7 @@ export function App() {
                     : "Play the reference recording of this piece (V to switch)"
                 }
               >
-                {activeMediaKind === "youtube" ? "Video" : "Performance"}
+                {activeMediaKind === "youtube" ? "Video" : "Recording"}
               </button>
               <button
                 className={preferredSource === "synth" ? "on" : ""}
