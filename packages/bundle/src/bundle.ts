@@ -88,6 +88,14 @@ export function validateManifest(value: unknown): BundleManifest {
   if (!SCORE_TYPES.has(String(score["type"]))) {
     fail(`unknown score type ${JSON.stringify(score["type"])}`);
   }
+  if (m["sections"] !== undefined) {
+    if (!Array.isArray(m["sections"])) fail("sections must be an array");
+    for (const s of m["sections"] as Array<Record<string, unknown>>) {
+      if (typeof s["barIndex"] !== "number" || typeof s["label"] !== "string") {
+        fail("sections need a numeric barIndex and a label");
+      }
+    }
+  }
   const recordings = m["recordings"];
   if (!Array.isArray(recordings)) fail("missing recordings array");
   for (const r of recordings as Array<Record<string, unknown>>) {

@@ -270,6 +270,29 @@ export function App() {
   function jumpToSection(barIndex: number) {
     jumpToBarIndex(barIndex);
   }
+  const sortedSections = useMemo(
+    () => [...sections].sort((a, b) => a.barIndex - b.barIndex),
+    [sections],
+  );
+  // Which section the playhead is in (index into sortedSections), or -1.
+  function currentSectionIndex(): number {
+    const player = playerRef.current;
+    if (!player || sortedSections.length === 0) return -1;
+    const bar = player.barIndexAtTick(player.cursorTick);
+    let idx = -1;
+    for (let i = 0; i < sortedSections.length; i++) {
+      if (sortedSections[i]!.barIndex <= bar) idx = i;
+      else break;
+    }
+    return idx;
+  }
+  function stepSection(dir: 1 | -1) {
+    if (sortedSections.length === 0) return;
+    const cur = currentSectionIndex();
+    const base = cur < 0 ? -1 : cur;
+    const next = Math.max(0, Math.min(sortedSections.length - 1, base + dir));
+    jumpToBarIndex(sortedSections[next]!.barIndex);
+  }
   function renameSection(barIndex: number) {
     const existing = sections.find((s) => s.barIndex === barIndex);
     const label = window.prompt("Rename section", existing?.label ?? "");
@@ -1635,6 +1658,13 @@ export function App() {
           jumpToBarIndex(0);
           return;
         }
+        case "PageUp":
+        case "PageDown": {
+          if (editModeRef.current || sortedSections.length === 0) return;
+          e.preventDefault();
+          stepSection(e.code === "PageUp" ? -1 : 1);
+          return;
+        }
         case "Minus":
         case "Equal": {
           e.preventDefault();
@@ -1889,6 +1919,7 @@ export function App() {
         title: scoreTitle || "Untitled",
         ...(scoreArtist ? { attribution: { artist: scoreArtist } } : {}),
         ...(assignment ? { assignment } : {}),
+        ...(sections.length ? { sections } : {}),
         score: { path: scorePath, type: source.type },
         recordings: manifestRecordings,
       },
@@ -1992,6 +2023,10 @@ export function App() {
       if (player) adoptEditor(loadScoreIntoPlayer(player, source));
       void storage.set("score", { name: source.name, type: source.type, data: scoreData });
       saveAssignment(manifest.assignment ?? "");
+      // The section map travels with the piece.
+      const importedSections = manifest.sections ?? [];
+      setSections(importedSections);
+      void storage.set("sections", importedSections);
 
       // Opening a bundle replaces the session's recordings.
       for (const meta of recordings) {
@@ -3111,11 +3146,13 @@ export function App() {
             barCount={barCount}
             sections={sections}
             locked={locked}
+            currentSection={currentSectionIndex() + 1}
             onJumpBar={(n) => {
               const player = playerRef.current;
               if (player && n >= 1 && n <= player.barTicks.length) jumpToBarIndex(n - 1);
             }}
             onJumpSection={jumpToSection}
+            onStepSection={stepSection}
             onAddSection={addSection}
             onRenameSection={renameSection}
             onDeleteSection={deleteSection}

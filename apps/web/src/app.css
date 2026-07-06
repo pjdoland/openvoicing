@@ -622,6 +622,20 @@ button.speed-value {
   background: var(--border);
   margin: 6px 0 2px;
 }
+
+/* Prev/Next section stepper in the navigation zone. */
+.section-stepper {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+.section-readout {
+  font-variant-numeric: tabular-nums;
+  font-size: 13px;
+  min-width: 3em;
+  text-align: center;
+  color: var(--muted);
+}
 .ramp-config {
   display: flex;
   flex-direction: column;

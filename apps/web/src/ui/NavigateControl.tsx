@@ -15,8 +15,10 @@ export function NavigateControl({
   barCount,
   sections,
   locked,
+  currentSection,
   onJumpBar,
   onJumpSection,
+  onStepSection,
   onAddSection,
   onRenameSection,
   onDeleteSection,
@@ -24,8 +26,11 @@ export function NavigateControl({
   barCount: number;
   sections: Section[];
   locked: boolean;
+  /** 1-based index of the section the playhead is in, or 0 for none/before. */
+  currentSection: number;
   onJumpBar: (bar: number) => void;
   onJumpSection: (barIndex: number) => void;
+  onStepSection: (dir: 1 | -1) => void;
   onAddSection: () => void;
   onRenameSection: (barIndex: number) => void;
   onDeleteSection: (barIndex: number) => void;
@@ -88,6 +93,29 @@ export function NavigateControl({
           <option key={s.barIndex} value={s.label} />
         ))}
       </datalist>
+      {sections.length > 0 && (
+        <span className="section-stepper" role="group" aria-label="Step through sections">
+          <button
+            className="btn-icon"
+            onClick={() => onStepSection(-1)}
+            title="Previous section (Page Up)"
+            aria-label="Previous section"
+          >
+            ‹
+          </button>
+          <span className="section-readout" aria-live="polite" title="Current section">
+            {currentSection > 0 ? currentSection : "–"} / {sections.length}
+          </span>
+          <button
+            className="btn-icon"
+            onClick={() => onStepSection(1)}
+            title="Next section (Page Down)"
+            aria-label="Next section"
+          >
+            ›
+          </button>
+        </span>
+      )}
       {!locked && <Menu label="Sections" items={manageItems} className="navigate-menu" />}
     </span>
   );

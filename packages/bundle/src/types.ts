@@ -68,6 +68,12 @@ export interface BundleAttribution {
   source?: string;
 }
 
+/** A named position in the piece (Intro, Verse, "hard run at bar 40"). */
+export interface BundleSection {
+  barIndex: number;
+  label: string;
+}
+
 export interface BundleManifest {
   format: typeof BUNDLE_FORMAT;
   formatVersion: number;
@@ -75,6 +81,8 @@ export interface BundleManifest {
   attribution?: BundleAttribution;
   /** A practice/assignment note shown to students. */
   assignment?: string;
+  /** The piece's section map, so it travels with the file (no account). */
+  sections?: BundleSection[];
   score: BundleScore;
   recordings: BundleRecording[];
   /**

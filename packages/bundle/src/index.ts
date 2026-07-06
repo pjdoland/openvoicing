@@ -15,6 +15,7 @@ export type {
   BundleManifest,
   BundleRecording,
   BundleScore,
+  BundleSection,
   RecordingMedia,
   SavedLoop,
   ScoreType,

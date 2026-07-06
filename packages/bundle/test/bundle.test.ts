@@ -108,6 +108,25 @@ describe("bundle round-trip", () => {
     expect(parsed.manifest.attribution).toEqual({ composer: "Trad.", license: "CC-BY-4.0" });
   });
 
+  it("round-trips the section map", () => {
+    const bundle = demoBundle();
+    bundle.manifest.sections = [
+      { barIndex: 0, label: "Intro" },
+      { barIndex: 16, label: "Verse" },
+    ];
+    const parsed = readBundle(createBundle(bundle));
+    expect(parsed.manifest.sections).toEqual([
+      { barIndex: 0, label: "Intro" },
+      { barIndex: 16, label: "Verse" },
+    ]);
+  });
+
+  it("rejects malformed sections", () => {
+    const bundle = demoBundle();
+    (bundle.manifest as { sections: unknown }).sections = [{ barIndex: "a", label: "x" }];
+    expect(() => createBundle(bundle)).toThrow(/barIndex/);
+  });
+
   it("rejects non-string attribution values", () => {
     const bundle = demoBundle();
     (bundle.manifest as { attribution: unknown }).attribution = { composer: 42 };
