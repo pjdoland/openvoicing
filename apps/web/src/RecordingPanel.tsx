@@ -58,6 +58,10 @@ interface RecordingPanelProps {
   onMoveSyncPoint: (index: number, timeSeconds: number) => void;
   onNudgeSyncPoint: (index: number, deltaSeconds: number) => void;
   onEndSyncDrag: () => void;
+  /** Set this bar's anchor to the current playhead (per-bar fix, key P). */
+  onSetToPlayhead?: (index: number) => void;
+  /** Recompute this bar's anchor from its neighbours (key I). */
+  onReinterpolate?: (index: number) => void;
   syncConfidence: Array<"good" | "fair" | "poor"> | null;
   /** Bar boundary times (seconds) when synced; drag loops snap to these. */
   barTimes: number[] | null;
@@ -84,6 +88,8 @@ export function RecordingPanel({
   onMoveSyncPoint,
   onNudgeSyncPoint,
   onEndSyncDrag,
+  onSetToPlayhead,
+  onReinterpolate,
   syncConfidence,
   barTimes,
   savedLoops,
@@ -378,6 +384,12 @@ export function RecordingPanel({
       const base = e.shiftKey ? 0.05 : 0.01;
       onNudgeSyncPoint(index, e.key === "ArrowRight" ? base : -base);
       onEndSyncDrag();
+    } else if (e.key === "p" || e.key === "P") {
+      e.preventDefault();
+      onSetToPlayhead?.(index);
+    } else if (e.key === "i" || e.key === "I") {
+      e.preventDefault();
+      onReinterpolate?.(index);
     }
   }
 
@@ -611,7 +623,7 @@ export function RecordingPanel({
                       aria-label={`Bar ${i + 1} sync point`}
                       aria-valuenow={Number(p.timeSeconds.toFixed(2))}
                       aria-valuetext={`${p.timeSeconds.toFixed(2)} seconds${confidence ? `, ${confidence} confidence` : ""}`}
-                      title={`Bar ${i + 1}: ${p.timeSeconds.toFixed(2)}s${confidence ? ` (${confidence})` : ""}. Drag or arrow-nudge.`}
+                      title={`Bar ${i + 1}: ${p.timeSeconds.toFixed(2)}s${confidence ? ` (${confidence})` : ""}. Drag or arrow-nudge; P = set to playhead, I = re-interpolate.`}
                       onPointerDown={(e) => onMarkerPointerDown(e, i)}
                       onPointerMove={(e) => onMarkerPointerMove(e, i)}
                       onPointerUp={onMarkerPointerUp}

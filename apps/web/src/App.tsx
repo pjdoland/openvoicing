@@ -517,7 +517,8 @@ export function App() {
   const [follow, setFollow] = useState(false);
   const followRef = useRef(false);
   const [tapCount, setTapCount] = useState<number | null>(null);
-  const tapsRef = useRef<number[]>([]);
+  // Per-bar tap times; null = skipped, to be interpolated from neighbours.
+  const tapsRef = useRef<Array<number | null>>([]);
   // Persistence effects stay quiet until the stored session has been restored,
   // so the initial empty state does not overwrite it.
   const hydratedRef = useRef(false);
@@ -1220,23 +1221,51 @@ export function App() {
     const player = playerRef.current;
     if (!player || tapsRef.current.length >= barCount) return;
     tapsRef.current.push(media().position);
-    if (tapsRef.current.length >= barCount) {
-      finishTapSync();
-    } else {
-      setTapCount(tapsRef.current.length);
-    }
+    if (tapsRef.current.length >= barCount) finishTapSync();
+    else setTapCount(tapsRef.current.length);
+  }
+
+  // Advance the bar pointer without recording a tap; its time is interpolated.
+  function skipTap() {
+    if (tapsRef.current.length >= barCount) return;
+    tapsRef.current.push(null);
+    if (tapsRef.current.length >= barCount) finishTapSync();
+    else setTapCount(tapsRef.current.length);
   }
 
   function finishTapSync() {
     const player = playerRef.current;
     media().pause();
     setTapCount(null);
-    if (!player || tapsRef.current.length < 2) return;
+    if (!player) return;
     const bars = player.barTicks;
-    const points = tapsRef.current.map((timeSeconds, i) => ({
-      tick: bars[i]!.start,
-      timeSeconds,
-    }));
+    const taps = tapsRef.current;
+    const anchors = taps
+      .map((t, i) => ({ i, t }))
+      .filter((a): a is { i: number; t: number } => a.t != null);
+    if (anchors.length < 2) return;
+    // Interpolate every bar's time by its tick position between the surrounding
+    // tapped anchors (flat-extrapolate before the first / after the last).
+    const points: SyncPoint[] = [];
+    for (let i = 0; i < taps.length; i++) {
+      let timeSeconds: number;
+      if (taps[i] != null) {
+        timeSeconds = taps[i]!;
+      } else {
+        const prev = [...anchors].reverse().find((a) => a.i < i);
+        const next = anchors.find((a) => a.i > i);
+        if (prev && next) {
+          const tickI = bars[i]!.start;
+          const tickP = bars[prev.i]!.start;
+          const tickN = bars[next.i]!.start;
+          const frac = tickN === tickP ? 0 : (tickI - tickP) / (tickN - tickP);
+          timeSeconds = prev.t + (next.t - prev.t) * frac;
+        } else if (prev) timeSeconds = prev.t;
+        else if (next) timeSeconds = next.t;
+        else continue;
+      }
+      points.push({ tick: bars[i]!.start, timeSeconds });
+    }
     commitSync(points);
     setFollow(true);
   }
@@ -1266,6 +1295,27 @@ export function App() {
   }
   function endSyncDrag() {
     draggingSyncRef.current = false;
+  }
+  // Per-bar fix: pin one bar's anchor to the current playhead.
+  function setSyncPointToPlayhead(index: number) {
+    const points = syncPointsRef.current;
+    if (!points || !points[index]) return;
+    commitSync(clampSyncMove(points, index, media().position));
+  }
+  // Per-bar fix: recompute one bar's anchor from its two neighbours' times.
+  function reinterpolateSyncPoint(index: number) {
+    const points = syncPointsRef.current;
+    const player = playerRef.current;
+    if (!points || !player || index <= 0 || index >= points.length - 1) return;
+    const bars = player.barTicks;
+    const tickP = bars[index - 1]!.start;
+    const tickI = bars[index]!.start;
+    const tickN = bars[index + 1]!.start;
+    const frac = tickN === tickP ? 0 : (tickI - tickP) / (tickN - tickP);
+    const timeSeconds =
+      points[index - 1]!.timeSeconds +
+      (points[index + 1]!.timeSeconds - points[index - 1]!.timeSeconds) * frac;
+    commitSync(clampSyncMove(points, index, timeSeconds));
   }
 
   const syncConfidence = useMemo(() => computeSyncConfidence(syncPoints), [syncPoints]);
@@ -3374,6 +3424,8 @@ export function App() {
             onMoveSyncPoint={moveSyncPoint}
             onNudgeSyncPoint={nudgeSyncPoint}
             onEndSyncDrag={endSyncDrag}
+            onSetToPlayhead={setSyncPointToPlayhead}
+            onReinterpolate={reinterpolateSyncPoint}
             syncConfidence={syncConfidence}
             barTimes={barTimes}
             savedLoops={savedLoops}
@@ -3461,14 +3513,22 @@ export function App() {
                   <button className="tap-button" onClick={tap}>
                     Tap bar {tapCount + 1} of {barCount} (or press Space)
                   </button>
+                  <button onClick={skipTap} disabled={tapCount >= barCount} title="Skip this bar; its time is interpolated">
+                    Skip
+                  </button>
                   <button onClick={undoTap} disabled={tapCount === 0}>
                     Undo tap
                   </button>
-                  <button onClick={finishTapSync} disabled={tapsRef.current.length < 2}>
+                  <button
+                    onClick={finishTapSync}
+                    disabled={tapsRef.current.filter((t) => t != null).length < 2}
+                  >
                     Done
                   </button>
                   <button onClick={cancelTapSync}>Cancel</button>
-                  <span className="hint">tip: slow the recording speed to make tapping easier</span>
+                  <span className="hint">
+                    tap each bar&rsquo;s downbeat, or Skip steady bars and let them interpolate
+                  </span>
                 </>
               )}
             </div>
