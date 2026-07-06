@@ -500,21 +500,41 @@ export function App() {
   }, [recording, activeMediaKind]);
 
   // Speed trainer: drop to the start tempo when enabled, then step the tempo up
-  // every N loops (on the media's "looped" event) until the target.
+  // every N loop repetitions until the target. A loop wrap is signalled by the
+  // media player's "looped" event (recording/video) or by the synth player's
+  // position jumping backward, so it works for whichever source you practise.
   useEffect(() => {
     if (!rampOn) return;
     rampCountRef.current = 0;
     setSynthSpeed(clampSpeed(rampStart / 100));
-    return media().on("looped", () => {
+    const bump = () => {
       rampCountRef.current += 1;
       if (rampCountRef.current >= rampEvery) {
         rampCountRef.current = 0;
         const nextPct = Math.min(rampTarget, Math.round(speedRef.current * 100) + rampStep);
         setSynthSpeed(clampSpeed(nextPct / 100));
       }
+    };
+    const unsubMedia = media().on("looped", () => {
+      if (preferredSourceRef.current === "recording") bump();
     });
+    let lastT = -1;
+    const unsubPlayer = playerRef.current?.on("positionChanged", (cur) => {
+      if (preferredSourceRef.current === "synth" && lastT >= 0 && cur < lastT - 0.3) bump();
+      lastT = cur;
+    });
+    return () => {
+      unsubMedia();
+      unsubPlayer?.();
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [rampOn, rampStart, rampStep, rampEvery, rampTarget, recording, activeMediaKind]);
+
+  // Turning the trainer on implies looping the passage (otherwise it can never
+  // step). Enable loop; the user still chooses the bar range.
+  useEffect(() => {
+    if (rampOn) setLoop(true);
+  }, [rampOn]);
 
   useEffect(() => {
     selectedV1Ref.current = selectedV1;
