@@ -13,6 +13,7 @@ export type {
   Bundle,
   BundleAttribution,
   BundleManifest,
+  BundlePassage,
   BundleRecording,
   BundleScore,
   BundleSection,

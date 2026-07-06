@@ -22,6 +22,7 @@ import {
   recordingAudioPath,
   scoreFileExtension,
   scoreTypeFromFileName,
+  type BundlePassage,
   type BundleRecording,
   type RecordingMedia,
   type SavedLoop,
@@ -253,13 +254,21 @@ export function App() {
   const [sections, setSections] = useState<Section[]>([]);
   const [notebook, setNotebook] = useState("");
   const [notebookOpen, setNotebookOpen] = useState(false);
+  // Named bar-range passages (piece-level): one list drives synth and every take.
+  const [passages, setPassages] = useState<BundlePassage[]>([]);
+  const passagesRef = useRef<BundlePassage[]>([]);
+  passagesRef.current = passages;
   useEffect(() => {
     void storage.get<Section[]>("sections").then((s) => setSections(s ?? []));
     void storage.get<string>("notebook").then((n) => setNotebook(n ?? ""));
+    void storage.get<BundlePassage[]>("passages").then((p) => setPassages(p ?? []));
   }, []);
   useEffect(() => {
     if (hydratedRef.current) void storage.set("notebook", notebook);
   }, [notebook]);
+  useEffect(() => {
+    if (hydratedRef.current) void storage.set("passages", passages);
+  }, [passages]);
   function currentBarIndex(): number {
     const player = playerRef.current;
     if (!player) return 0;
@@ -1837,14 +1846,14 @@ export function App() {
           return;
         }
       }
-      // Number keys recall saved loops (outside edit mode, where they set durations).
+      // Number keys recall named passages (bar ranges), for any source; outside
+      // edit mode, where the digits set note durations instead.
       const digit = /^Digit([1-9])$/.exec(e.code);
-      if (digit && onRecording && !editModeRef.current) {
-        const loop = savedLoopsRef.current[Number(digit[1]) - 1];
-        if (loop) {
+      if (digit && !editModeRef.current) {
+        const passage = passagesRef.current[Number(digit[1]) - 1];
+        if (passage) {
           e.preventDefault();
-          media().setLoopRegion({ start: loop.start, end: loop.end });
-          media().seek(loop.start);
+          applyBarRange(passage.fromBar, passage.toBar);
         }
       }
     };
@@ -1880,6 +1889,28 @@ export function App() {
     setLoop(true);
     player.cursorTick = player.barTicks[from - 1]!.start;
     player.scrollBarIntoView(from - 1);
+  }
+
+  // Save the current bar-range loop as a named passage on the piece. Because it
+  // is stored as bars, one list drives the synth and every recording (converted
+  // to seconds per take by the loop-apply effect at recall).
+  function saveCurrentPassage() {
+    if (!loopBars) return;
+    const { from, to } = loopBars;
+    askText({
+      label: "Passage name",
+      initial: `Bars ${from}–${to}`,
+      submit: (name) => {
+        if (!name.trim()) return;
+        setPassages((ps) => [...ps, { id: newRecordingId(), name: name.trim(), fromBar: from, toBar: to }]);
+      },
+    });
+  }
+  function recallPassage(p: BundlePassage) {
+    applyBarRange(p.fromBar, p.toBar);
+  }
+  function deletePassage(id: string) {
+    setPassages((ps) => ps.filter((p) => p.id !== id));
   }
 
   function clearBarLoop() {
@@ -2042,6 +2073,7 @@ export function App() {
         ...(assignment ? { assignment } : {}),
         ...(sections.length ? { sections } : {}),
         ...(notebook.trim() ? { notebook } : {}),
+        ...(passages.length ? { passages } : {}),
         score: { path: scorePath, type: source.type },
         recordings: manifestRecordings,
       },
@@ -2157,6 +2189,9 @@ export function App() {
       setSections(importedSections);
       void storage.set("sections", importedSections);
       setNotebook(manifest.notebook ?? "");
+      const importedPassages = manifest.passages ?? [];
+      setPassages(importedPassages);
+      void storage.set("passages", importedPassages);
 
       // Opening a bundle replaces the session's recordings.
       for (const meta of recordings) {
@@ -3265,6 +3300,30 @@ export function App() {
                 </button>
               )}
             </span>
+            <div className="loop-divider" />
+            <div className="passages">
+              <div className="passages-head">
+                <span className="subgroup-label">Passages</span>
+                <button onClick={saveCurrentPassage} disabled={!loopBars} title="Save the current loop as a named passage">
+                  Save passage
+                </button>
+              </div>
+              {passages.map((p, i) => (
+                <div key={p.id} className="passage-row">
+                  <button
+                    className="passage-recall"
+                    onClick={() => recallPassage(p)}
+                    title={`Loop bars ${p.fromBar}–${p.toBar}${i < 9 ? ` (key ${i + 1})` : ""}`}
+                  >
+                    {i < 9 ? `${i + 1}. ` : ""}
+                    {p.name}
+                  </button>
+                  <button className="btn-icon" onClick={() => deletePassage(p.id)} aria-label={`Delete ${p.name}`}>
+                    ×
+                  </button>
+                </div>
+              ))}
+            </div>
             <div className="loop-divider" />
             <label className="control">
               <input type="checkbox" checked={rampOn} onChange={(e) => setRampOn(e.target.checked)} />

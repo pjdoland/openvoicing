@@ -68,6 +68,15 @@ export interface BundleAttribution {
   source?: string;
 }
 
+/** A named practice passage as a bar range, so one list drives the synth and
+ *  every recording (converted to seconds per take at recall time). */
+export interface BundlePassage {
+  id: string;
+  name: string;
+  fromBar: number;
+  toBar: number;
+}
+
 /** A named position in the piece (Intro, Verse, "hard run at bar 40"). */
 export interface BundleSection {
   barIndex: number;
@@ -87,6 +96,8 @@ export interface BundleManifest {
   sections?: BundleSection[];
   /** The learner's free-text practice notebook for this piece. */
   notebook?: string;
+  /** Named bar-range practice passages, one list across all sources. */
+  passages?: BundlePassage[];
   score: BundleScore;
   recordings: BundleRecording[];
   /**

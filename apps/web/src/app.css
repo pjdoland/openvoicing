@@ -1867,3 +1867,9 @@ button.speed-value {
   resize: vertical;
 }
 .section-readout .practiced-count { color: #4a9e63; }
+
+/* Named bar-range passages in the Loop popover (c5b). */
+.passages { display: flex; flex-direction: column; gap: 4px; }
+.passages-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.passage-row { display: flex; align-items: center; gap: 4px; }
+.passage-recall { flex: 1; text-align: left; }

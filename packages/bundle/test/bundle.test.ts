@@ -133,6 +133,15 @@ describe("bundle round-trip", () => {
     expect(parsed.manifest.notebook).toBe("Work on the run at bar 40.");
   });
 
+  it("round-trips named passages", () => {
+    const bundle = demoBundle();
+    bundle.manifest.passages = [{ id: "p1", name: "Tricky run", fromBar: 17, toBar: 24 }];
+    const parsed = readBundle(createBundle(bundle));
+    expect(parsed.manifest.passages).toEqual([
+      { id: "p1", name: "Tricky run", fromBar: 17, toBar: 24 },
+    ]);
+  });
+
   it("rejects malformed sections", () => {
     const bundle = demoBundle();
     (bundle.manifest as { sections: unknown }).sections = [{ barIndex: "a", label: "x" }];

@@ -99,6 +99,19 @@ export function validateManifest(value: unknown): BundleManifest {
   if (m["notebook"] !== undefined && typeof m["notebook"] !== "string") {
     fail("notebook must be a string");
   }
+  if (m["passages"] !== undefined) {
+    if (!Array.isArray(m["passages"])) fail("passages must be an array");
+    for (const p of m["passages"] as Array<Record<string, unknown>>) {
+      if (
+        typeof p["id"] !== "string" ||
+        typeof p["name"] !== "string" ||
+        typeof p["fromBar"] !== "number" ||
+        typeof p["toBar"] !== "number"
+      ) {
+        fail("passages need id, name, and numeric fromBar/toBar");
+      }
+    }
+  }
   const recordings = m["recordings"];
   if (!Array.isArray(recordings)) fail("missing recordings array");
   for (const r of recordings as Array<Record<string, unknown>>) {
