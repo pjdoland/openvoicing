@@ -1608,6 +1608,7 @@ export function App() {
     tapCountRef.current = tapCount;
   }, [tapCount]);
   const pendingLoopStartRef = useRef<number | null>(null);
+  const pendingLoopBarRef = useRef<number | null>(null);
   const halfSpeedReturnRef = useRef<{ transport: string; speed: number } | null>(null);
 
   // Global transport keys: work anywhere except form fields and tap-sync mode.
@@ -1688,19 +1689,35 @@ export function App() {
           return;
         }
         case "BracketLeft": {
-          if (!onRecording) return;
           e.preventDefault();
-          pendingLoopStartRef.current = media().position;
+          if (onRecording && preferredSourceRef.current === "recording") {
+            pendingLoopStartRef.current = media().position;
+          } else {
+            const player = playerRef.current;
+            if (player) pendingLoopBarRef.current = player.barIndexAtTick(player.cursorTick);
+          }
           return;
         }
         case "BracketRight": {
-          if (!onRecording) return;
           e.preventDefault();
-          const start = pendingLoopStartRef.current ?? 0;
-          const end = media().position;
-          if (end > start + 0.1) {
-            media().setLoopRegion({ start, end });
-            pendingLoopStartRef.current = null;
+          const player = playerRef.current;
+          if (onRecording && preferredSourceRef.current === "recording") {
+            const start = pendingLoopStartRef.current ?? 0;
+            const end = media().position;
+            if (end > start + 0.1) {
+              media().setLoopRegion({ start, end });
+              pendingLoopStartRef.current = null;
+            }
+          } else if (player) {
+            // Synth source: loop the bar range between the two cursor marks.
+            const from = (pendingLoopBarRef.current ?? player.barIndexAtTick(player.cursorTick)) + 1;
+            const to = player.barIndexAtTick(player.cursorTick) + 1;
+            const lo = Math.min(from, to);
+            const hi = Math.max(from, to);
+            setBarsInput(`${lo}-${hi}`);
+            setLoopBars({ from: lo, to: hi });
+            setLoop(true);
+            pendingLoopBarRef.current = null;
           }
           return;
         }
@@ -1736,6 +1753,8 @@ export function App() {
   // optional `loopBars` range narrows it (whole piece otherwise).
   const [barsInput, setBarsInput] = useState("");
   const [loopBars, setLoopBars] = useState<{ from: number; to: number } | null>(null);
+  const [loopFrom, setLoopFrom] = useState(1);
+  const [loopTo, setLoopTo] = useState(1);
   // Set while we push the loop onto the recording, so its loopChanged echo is
   // not mistaken for a fresh user drag.
   const applyingLoopRef = useRef(false);
@@ -1744,17 +1763,16 @@ export function App() {
     setLoop((v) => !v);
   }
 
-  function applyBarLoop() {
-    const match = /^(\d+)\s*-\s*(\d+)$/.exec(barsInput.trim());
+  // Loop an explicit bar range from the from/to steppers (no text parsing).
+  function applyBarRange(fromRaw: number, toRaw: number) {
     const player = playerRef.current;
     if (!player || player.barTicks.length === 0) return;
-    if (!match) {
-      setLoopBars(null);
-      return;
-    }
     const n = player.barTicks.length;
-    const from = Math.max(1, Math.min(n, parseInt(match[1]!, 10)));
-    const to = Math.max(from, Math.min(n, parseInt(match[2]!, 10)));
+    const from = Math.max(1, Math.min(n, Math.min(fromRaw, toRaw)));
+    const to = Math.max(from, Math.min(n, Math.max(fromRaw, toRaw)));
+    setLoopFrom(from);
+    setLoopTo(to);
+    setBarsInput(`${from}-${to}`);
     setLoopBars({ from, to });
     setLoop(true);
     player.cursorTick = player.barTicks[from - 1]!.start;
@@ -3000,18 +3018,27 @@ export function App() {
               <input type="checkbox" checked={loop} onChange={toggleLoop} /> Loop playback
             </label>
             <span className="control">
+              Bars
               <input
-                className="bars-input"
-                placeholder="bars 3-6"
-                aria-label="Loop bar range"
-                value={barsInput}
-                size={8}
-                onChange={(e) => setBarsInput(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") applyBarLoop();
-                }}
+                className="num-input"
+                type="number"
+                min={1}
+                max={barCount}
+                aria-label="Loop from bar"
+                value={loopFrom}
+                onChange={(e) => setLoopFrom(Number(e.target.value))}
               />
-              <button className="btn-icon" onClick={applyBarLoop} title="Loop these bars" aria-label="Loop these bars">
+              to
+              <input
+                className="num-input"
+                type="number"
+                min={1}
+                max={barCount}
+                aria-label="Loop to bar"
+                value={loopTo}
+                onChange={(e) => setLoopTo(Number(e.target.value))}
+              />
+              <button className="btn-icon" onClick={() => applyBarRange(loopFrom, loopTo)} title="Loop these bars" aria-label="Loop these bars">
                 ↵
               </button>
               {loopBars && (
