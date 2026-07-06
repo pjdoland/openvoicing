@@ -3206,7 +3206,7 @@ export function App() {
             <p className="tour-ethos">Every piece is a single <code>.ovb</code> file you own. Host it anywhere, no account.</p>
             <div className="tour-actions">
               <button className="tour-dismiss" onClick={dismissTour}>Explore the demo</button>
-              <button className="btn-sm" onClick={() => { dismissTour(); scoreInputRef.current?.click(); }}>Load a file</button>
+              <button className="btn-sm" onClick={() => { scoreInputRef.current?.click(); dismissTour(); }}>Load a file</button>
               <button className="btn-sm" onClick={() => { dismissTour(); newScore(); }}>Start a new score</button>
             </div>
           </div>

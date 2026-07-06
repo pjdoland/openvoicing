@@ -1141,12 +1141,13 @@ button.speed-value {
   line-height: 1.7;
 }
 .tour-lede { margin: 0 0 12px; }
-/* The two secondary notes share one muted style and consistent spacing. */
+/* The two secondary notes match the body text size (just a slightly muted tone),
+   with consistent spacing. */
 .tour-demo,
 .tour-ethos {
   color: var(--muted);
-  font-size: 0.8125rem;
-  line-height: 1.5;
+  font-size: 1rem;
+  line-height: 1.6;
   margin: 6px 0 0;
 }
 .tour-ethos code { font-size: 0.95em; }
