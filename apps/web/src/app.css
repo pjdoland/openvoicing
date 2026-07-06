@@ -616,6 +616,22 @@ button.speed-value {
   width: 4.5em;
 }
 
+/* Speed trainer (tempo ramp) in the Loop popover. */
+.loop-divider {
+  height: 1px;
+  background: var(--border);
+  margin: 6px 0 2px;
+}
+.ramp-config {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.ramp-config .num-input {
+  width: 3.4em;
+  margin: 0 4px;
+}
+
 /* The transport position readout doubles as a click/drag scrubber. */
 .transport-scrubber {
   position: relative;

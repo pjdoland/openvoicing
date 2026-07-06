@@ -313,6 +313,14 @@ export function App() {
   const [loop, setLoop] = useState(false);
   const [metronome, setMetronome] = useState(false);
   const [countIn, setCountIn] = useState(false);
+  const [countInBars, setCountInBars] = useState(1);
+  // Speed trainer: ramp the loop's tempo up as you succeed.
+  const [rampOn, setRampOn] = useState(false);
+  const [rampStart, setRampStart] = useState(60);
+  const [rampStep, setRampStep] = useState(5);
+  const [rampEvery, setRampEvery] = useState(2);
+  const [rampTarget, setRampTarget] = useState(100);
+  const rampCountRef = useRef(0);
   const [tracks, setTracks] = useState<TrackInfo[]>([]);
   const [barCount, setBarCount] = useState(0);
   const [scoreTitle, setScoreTitle] = useState("");
@@ -410,6 +418,23 @@ export function App() {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [recording, activeMediaKind]);
+
+  // Speed trainer: drop to the start tempo when enabled, then step the tempo up
+  // every N loops (on the media's "looped" event) until the target.
+  useEffect(() => {
+    if (!rampOn) return;
+    rampCountRef.current = 0;
+    setSynthSpeed(clampSpeed(rampStart / 100));
+    return media().on("looped", () => {
+      rampCountRef.current += 1;
+      if (rampCountRef.current >= rampEvery) {
+        rampCountRef.current = 0;
+        const nextPct = Math.min(rampTarget, Math.round(speedRef.current * 100) + rampStep);
+        setSynthSpeed(clampSpeed(nextPct / 100));
+      }
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rampOn, rampStart, rampStep, rampEvery, rampTarget, recording, activeMediaKind]);
 
   useEffect(() => {
     selectedV1Ref.current = selectedV1;
@@ -1375,7 +1400,7 @@ export function App() {
     if (preferredSourceRef.current === "recording" && activeRecIdRef.current !== null) {
       playerRef.current?.stop();
       if (media().playing) media().pause();
-      else void media().play();
+      else startWithCountIn(() => void media().play());
     } else {
       media().pause();
       synthPlayPause();
@@ -1481,29 +1506,53 @@ export function App() {
   }, [standMode]);
 
   // Big visual (and audible) count-in before synth playback when Count-in is on.
-  function synthPlayPause() {
+  // Beats per bar at the current position, from the score's time signature.
+  function beatsPerBar(): number {
+    const ed = v1EditorRef.current;
     const player = playerRef.current;
-    if (!player) return;
-    if (player.playing || !countIn) {
-      player.playPause();
+    if (!ed || !player) return 4;
+    const barIndex = player.barIndexAtTick(player.cursorTick);
+    const bars = ed.doc.bars as ReadonlyArray<{ timeSignature?: { beats?: number } }>;
+    const bar = bars[barIndex] ?? bars[0];
+    return bar?.timeSignature?.beats ?? 4;
+  }
+
+  // A count-in that matches the meter (beats per bar x count-in bars), runs at
+  // the current practice tempo (so it slows with the music), and precedes
+  // whichever source you're about to play. Then runs `play`.
+  function startWithCountIn(play: () => void) {
+    const player = playerRef.current;
+    if (!countIn || !player) {
+      play();
       return;
     }
-    const beatMs = (60 / player.tempoBpm) * 1000;
-    let n = 4;
+    const beatMs = ((60 / player.tempoBpm) * 1000) / (speedRef.current || 1);
+    let n = beatsPerBar() * countInBars;
     setCountInNumber(n);
     playClick(true);
     const step = () => {
       n -= 1;
       if (n <= 0) {
         setCountInNumber(null);
-        player.playPause();
+        play();
         return;
       }
       setCountInNumber(n);
-      playClick(false);
+      // Accent each bar's downbeat.
+      playClick(n % beatsPerBar() === 0);
       window.setTimeout(step, beatMs);
     };
     window.setTimeout(step, beatMs);
+  }
+
+  function synthPlayPause() {
+    const player = playerRef.current;
+    if (!player) return;
+    if (player.playing) {
+      player.playPause();
+      return;
+    }
+    startWithCountIn(() => player.playPause());
   }
 
   const speedRef = useRef(1);
@@ -2936,6 +2985,65 @@ export function App() {
                 </button>
               )}
             </span>
+            <div className="loop-divider" />
+            <label className="control">
+              <input type="checkbox" checked={rampOn} onChange={(e) => setRampOn(e.target.checked)} />
+              Speed trainer
+            </label>
+            {rampOn && (
+              <div className="ramp-config">
+                <label className="control">
+                  Start
+                  <input
+                    className="num-input"
+                    type="number"
+                    min={25}
+                    max={150}
+                    step={5}
+                    value={rampStart}
+                    onChange={(e) => setRampStart(Number(e.target.value))}
+                  />
+                  %
+                </label>
+                <label className="control">
+                  +
+                  <input
+                    className="num-input"
+                    type="number"
+                    min={1}
+                    max={25}
+                    value={rampStep}
+                    onChange={(e) => setRampStep(Number(e.target.value))}
+                  />
+                  % every
+                  <input
+                    className="num-input"
+                    type="number"
+                    min={1}
+                    max={9}
+                    value={rampEvery}
+                    onChange={(e) => setRampEvery(Number(e.target.value))}
+                  />
+                  loops
+                </label>
+                <label className="control">
+                  up to
+                  <input
+                    className="num-input"
+                    type="number"
+                    min={25}
+                    max={150}
+                    step={5}
+                    value={rampTarget}
+                    onChange={(e) => setRampTarget(Number(e.target.value))}
+                  />
+                  %
+                </label>
+                <span className="hint">
+                  now {Math.round(speed * 100)}% &rarr; {rampTarget}%
+                </span>
+              </div>
+            )}
           </Popover>
           {activeRecId !== null && (
             <>
@@ -2981,6 +3089,18 @@ export function App() {
             <label className="control">
               <input type="checkbox" checked={countIn} onChange={toggleCountIn} /> Count-in
             </label>
+            {countIn && (
+              <select
+                value={countInBars}
+                onChange={(e) => setCountInBars(Number(e.target.value))}
+                title="Count-in length"
+                aria-label="Count-in length in bars"
+              >
+                <option value={1}>1 bar</option>
+                <option value={2}>2 bars</option>
+                <option value={4}>4 bars</option>
+              </select>
+            )}
           </div>
         )}
 
