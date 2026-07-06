@@ -23,6 +23,15 @@
   --focus: #1d4ed8;
   --score-bg: #fff;
   --base-font: 16px;
+  /* One control-sizing + spacing scale, keyed to the edit toolbar's height.
+     Standard bar controls consume these; the 44px pointer:coarse floor and the
+     34px modal/popover controls stay literal so they keep winning. */
+  --ctl-h: clamp(2rem, 1.7rem + 1vw, 2.25rem);
+  --ctl-radius: 6px;
+  --ctl-gap: 8px;
+  --zone-gap: 16px;
+  --label-size: 0.625rem;
+  --label-track: 0.04em;
 }
 
 :root[data-theme="dark"] {
@@ -563,7 +572,26 @@ body {
   min-height: 0;
   overflow: auto;
   background: var(--score-bg);
+  /* Sandbox every score-internal overlay in its own stacking context. alphaTab
+     renders its cursor layer (.at-cursors) at z-index:1000; without isolation
+     that leaks into the root context and paints over modal backdrops (the
+     Welcome dim, the command palette). Isolated, the whole score sits below all
+     app chrome (20-40) and overlays (50-100). See the z-index scale below. */
+  isolation: isolate;
 }
+
+/* ---- z-index scale (root stacking context) ----
+   Score internals are sandboxed inside .score (isolation:isolate) and never
+   compete here. Everything else layers as:
+     20  edit toolbar (below the main toolbar it sits under)
+     30  main toolbar, its popovers and menus' trigger row
+     40  floating menus/popovers that open from the bars (menu-list, etb-popover,
+         stand controls)
+     50  toast          (transient, above chrome)
+     60  count-in overlay
+     70+ modal backdrops: welcome (70) < command palette (80) < context menu (90)
+         < text/chord/notebook prompts (100)
+   Keep new layers on this ladder; higher number = closer to the viewer. */
 
 .footer {
   display: flex;
@@ -1173,12 +1201,17 @@ button.speed-value {
   min-width: 0;
 }
 
-.tb-zone-label {
-  font-size: 0.625rem;
+/* One rule for every uppercase micro-label (toolbar zones, edit groups,
+   sync/recording subgroups) so they never drift apart. */
+.tb-zone-label,
+.etb-label,
+.subgroup-label {
+  font-size: var(--label-size);
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: var(--label-track);
   color: var(--muted);
   margin-right: 2px;
+  white-space: nowrap;
 }
 
 /* Button emphasis tiers */
@@ -1327,14 +1360,8 @@ button.speed-value {
 }
 .etb-more,
 .etb-right { position: relative; }
-.etb-label {
-  font-size: 0.625rem;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: var(--muted);
-  margin-right: 2px;
-  white-space: nowrap;
-}
+/* .etb-label shares the consolidated micro-label rule above (a responsive
+   font-size override for it lives in the wrap media block). */
 .etb-btn {
   min-width: clamp(2rem, 1.7rem + 1vw, 2.25rem);
   height: clamp(2rem, 1.7rem + 1vw, 2.25rem);
@@ -1565,12 +1592,7 @@ button.speed-value {
   border-right: 1px solid var(--border);
 }
 .subgroup:last-child { border-right: none; }
-.subgroup-label {
-  font-size: 0.625rem;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: var(--muted);
-}
+/* .subgroup-label shares the consolidated micro-label rule above. */
 
 /* Command palette */
 .palette-backdrop {

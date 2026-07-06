@@ -3471,7 +3471,7 @@ export function App() {
 
         {/* Navigation */}
         <div className="tb-zone tb-nav" role="group" aria-label="Navigation">
-          <span className="tb-zone-label">Jump to</span>
+          <span className="tb-zone-label" title="Jump to a bar or section">Jump</span>
           <NavigateControl
             barCount={barCount}
             sections={sections}
@@ -3493,7 +3493,7 @@ export function App() {
         {/* Capture (advanced) */}
         {advanced && (
           <div className="tb-zone">
-            <span className="tb-zone-label">Record my take</span>
+            <span className="tb-zone-label" title="Record my take from the microphone">Record</span>
             <button
               className={micRecording ? "btn-icon on" : "btn-icon"}
               onClick={() => void toggleMicRecording()}

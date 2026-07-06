@@ -417,7 +417,7 @@ export function RecordingPanel({
   return (
     <section className="recording">
       <div className="recording-toolbar">
-        <strong>Recording</strong>
+        <span className="tb-zone-label" title="Recording take">Take</span>
         {recordings.length > 0 && (
           <select
             value={activeId ?? ""}
