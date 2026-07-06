@@ -40,6 +40,7 @@ import { Popover } from "./ui/Popover";
 import { CollapsiblePanel, resetLayout } from "./ui/CollapsiblePanel";
 import { CommandPalette } from "./ui/CommandPalette";
 import { NavigateControl } from "./ui/NavigateControl";
+import { TextPrompt, type TextPromptRequest } from "./ui/TextPrompt";
 import type { Command } from "./ui/commands";
 import {
   BookmarkIcon,
@@ -226,6 +227,8 @@ export function App() {
   const [locked] = useState(() => new URLSearchParams(window.location.search).get("lock") === "1");
   const [assignment, setAssignment] = useState("");
   const [showTour, setShowTour] = useState(false);
+  const [textPrompt, setTextPrompt] = useState<TextPromptRequest | null>(null);
+  const askText = (req: TextPromptRequest) => setTextPrompt(req);
 
   // Basic vs Advanced: Basic keeps the surface calm; Advanced reveals practice
   // aids, capture, and editing extras. Locked mode is always the minimal end.
@@ -255,14 +258,20 @@ export function App() {
     return idx;
   }
   function addSection() {
-    const label = window.prompt("Section label (e.g. Verse, Chorus, B)");
-    if (!label) return;
-    const next = [...sections.filter((s) => s.barIndex !== currentBarIndex()), { barIndex: currentBarIndex(), label }].sort(
-      (a, b) => a.barIndex - b.barIndex,
-    );
-    setSections(next);
-    void storage.set("sections", next);
-    showToast(`Section "${label}" added at bar ${currentBarIndex() + 1}.`);
+    const bar = currentBarIndex();
+    askText({
+      label: "Section label (e.g. Verse, Chorus, B)",
+      placeholder: "Verse",
+      submit: (label) => {
+        if (!label.trim()) return;
+        const next = [...sections.filter((s) => s.barIndex !== bar), { barIndex: bar, label: label.trim() }].sort(
+          (a, b) => a.barIndex - b.barIndex,
+        );
+        setSections(next);
+        void storage.set("sections", next);
+        showToast(`Section "${label.trim()}" added at bar ${bar + 1}.`);
+      },
+    });
   }
   function jumpToBarIndex(barIndex: number) {
     const player = playerRef.current;
@@ -303,13 +312,17 @@ export function App() {
   }
   function renameSection(barIndex: number) {
     const existing = sections.find((s) => s.barIndex === barIndex);
-    const label = window.prompt("Rename section", existing?.label ?? "");
-    if (label === null) return;
-    const next = sections
-      .map((s) => (s.barIndex === barIndex ? { ...s, label } : s))
-      .filter((s) => s.label);
-    setSections(next);
-    void storage.set("sections", next);
+    askText({
+      label: "Rename section",
+      initial: existing?.label ?? "",
+      submit: (label) => {
+        const next = sections
+          .map((s) => (s.barIndex === barIndex ? { ...s, label } : s))
+          .filter((s) => s.label);
+        setSections(next);
+        void storage.set("sections", next);
+      },
+    });
   }
   function deleteSection(barIndex: number) {
     const next = sections.filter((s) => s.barIndex !== barIndex);
@@ -510,12 +523,17 @@ export function App() {
   function saveCurrentLoop() {
     const region = media().loopRegion;
     if (!region || !activeRecId) return;
-    const name = window.prompt("Loop name", `Loop ${savedLoops.length + 1}`);
-    if (!name) return;
-    persistSavedLoops(activeRecId, [
-      ...savedLoops,
-      { id: newRecordingId(), name, start: region.start, end: region.end },
-    ]);
+    askText({
+      label: "Loop name",
+      initial: `Loop ${savedLoops.length + 1}`,
+      submit: (name) => {
+        if (!name.trim()) return;
+        persistSavedLoops(activeRecId, [
+          ...savedLoops,
+          { id: newRecordingId(), name: name.trim(), start: region.start, end: region.end },
+        ]);
+      },
+    });
   }
 
   function recallLoop(loop: SavedLoop) {
@@ -2051,9 +2069,16 @@ export function App() {
     );
   }
 
-  async function openFromUrl() {
-    const url = window.prompt("Bundle or MusicXML URL");
-    if (!url) return;
+  function openFromUrl() {
+    askText({
+      label: "Bundle or MusicXML URL",
+      placeholder: "https://…/piece.ovb",
+      submit: (url) => {
+        if (url.trim()) void loadFromUrl(url.trim());
+      },
+    });
+  }
+  async function loadFromUrl(url: string) {
     try {
       const response = await fetch(url);
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
@@ -2293,8 +2318,14 @@ export function App() {
     if (e.code === "KeyK" && beatId) {
       e.preventDefault();
       const current = ed.findBeat(beatId)?.beat.chordSymbol ?? "";
-      const text = window.prompt("Chord symbol (e.g. Cmaj7, G/B)", current);
-      if (text !== null && ed.setChordSymbol(beatId, text)) v1Rerender();
+      askText({
+        label: "Chord symbol (e.g. Cmaj7, G/B)",
+        initial: current,
+        placeholder: "Cmaj7",
+        submit: (text) => {
+          if (ed.setChordSymbol(beatId, text)) v1Rerender();
+        },
+      });
       return;
     }
 
@@ -2450,21 +2481,36 @@ export function App() {
   function v1EditMeta() {
     const ed = v1EditorRef.current;
     if (!ed) return;
-    const title = window.prompt("Title", ed.doc.work.title);
-    if (title === null) return;
-    const composer = window.prompt("Composer", ed.doc.work.composer ?? "") ?? undefined;
-    if (ed.setWork({ title, composer })) {
-      v1Rerender();
-      setScoreTitle(title);
-      setScoreArtist(composer ?? "");
-    }
+    askText({
+      label: "Title",
+      initial: ed.doc.work.title,
+      submit: (title) => {
+        askText({
+          label: "Composer",
+          initial: ed.doc.work.composer ?? "",
+          submit: (composer) => {
+            if (ed.setWork({ title, composer: composer || undefined })) {
+              v1Rerender();
+              setScoreTitle(title);
+              setScoreArtist(composer ?? "");
+            }
+          },
+        });
+      },
+    });
   }
   function v1EditTempo() {
     const ed = v1EditorRef.current;
     if (!ed) return;
     const bar = v1SelectedBarIndex();
-    const value = window.prompt("Tempo (bpm)", String(ed.doc.bars[bar]?.tempoBpm ?? 120));
-    if (value !== null && ed.setTempo(bar, Number(value) || null)) v1Rerender();
+    askText({
+      label: "Tempo (bpm)",
+      initial: String(ed.doc.bars[bar]?.tempoBpm ?? 120),
+      placeholder: "120",
+      submit: (value) => {
+        if (ed.setTempo(bar, Number(value) || null)) v1Rerender();
+      },
+    });
   }
   // Effective time/key at the selected bar, for the edit-band selects.
   const v1EffectiveAttrs = ((): { time: string; key: number } => {
@@ -2593,8 +2639,14 @@ export function App() {
     const ed = v1EditorRef.current;
     const b = v1SelectedBeatId();
     if (!ed || !b) return;
-    const text = window.prompt("Chord symbol (e.g. Cmaj7, G/B)", ed.findBeat(b)?.beat.chordSymbol ?? "");
-    if (text !== null && ed.setChordSymbol(b, text)) v1Rerender();
+    askText({
+      label: "Chord symbol (e.g. Cmaj7, G/B)",
+      initial: ed.findBeat(b)?.beat.chordSymbol ?? "",
+      placeholder: "Cmaj7",
+      submit: (text) => {
+        if (ed.setChordSymbol(b, text)) v1Rerender();
+      },
+    });
   };
   const v1Ornament = (t: v1.OrnamentType) => v1BeatOp((ed, b) => ed.toggleOrnament(b, t));
   const v1AddGrace = () => {
@@ -3046,6 +3098,7 @@ export function App() {
           </div>
         </div>
       )}
+      {textPrompt && <TextPrompt request={textPrompt} onClose={() => setTextPrompt(null)} />}
       {countInNumber !== null && (
         <div className="countin-overlay" aria-hidden="true">
           <span className="countin-number">{countInNumber}</span>
@@ -3458,8 +3511,13 @@ export function App() {
             onSelect={(id) => void selectRecording(id)}
             onAddFile={addRecordingFile}
             onAddYouTube={() => {
-              const url = window.prompt("Paste a YouTube link or video id");
-              if (url) void addYouTubeRecording(url);
+              askText({
+                label: "Paste a YouTube link or video id",
+                placeholder: "https://youtu.be/…",
+                submit: (url) => {
+                  if (url.trim()) void addYouTubeRecording(url.trim());
+                },
+              });
             }}
             onAddPairedAudio={(file) => void addPairedAudio(file)}
             onRemove={(id) => void removeRecording(id)}
