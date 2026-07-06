@@ -133,3 +133,17 @@ body {
   height: 100%;
   border: 0;
 }
+
+/* c27: loop toggle active state + hidden-video (off-screen, keeps playing). */
+.embed-loop.on {
+  background: #dbeafe;
+  border-color: #2563eb;
+  color: #1d4ed8;
+}
+.embed-video.embed-video-off {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+}

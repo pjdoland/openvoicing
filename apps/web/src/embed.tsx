@@ -73,6 +73,10 @@ function EmbedApp() {
   const [speed, setSpeed] = useState(1);
   const [position, setPosition] = useState({ current: 0, total: 0 });
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [videoHidden, setVideoHidden] = useState(false);
+  const [looping, setLooping] = useState(false);
+  const [sections, setSections] = useState<Array<{ barIndex: number; label: string }>>([]);
+  const bundleUrlRef = useRef<string>("");
 
   useEffect(() => {
     const onFs = () => setIsFullscreen(!!document.fullscreenElement);
@@ -153,6 +157,8 @@ function EmbedApp() {
         }
 
         bundleRef.current = bundle;
+        bundleUrlRef.current = url;
+        setSections(manifest.sections ?? []);
         setRecordingIds(manifest.recordings.map((r) => ({ id: r.id, name: r.name })));
         // Prefer the first recording; a video plays through a YouTubePlayer.
         const rec =
@@ -308,6 +314,30 @@ function EmbedApp() {
     }
   }, [embedded, position]);
 
+  function jumpToEmbedSection(barIndex: number) {
+    const player = playerRef.current;
+    if (!player) return;
+    const tick = player.barTicks[barIndex]?.start ?? 0;
+    player.cursorTick = tick;
+    player.scrollBarIntoView(barIndex);
+    const points = syncRef.current;
+    if (points && mediaRef.current) mediaRef.current.seek(mediaTimeAtTick(points, tick));
+  }
+  function toggleLoopEmbed() {
+    const next = !looping;
+    setLooping(next);
+    const m = mediaRef.current;
+    if (hasRecordingRef.current && m) {
+      m.setLoopRegion(next ? { start: 0, end: m.duration } : null);
+    } else {
+      playerRef.current?.setLooping(next);
+    }
+  }
+  // Open this exact piece in the full OpenVoicing app (no lock-in).
+  const openInAppHref = bundleUrlRef.current
+    ? `./?bundle=${encodeURIComponent(bundleUrlRef.current)}`
+    : "./";
+
   if (error) {
     return (
       <div className="embed-error" role="alert">
@@ -334,6 +364,31 @@ function EmbedApp() {
             ))}
           </select>
         </label>
+        <button
+          className={looping ? "embed-loop on" : "embed-loop"}
+          onClick={toggleLoopEmbed}
+          aria-pressed={looping}
+          title="Loop the piece"
+        >
+          Loop
+        </button>
+        {sections.length > 0 && (
+          <select
+            className="embed-sections"
+            value=""
+            onChange={(e) => {
+              if (e.target.value !== "") jumpToEmbedSection(Number(e.target.value));
+            }}
+            title="Jump to a section"
+          >
+            <option value="">Sections…</option>
+            {sections.map((s) => (
+              <option key={s.barIndex} value={s.barIndex}>
+                {s.label}
+              </option>
+            ))}
+          </select>
+        )}
         <span className="embed-position">
           {formatTime(position.current)} / {formatTime(position.total)}
         </span>
@@ -352,6 +407,16 @@ function EmbedApp() {
           </select>
         )}
         {hasRecording && <span className="embed-badge">recording{syncRef.current ? " + sync" : ""}</span>}
+        {hasVideo && (
+          <button
+            className="embed-fs"
+            onClick={() => setVideoHidden((v) => !v)}
+            aria-pressed={videoHidden}
+            title={videoHidden ? "Show the video" : "Hide the video (audio keeps playing)"}
+          >
+            {videoHidden ? "Show video" : "Hide video"}
+          </button>
+        )}
         <button
           className="embed-fs"
           onClick={toggleFullscreen}
@@ -360,12 +425,18 @@ function EmbedApp() {
         >
           {isFullscreen ? "✕" : "⛶"}
         </button>
-        <a className="embed-brand" href="https://github.com/pjdoland/openvoicing" target="_blank" rel="noreferrer">
-          OpenVoicing
+        <a
+          className="embed-brand"
+          href={openInAppHref}
+          target="_blank"
+          rel="noreferrer"
+          title="Open this piece in the full OpenVoicing app"
+        >
+          Open in OpenVoicing
         </a>
       </div>
       <div
-        className="embed-video"
+        className={"embed-video" + (videoHidden ? " embed-video-off" : "")}
         ref={videoHostRef}
         style={hasVideo ? undefined : { display: "none" }}
       />
