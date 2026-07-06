@@ -1,4 +1,5 @@
 import { newId } from "../ids";
+import { BEAT_UNIT_TYPE } from "./create";
 import { playedTicks } from "./durations";
 import { PPQ } from "./types";
 import type {
@@ -35,7 +36,6 @@ function beatTick(beats: Beat[], index: number): number {
   return t;
 }
 
-const BEAT_UNIT_TYPE: Record<number, NoteType> = { 1: "whole", 2: "half", 4: "quarter", 8: "eighth", 16: "16th" };
 
 function effectiveTime(part: Part, barIndex: number): TimeSignature {
   let time: TimeSignature = { beats: 4, beatUnit: 4 };
@@ -203,14 +203,7 @@ export class ScoreEditorV1 {
   }
 
   findNote(noteId: EntityId): NoteLocation | undefined {
-    for (const part of this.doc.parts)
-      for (const measure of part.measures)
-        for (const voice of measure.voices)
-          for (const beat of voice.beats) {
-            const noteIndex = beat.notes.findIndex((n) => n.id === noteId);
-            if (noteIndex >= 0) return { part, measure, voice, beat, note: beat.notes[noteIndex]!, noteIndex };
-          }
-    return undefined;
+    return findNote(this.doc, noteId);
   }
 
   findBeat(beatId: EntityId): BeatLocation | undefined {

@@ -1,7 +1,8 @@
 import { newId } from "../ids";
 import { PPQ, SCORE_V1_FORMAT, type BarSpec, type Beat, type Measure, type NoteType, type ScoreV1 } from "./types";
 
-const BEAT_UNIT_TYPE: Record<number, NoteType> = { 1: "whole", 2: "half", 4: "quarter", 8: "eighth", 16: "16th" };
+/** Note-type name for a time-signature beat-unit denominator (2 -> half, ...). */
+export const BEAT_UNIT_TYPE: Record<number, NoteType> = { 1: "whole", 2: "half", 4: "quarter", 8: "eighth", 16: "16th" };
 
 export interface CreateScoreV1Options {
   title?: string;

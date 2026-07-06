@@ -1,5 +1,6 @@
 /// <reference path="./signalsmith-stretch.d.ts" />
 import SignalsmithStretch, { type SignalsmithStretchNode } from "signalsmith-stretch";
+import { TypedEmitter } from "./media-player";
 import type { LoopRegion, MediaPlayer, MediaPlayerEvents } from "./media-player";
 
 export type { LoopRegion } from "./media-player";
@@ -15,7 +16,7 @@ const POSITION_INTERVAL_MS = 50;
  * speed changes preserve pitch. The AudioContext is created lazily on first
  * load/play, which must happen from a user gesture for audio to be audible.
  */
-export class RecordingPlayer implements MediaPlayer {
+export class RecordingPlayer extends TypedEmitter<RecordingPlayerEvents> implements MediaPlayer {
   private context: AudioContext | null = null;
   private node: SignalsmithStretchNode | null = null;
   private _duration = 0;
@@ -33,33 +34,6 @@ export class RecordingPlayer implements MediaPlayer {
   loopGapSeconds = 0;
   private gapTimer: ReturnType<typeof setTimeout> | null = null;
   private timer: ReturnType<typeof setInterval> | null = null;
-  private readonly listeners: {
-    [K in keyof RecordingPlayerEvents]: Set<RecordingPlayerEvents[K]>;
-  } = {
-    loaded: new Set(),
-    stateChanged: new Set(),
-    positionChanged: new Set(),
-    speedChanged: new Set(),
-    loopChanged: new Set(),
-    looped: new Set(),
-  };
-
-  on<K extends keyof RecordingPlayerEvents>(
-    event: K,
-    handler: RecordingPlayerEvents[K],
-  ): () => void {
-    this.listeners[event].add(handler);
-    return () => this.listeners[event].delete(handler);
-  }
-
-  private emit<K extends keyof RecordingPlayerEvents>(
-    event: K,
-    ...args: Parameters<RecordingPlayerEvents[K]>
-  ): void {
-    for (const handler of this.listeners[event]) {
-      (handler as (...a: Parameters<RecordingPlayerEvents[K]>) => void)(...args);
-    }
-  }
 
   private async ensureNode(): Promise<SignalsmithStretchNode> {
     if (!this.context) this.context = new AudioContext();

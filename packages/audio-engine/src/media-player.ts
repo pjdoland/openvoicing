@@ -19,6 +19,34 @@ export interface MediaPlayerEvents {
   looped: () => void;
 }
 
+/**
+ * Minimal typed event emitter shared by the media players (was copy-pasted as a
+ * listeners map + on/emit into each). Subclasses call the protected `emit`.
+ */
+type AnyHandler = (...args: never[]) => void;
+
+export class TypedEmitter<E> {
+  private readonly listeners = new Map<keyof E, Set<AnyHandler>>();
+
+  on<K extends keyof E>(event: K, handler: E[K]): () => void {
+    let set = this.listeners.get(event);
+    if (!set) this.listeners.set(event, (set = new Set()));
+    set.add(handler as AnyHandler);
+    return () => {
+      set!.delete(handler as AnyHandler);
+    };
+  }
+
+  protected emit<K extends keyof E>(
+    event: K,
+    ...args: E[K] extends (...a: infer A) => void ? A : never
+  ): void {
+    const set = this.listeners.get(event);
+    if (!set) return;
+    for (const handler of set) (handler as (...a: unknown[]) => void)(...args);
+  }
+}
+
 export interface MediaPlayer {
   readonly duration: number;
   readonly position: number;

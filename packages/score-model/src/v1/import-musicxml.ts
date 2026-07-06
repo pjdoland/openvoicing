@@ -723,13 +723,18 @@ function readDirection(nc: XmlNode[], barIndex: number, tick: number): Direction
 }
 
 function findTempo(mc: XmlNode[]): number | undefined {
+  // Guard against a malformed tempo attribute yielding NaN in the tempo map.
+  const parse = (node: XmlNode | undefined): number | undefined => {
+    const raw = node && attr(node, "tempo");
+    if (!raw) return undefined;
+    const n = Number(raw);
+    return Number.isFinite(n) && n > 0 ? n : undefined;
+  };
   for (const d of children(mc, "direction")) {
-    const sound = child(childrenOf(d), "sound");
-    if (sound && attr(sound, "tempo")) return Number(attr(sound, "tempo"));
+    const t = parse(child(childrenOf(d), "sound"));
+    if (t !== undefined) return t;
   }
-  const sound = child(mc, "sound");
-  if (sound && attr(sound, "tempo")) return Number(attr(sound, "tempo"));
-  return undefined;
+  return parse(child(mc, "sound"));
 }
 
 function findComposer(pw: XmlNode[]): string | undefined {

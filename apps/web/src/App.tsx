@@ -101,13 +101,6 @@ function loadScoreIntoPlayer(player: Player, source: ScoreSource): LoadedScore {
   return { v1Editor: null };
 }
 
-/** True when a MusicXML has more than one part or a second staff (grand staff). */
-function isMultiStaffMusicXml(xml: string): boolean {
-  const parts = xml.match(/<score-part\b/g)?.length ?? 0;
-  if (parts > 1) return true;
-  return /<staff>\s*[2-9]/.test(xml) || /<staves>\s*[2-9]/.test(xml);
-}
-
 function newRecordingId(): string {
   return globalThis.crypto.randomUUID().slice(0, 8);
 }
@@ -271,12 +264,7 @@ export function App() {
   }, [passages]);
   function currentBarIndex(): number {
     const player = playerRef.current;
-    if (!player) return 0;
-    const tick = player.cursorTick;
-    const bars = player.barTicks;
-    let idx = 0;
-    for (let i = 0; i < bars.length; i++) if (bars[i]!.start <= tick) idx = i;
-    return idx;
+    return player ? player.barIndexAtTick(player.cursorTick) : 0;
   }
   function addSection() {
     const bar = currentBarIndex();
@@ -1317,7 +1305,6 @@ export function App() {
     const player = playerRef.current;
     if (!points || !player) return;
     const now = media().position;
-    const bars = player.barTicks;
     // Choose the bar whose predicted time is closest to now.
     let best = 0;
     let bestDist = Infinity;
@@ -1328,7 +1315,6 @@ export function App() {
         best = i;
       }
     });
-    void bars;
     commitSync(clampSyncMove(points, best, now));
     showToast(`Sync point for bar ${best + 1} set to ${now.toFixed(2)}s.`);
   }
@@ -2155,12 +2141,7 @@ export function App() {
   async function exportBundle() {
     const bytes = await buildBundleBytes();
     if (!bytes) return;
-    const blob = new Blob([bytes as BlobPart], { type: "application/zip" });
-    const link = document.createElement("a");
-    link.href = URL.createObjectURL(blob);
-    link.download = `${(scoreTitle || "score").replace(/[^\w-]+/g, "-").toLowerCase() || "score"}.ovb`;
-    link.click();
-    URL.revokeObjectURL(link.href);
+    downloadBlob(new Blob([bytes as BlobPart], { type: "application/zip" }), "ovb");
   }
 
   // Library: save the current piece as a bundle in IndexedDB and reopen later.
@@ -2671,7 +2652,9 @@ export function App() {
     const empty = { dotted: false, marks: new Set<string>(), tab: false, voiceIndex: 0, voiceCount: 1 };
     const ed = v1EditorRef.current;
     if (!ed || !selectedV1) return { kind: "none", desc: "Nothing selected", ...empty };
-    const beatId = selectedV1.noteId ? ed.findNote(selectedV1.noteId)?.beat.id : selectedV1.restBeatId;
+    // One findNote for the selected note, reused below (was scanned twice).
+    const noteLoc = selectedV1.noteId ? ed.findNote(selectedV1.noteId) : undefined;
+    const beatId = noteLoc?.beat.id ?? selectedV1.restBeatId;
     const loc = beatId ? ed.findBeat(beatId) : undefined;
     if (!loc) return { kind: "none", desc: "Nothing selected", ...empty };
     const { beat, measure, beatIndex } = loc;
@@ -2687,7 +2670,7 @@ export function App() {
     const where = `bar ${measure.barIndex + 1}, beat ${beatIndex + 1}${voiceTag}`;
     const dur = (beat.duration.dots ? "dotted " : "") + NOTE_TYPE_LABEL[beat.duration.noteType];
     if (selectedV1.noteId) {
-      const note = ed.findNote(selectedV1.noteId)?.note;
+      const note = noteLoc?.note;
       const tab = note?.string !== undefined;
       if (note && ed.doc.spanners.some((s) => s.kind === "tie" && s.from.noteId === note.id)) marks.add("tie");
       const pitch = note

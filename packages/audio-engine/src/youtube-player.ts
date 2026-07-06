@@ -1,3 +1,4 @@
+import { TypedEmitter } from "./media-player";
 import type { LoopRegion, MediaPlayer, MediaPlayerEvents } from "./media-player";
 
 /**
@@ -69,7 +70,7 @@ export interface YouTubePlayerOptions {
   endSeconds?: number;
 }
 
-export class YouTubePlayer implements MediaPlayer {
+export class YouTubePlayer extends TypedEmitter<MediaPlayerEvents> implements MediaPlayer {
   private yt: YTPlayer | null = null;
   private _duration = 0;
   private _position = 0;
@@ -82,15 +83,9 @@ export class YouTubePlayer implements MediaPlayer {
   private raf: number | null = null;
   private readyResolve!: () => void;
   private readonly readyPromise: Promise<void>;
-  private readonly listeners: { [K in keyof MediaPlayerEvents]: Set<MediaPlayerEvents[K]> } = {
-    stateChanged: new Set(),
-    positionChanged: new Set(),
-    speedChanged: new Set(),
-    loopChanged: new Set(),
-    looped: new Set(),
-  };
 
   constructor(container: HTMLElement, opts: YouTubePlayerOptions) {
+    super();
     this.start = opts.startSeconds ?? 0;
     this.end = opts.endSeconds;
     this.readyPromise = new Promise((resolve) => (this.readyResolve = resolve));
@@ -228,20 +223,6 @@ export class YouTubePlayer implements MediaPlayer {
     if (this.raf != null) {
       cancelAnimationFrame(this.raf);
       this.raf = null;
-    }
-  }
-
-  on<K extends keyof MediaPlayerEvents>(event: K, handler: MediaPlayerEvents[K]): () => void {
-    this.listeners[event].add(handler);
-    return () => this.listeners[event].delete(handler);
-  }
-
-  private emit<K extends keyof MediaPlayerEvents>(
-    event: K,
-    ...args: Parameters<MediaPlayerEvents[K]>
-  ): void {
-    for (const handler of this.listeners[event]) {
-      (handler as (...a: Parameters<MediaPlayerEvents[K]>) => void)(...args);
     }
   }
 

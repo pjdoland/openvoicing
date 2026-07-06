@@ -13,7 +13,15 @@ function interpolate(
   x: number,
 ): number {
   if (points.length === 0) throw new Error("no sync points");
-  const sorted = [...points].sort((a, b) => a.x - b.x);
+  // This runs once per frame while following; sync points are stored ascending,
+  // so only pay for a copy+sort when they are actually out of order.
+  let sorted = points;
+  for (let i = 1; i < points.length; i++) {
+    if (points[i]!.x < points[i - 1]!.x) {
+      sorted = [...points].sort((a, b) => a.x - b.x);
+      break;
+    }
+  }
   const first = sorted[0]!;
   if (sorted.length === 1) return first.y;
 
