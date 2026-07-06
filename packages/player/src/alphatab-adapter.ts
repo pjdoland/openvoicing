@@ -123,7 +123,25 @@ export function toAlphaTabScore(
           // than one and coloring is requested (edit mode).
           const rgb = options.colorVoices && voices.length > 1 && vi > 0 ? VOICE_COLORS[vi] ?? [100, 100, 100] : null;
           if (vm && vm.beats.length > 0) {
-            for (const beatModel of vm.beats) voice.addBeat(toBeat(beatModel, tupletOf, beatMap, rgb));
+            for (const beatModel of vm.beats) {
+              const beat = toBeat(beatModel, tupletOf, beatMap, rgb);
+              const cd = beatModel.chordDiagram;
+              if (cd) {
+                // A fretboard diagram renders above the staff; alphaTab looks it
+                // up by chordId from the staff's chord map.
+                const chord = new m.Chord();
+                chord.firstFret = cd.firstFret;
+                chord.strings = [...cd.strings];
+                chord.showDiagram = true;
+                chord.showName = Boolean(beatModel.chordSymbol);
+                if (beatModel.chordSymbol) chord.name = beatModel.chordSymbol;
+                if (cd.barre) chord.barreFrets = [cd.barre.fret];
+                const id = `chord-${beatModel.id}`;
+                staff.addChord(id, chord);
+                beat.chordId = id;
+              }
+              voice.addBeat(beat);
+            }
           } else {
             voice.addBeat(fullBarRest(barTicks));
           }

@@ -41,6 +41,7 @@ import { CollapsiblePanel, resetLayout } from "./ui/CollapsiblePanel";
 import { CommandPalette } from "./ui/CommandPalette";
 import { NavigateControl } from "./ui/NavigateControl";
 import { TextPrompt, type TextPromptRequest } from "./ui/TextPrompt";
+import { ChordEditor, EMPTY_CHORD } from "./ui/ChordEditor";
 import type { Command } from "./ui/commands";
 import {
   BookmarkIcon,
@@ -229,6 +230,11 @@ export function App() {
   const [showTour, setShowTour] = useState(false);
   const [textPrompt, setTextPrompt] = useState<TextPromptRequest | null>(null);
   const askText = (req: TextPromptRequest) => setTextPrompt(req);
+  const [chordEdit, setChordEdit] = useState<{
+    beatId: string;
+    symbol: string;
+    diagram: v1.ChordDiagram | null;
+  } | null>(null);
 
   // Basic vs Advanced: Basic keeps the surface calm; Advanced reveals practice
   // aids, capture, and editing extras. Locked mode is always the minimal end.
@@ -2314,18 +2320,10 @@ export function App() {
     const beatId = v1SelectedBeatId();
     const isTabNote = sel?.noteId ? ed.findNote(sel.noteId)?.note.string !== undefined : false;
 
-    // Chord symbol entry (lead sheets): prompt for text on the selected beat.
+    // Chord entry (lead sheets): a symbol + optional fingering diagram.
     if (e.code === "KeyK" && beatId) {
       e.preventDefault();
-      const current = ed.findBeat(beatId)?.beat.chordSymbol ?? "";
-      askText({
-        label: "Chord symbol (e.g. Cmaj7, G/B)",
-        initial: current,
-        placeholder: "Cmaj7",
-        submit: (text) => {
-          if (ed.setChordSymbol(beatId, text)) v1Rerender();
-        },
-      });
+      editChord(beatId);
       return;
     }
 
@@ -2636,18 +2634,24 @@ export function App() {
     }
   };
   const v1ChordSymbolBtn = () => {
-    const ed = v1EditorRef.current;
     const b = v1SelectedBeatId();
-    if (!ed || !b) return;
-    askText({
-      label: "Chord symbol (e.g. Cmaj7, G/B)",
-      initial: ed.findBeat(b)?.beat.chordSymbol ?? "",
-      placeholder: "Cmaj7",
-      submit: (text) => {
-        if (ed.setChordSymbol(b, text)) v1Rerender();
-      },
-    });
+    if (b) editChord(b);
   };
+  function editChord(beatId: string) {
+    const ed = v1EditorRef.current;
+    if (!ed) return;
+    const beat = ed.findBeat(beatId)?.beat;
+    setChordEdit({ beatId, symbol: beat?.chordSymbol ?? "", diagram: beat?.chordDiagram ?? null });
+  }
+  function saveChord() {
+    const ed = v1EditorRef.current;
+    const c = chordEdit;
+    if (!ed || !c) return;
+    ed.setChordSymbol(c.beatId, c.symbol || null);
+    ed.setChordDiagram(c.beatId, c.diagram);
+    v1Rerender();
+    setChordEdit(null);
+  }
   const v1Ornament = (t: v1.OrnamentType) => v1BeatOp((ed, b) => ed.toggleOrnament(b, t));
   const v1AddGrace = () => {
     const ed = v1EditorRef.current;
@@ -3099,6 +3103,61 @@ export function App() {
         </div>
       )}
       {textPrompt && <TextPrompt request={textPrompt} onClose={() => setTextPrompt(null)} />}
+      {chordEdit && (
+        <div className="prompt-backdrop" role="dialog" aria-modal="true" aria-label="Chord" onMouseDown={() => setChordEdit(null)}>
+          <div className="prompt-card chord-card" onMouseDown={(e) => e.stopPropagation()}>
+            <label className="prompt-label">
+              Chord symbol
+              <input
+                className="prompt-input"
+                autoFocus
+                value={chordEdit.symbol}
+                placeholder="Cmaj7"
+                onChange={(e) => setChordEdit({ ...chordEdit, symbol: e.target.value })}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") saveChord();
+                }}
+              />
+            </label>
+            <div className="chord-diagram-edit">
+              <ChordEditor
+                value={chordEdit.diagram ?? EMPTY_CHORD}
+                onChange={(d) => setChordEdit({ ...chordEdit, diagram: d })}
+              />
+              <div className="chord-fret-control">
+                <span>First fret</span>
+                <button
+                  onClick={() => {
+                    const d = chordEdit.diagram ?? EMPTY_CHORD;
+                    setChordEdit({ ...chordEdit, diagram: { ...d, firstFret: Math.max(1, d.firstFret - 1) } });
+                  }}
+                >
+                  −
+                </button>
+                <span className="chord-fret-num">{(chordEdit.diagram ?? EMPTY_CHORD).firstFret}</span>
+                <button
+                  onClick={() => {
+                    const d = chordEdit.diagram ?? EMPTY_CHORD;
+                    setChordEdit({ ...chordEdit, diagram: { ...d, firstFret: Math.min(20, d.firstFret + 1) } });
+                  }}
+                >
+                  +
+                </button>
+                <span className="hint">click cells to fret; markers above = open/mute</span>
+              </div>
+            </div>
+            <div className="prompt-actions">
+              {chordEdit.diagram && (
+                <button onClick={() => setChordEdit({ ...chordEdit, diagram: null })}>Remove diagram</button>
+              )}
+              <button onClick={() => setChordEdit(null)}>Cancel</button>
+              <button className="btn-primary" onClick={saveChord}>
+                OK
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       {countInNumber !== null && (
         <div className="countin-overlay" aria-hidden="true">
           <span className="countin-number">{countInNumber}</span>

@@ -5,6 +5,7 @@ import type {
   AccidentalKind,
   ArticulationType,
   Beat,
+  ChordDiagram,
   DurationSpec,
   EntityId,
   GraceKind,
@@ -687,6 +688,16 @@ export class ScoreEditorV1 {
       if (!beat) return false;
       if (text && text.trim()) beat.chordSymbol = text.trim();
       else delete beat.chordSymbol;
+      return true;
+    });
+  }
+
+  setChordDiagram(beatId: EntityId, diagram: ChordDiagram | null): boolean {
+    return this.edit((doc) => {
+      const beat = findBeat(doc, beatId)?.beat;
+      if (!beat) return false;
+      if (diagram) beat.chordDiagram = diagram;
+      else delete beat.chordDiagram;
       return true;
     });
   }

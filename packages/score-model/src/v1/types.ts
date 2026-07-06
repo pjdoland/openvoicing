@@ -208,6 +208,18 @@ export interface Beat {
   fermata?: boolean;
   /** Chord/harmony symbol shown above the beat (e.g. "Cmaj7", "G/B"). */
   chordSymbol?: string;
+  /** Optional fingering diagram for the chord (fretted instruments). */
+  chordDiagram?: ChordDiagram;
+}
+
+/** A fretboard fingering diagram, portable inside the file. */
+export interface ChordDiagram {
+  /** Lowest shown fret (1 = at the nut). */
+  firstFret: number;
+  /** Fret per string, low-to-high; -1 = muted, 0 = open. */
+  strings: number[];
+  /** Optional barre across a fret, from/to string index (0-based, inclusive). */
+  barre?: { fret: number; from: number; to: number };
 }
 
 export interface Lyric {

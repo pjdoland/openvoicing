@@ -1838,3 +1838,18 @@ button.speed-value {
   justify-content: flex-end;
   gap: 8px;
 }
+
+/* Chord fingering editor (c14). */
+.chord-card { min-width: 300px; }
+.chord-diagram-edit { display: flex; gap: 14px; align-items: center; }
+.chord-fret-control { display: flex; flex-direction: column; gap: 6px; align-items: flex-start; font-size: 13px; }
+.chord-fret-control > div, .chord-fret-control { }
+.chord-fret-num { font-variant-numeric: tabular-nums; min-width: 1.5em; text-align: center; }
+.chord-editor .chord-nut { fill: var(--fg); }
+.chord-editor .chord-line { stroke: var(--border-strong); stroke-width: 1; }
+.chord-editor .chord-dot { fill: var(--accent); }
+.chord-editor .chord-topmark { font-size: 13px; fill: var(--fg); }
+.chord-editor .chord-topmark.editable { cursor: pointer; }
+.chord-editor .chord-cell { cursor: pointer; }
+.chord-editor .chord-cell:hover { fill: var(--accent-soft); }
+.chord-editor .chord-fretlabel { font-size: 11px; fill: var(--muted); }
