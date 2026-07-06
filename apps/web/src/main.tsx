@@ -1,6 +1,10 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { App } from "./App";
+// Self-hosted Noto Sans (SIL OFL 1.1) as the UI face: one weight-axis variable
+// font covering Latin/Greek/Cyrillic and more, loaded per-subset on demand, so
+// the interface is ready for full localization without a webfont CDN.
+import "@fontsource-variable/noto-sans/wght.css";
 import "./app.css";
 
 // In dev the app registers no service worker. A leftover one from a previous

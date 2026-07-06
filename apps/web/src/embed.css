@@ -4,9 +4,17 @@
 
 body {
   margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-family: "Noto Sans Variable", "Noto Sans", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   background: #fff;
   color: #1b1f27;
+}
+
+/* Form controls do not inherit font-family from the UA stylesheet. */
+button,
+input,
+select,
+textarea {
+  font-family: inherit;
 }
 
 .embed {

@@ -68,6 +68,27 @@ build under `apps/web/public/soundfont/`.
 
 ---
 
+## Noto Sans
+
+The user-interface typeface, self-hosted (no webfont CDN) so the app stays
+offline-capable and private. One weight-axis variable font, subset by script
+(Latin, Latin-ext, Greek, Cyrillic, Vietnamese, and more) and loaded on demand,
+chosen for its broad coverage as we prepare for full localization.
+
+- Project: https://github.com/notofonts (Google Noto)
+- Packaged via `@fontsource-variable/noto-sans`; shipped in the web build under
+  `apps/web/dist/assets/` and on the site under `site/fonts/`.
+- License: **SIL Open Font License 1.1 (OFL-1.1)**
+- Copyright 2022 The Noto Project Authors
+  (https://github.com/notofonts/latin-greek-cyrillic)
+- Full text: `site/fonts/OFL.txt` and https://openfontlicense.org
+
+The OFL permits self-hosting, embedding, and redistribution. We ship the font
+unmodified with this notice; it is not sold on its own, and the reserved name is
+not reused for any modified version.
+
+---
+
 ## Regenerating the full list
 
 To produce a complete report of every dependency and its license:

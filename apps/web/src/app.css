@@ -99,9 +99,19 @@ html {
 
 body {
   margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-family: "Noto Sans Variable", "Noto Sans", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   background: var(--bg);
   color: var(--fg);
+}
+
+/* Form controls do not inherit font-family from the UA stylesheet, so without
+   this the buttons/inputs/selects would fall back to the browser default (e.g.
+   Arial) instead of Noto Sans. */
+button,
+input,
+select,
+textarea {
+  font-family: inherit;
 }
 
 .app {

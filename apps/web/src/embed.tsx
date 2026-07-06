@@ -5,6 +5,7 @@ import { RecordingPlayer, YouTubePlayer, type MediaPlayer } from "@openvoicing/a
 import { mediaTimeAtTick, tickAtMediaTime, type SyncPoint } from "@openvoicing/score-model";
 import { readBundle, recordingAudioPath, type Bundle } from "@openvoicing/bundle";
 import { parseDeepLink } from "./deep-link";
+import "@fontsource-variable/noto-sans/wght.css";
 import "./embed.css";
 
 const soundFontUrl = `${import.meta.env.BASE_URL}soundfont/FluidR3Mono_GM.sf3`;

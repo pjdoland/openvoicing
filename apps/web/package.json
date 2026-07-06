@@ -17,6 +17,7 @@
   },
   "dependencies": {
     "@coderline/alphatab": "^1.8.3",
+    "@fontsource-variable/noto-sans": "^5.2.10",
     "@openvoicing/audio-engine": "workspace:*",
     "@openvoicing/bundle": "workspace:*",
     "@openvoicing/player": "workspace:*",
