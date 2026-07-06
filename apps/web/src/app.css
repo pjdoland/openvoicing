@@ -967,6 +967,8 @@ button.speed-value {
   line-height: 1.7;
 }
 .tour-lede { margin: 0 0 12px; }
+.tour-ethos { color: var(--muted); font-size: 13px; margin: 8px 0 0; }
+.tour-ethos code { font-size: 0.95em; }
 .tour-verbs { list-style: none; padding-left: 0; margin: 0 0 12px; }
 .tour-verbs li { padding: 6px 0; border-top: 1px solid var(--border); }
 .tour-verbs li:first-child { border-top: 0; }

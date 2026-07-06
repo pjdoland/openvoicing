@@ -408,17 +408,22 @@ export function App() {
     return () => document.removeEventListener("mousedown", onDown);
   }, [moreOpen, scorePanelOpen]);
 
+  const lastSelectionRef = useRef<EditSelection | null>(null);
   useEffect(() => {
     editModeRef.current = editMode;
     setAnnouncement(editMode ? "Edit mode on" : "Edit mode off");
     if (!editMode) {
-      // Leaving edit mode: drop the note selection (and its highlight) and any
-      // open toolbar popovers, so the score returns to a clean view state.
+      // Leaving edit mode: remember where the caret was so re-entering returns
+      // there, then drop the live selection/highlight and any open popovers.
+      lastSelectionRef.current = selectedV1Ref.current;
       setNoteInputMode(false);
       setSelectedV1(null);
       setMoreOpen(false);
       setScorePanelOpen(false);
       playerRef.current?.highlightSelection(null);
+    } else if (lastSelectionRef.current) {
+      // Re-entering edit: return to the last-edited spot.
+      setSelectedV1(lastSelectionRef.current);
     }
     // Re-render so voice coloring turns on/off with edit mode.
     if (v1EditorRef.current) v1Rerender();
@@ -3016,11 +3021,12 @@ export function App() {
             <h2>Welcome to OpenVoicing</h2>
             <p className="tour-lede">OpenVoicing turns sheet music into an interactive practice tool. There are three things you can do with a piece:</p>
             <ul className="tour-verbs">
-              <li><strong>Play</strong> it &mdash; hear the notation and follow along.</li>
-              <li><strong>Practice</strong> it &mdash; slow it down, loop a passage, or sync it to a real recording.</li>
+              <li><strong>Play</strong> it at any tempo &mdash; slow down without changing pitch.</li>
+              <li><strong>Practice</strong> it &mdash; loop a passage, or play along with a recording or a YouTube video, the notation following as it plays.</li>
               <li><strong>Edit</strong> it &mdash; change the notes yourself.</li>
             </ul>
             <p className="tour-demo">A demo piece is loaded, so you can try everything right now.</p>
+            <p className="tour-ethos">Every piece is a single <code>.ovb</code> file you own &mdash; host it anywhere, no account.</p>
             <div className="tour-actions">
               <button className="tour-dismiss" onClick={dismissTour}>Explore the demo</button>
               <button className="btn-sm" onClick={() => { dismissTour(); scoreInputRef.current?.click(); }}>Load a file</button>
