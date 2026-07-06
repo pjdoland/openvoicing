@@ -433,7 +433,10 @@ body {
   border-radius: var(--ctl-radius);
   overflow: hidden;
 }
-.recording-toolbar .seg-stepper button {
+/* The first selector out-specifies the .recording-toolbar button rule; the
+   second carries the same reset into modals/menus (beating .btn-icon etc.). */
+.recording-toolbar .seg-stepper button,
+.seg-stepper button {
   min-width: 26px;
   min-height: auto;
   padding: 0 6px;
@@ -443,10 +446,12 @@ body {
   color: var(--fg);
   cursor: pointer;
 }
-.recording-toolbar .seg-stepper button:hover:not(:disabled) {
+.recording-toolbar .seg-stepper button:hover:not(:disabled),
+.seg-stepper button:hover:not(:disabled) {
   background: var(--btn-hover);
 }
-.recording-toolbar .seg-stepper button:disabled {
+.recording-toolbar .seg-stepper button:disabled,
+.seg-stepper button:disabled {
   opacity: 0.4;
   cursor: default;
 }

@@ -1090,6 +1090,27 @@ export function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [recording, activeMediaKind]);
 
+  // When the user scrolls the notation by hand, auto-follow yields for a moment
+  // so they can look elsewhere (e.g. read ahead) without being yanked back to
+  // the playing bar. Follow resumes a few seconds after the last manual scroll.
+  const lastUserScrollRef = useRef(0);
+  const FOLLOW_YIELD_MS = 3000;
+  useEffect(() => {
+    const pane = containerRef.current?.parentElement;
+    if (!pane) return;
+    const mark = () => {
+      lastUserScrollRef.current = performance.now();
+      // Also stand alphaTab's own continuous scroll (synth) down for the window.
+      playerRef.current?.setAutoScroll(false, FOLLOW_YIELD_MS);
+    };
+    pane.addEventListener("wheel", mark, { passive: true });
+    pane.addEventListener("touchmove", mark, { passive: true });
+    return () => {
+      pane.removeEventListener("wheel", mark);
+      pane.removeEventListener("touchmove", mark);
+    };
+  }, []);
+
   const lastScrollRef = useRef(0);
   useEffect(() => {
     if (!follow || !syncPoints) return;
@@ -1101,7 +1122,7 @@ export function App() {
       // The synth is not playing during recording/video follow, so alphaTab's
       // own scroll-on-play never fires; keep the current bar in the pane.
       const now = performance.now();
-      if (now - lastScrollRef.current > 250) {
+      if (now - lastScrollRef.current > 250 && now - lastUserScrollRef.current > FOLLOW_YIELD_MS) {
         lastScrollRef.current = now;
         player.scrollBarIntoView(player.barIndexAtTick(tick));
       }
@@ -3221,8 +3242,8 @@ export function App() {
               <div className="chord-fret-control">
                 <span className="fret-stepper">
                   First fret
+                  <span className="seg-stepper">
                   <button
-                    className="btn-icon"
                     aria-label="Lower first fret"
                     onClick={() => {
                       const d = chordEdit.diagram ?? EMPTY_CHORD;
@@ -3231,9 +3252,8 @@ export function App() {
                   >
                     −
                   </button>
-                  <span className="chord-fret-num">{(chordEdit.diagram ?? EMPTY_CHORD).firstFret}</span>
+                  <span className="seg-value">{(chordEdit.diagram ?? EMPTY_CHORD).firstFret}</span>
                   <button
-                    className="btn-icon"
                     aria-label="Raise first fret"
                     onClick={() => {
                       const d = chordEdit.diagram ?? EMPTY_CHORD;
@@ -3242,6 +3262,7 @@ export function App() {
                   >
                     +
                   </button>
+                  </span>
                 </span>
                 <span className="hint">Click cells to fret; markers above the nut = open or mute.</span>
               </div>

@@ -324,6 +324,34 @@ export class Player {
     }
   }
 
+  private autoScrollTimer: ReturnType<typeof setTimeout> | null = null;
+  private autoScrollOff = false;
+  /**
+   * Stand the engine's own follow-scroll down (or back up), e.g. while the user
+   * scrolls the notation by hand. Passing on=false with resumeMs re-enables
+   * after that delay. Toggling only on transitions keeps it cheap on a wheel.
+   */
+  setAutoScroll(on: boolean, resumeMs = 0): void {
+    const settings = this.api?.settings;
+    if (!settings) return;
+    if (this.autoScrollTimer !== null) {
+      clearTimeout(this.autoScrollTimer);
+      this.autoScrollTimer = null;
+    }
+    if (!on) {
+      if (!this.autoScrollOff) {
+        this.autoScrollOff = true;
+        settings.player.scrollMode = alphaTab.ScrollMode.Off;
+      }
+      if (resumeMs > 0) {
+        this.autoScrollTimer = setTimeout(() => this.setAutoScroll(true), resumeMs);
+      }
+    } else if (this.autoScrollOff) {
+      this.autoScrollOff = false;
+      settings.player.scrollMode = alphaTab.ScrollMode.Continuous;
+    }
+  }
+
   /** Outline a looped bar range as one continuous region, or clear with null. */
   setLoopMarkers(range: { startBar: number; endBar: number } | null): void {
     this.loopRange = range;
@@ -354,8 +382,9 @@ export class Player {
     layer.textContent = "";
     const range = this.loopRange;
     if (!range) return;
+    type Box = { x: number; y: number; w: number; h: number };
     const bl = this.api.renderer?.boundsLookup as
-      | { staffSystems?: Array<{ bars: Array<{ index: number; realBounds: { x: number; y: number; w: number; h: number } }> }> }
+      | { staffSystems?: Array<{ bars: Array<{ index: number; realBounds: Box; visualBounds?: Box }> }> }
       | undefined;
     if (!bl?.staffSystems) return;
     const lo = Math.min(range.startBar, range.endBar);
@@ -374,11 +403,15 @@ export class Player {
       for (const bar of sys.bars) {
         if (bar.index < lo || bar.index > hi) continue;
         any = true;
-        const b = bar.realBounds;
-        minX = Math.min(minX, b.x);
-        maxX = Math.max(maxX, b.x + b.w);
-        minY = Math.min(minY, b.y);
-        maxY = Math.max(maxY, b.y + b.h);
+        // Horizontal from realBounds (full bar width, so bars connect); vertical
+        // from the tighter visualBounds so the wash hugs the staves instead of
+        // bleeding into the padding below the system.
+        const rb = bar.realBounds;
+        const vb = bar.visualBounds ?? bar.realBounds;
+        minX = Math.min(minX, rb.x);
+        maxX = Math.max(maxX, rb.x + rb.w);
+        minY = Math.min(minY, vb.y);
+        maxY = Math.max(maxY, vb.y + vb.h);
         if (bar.index === lo) hasStart = true;
         if (bar.index === hi) hasEnd = true;
       }
