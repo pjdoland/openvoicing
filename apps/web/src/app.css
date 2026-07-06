@@ -1136,26 +1136,38 @@ button.speed-value {
   font-size: 0.8125rem;
 }
 
-.tour ul {
-  padding-left: 18px;
-  line-height: 1.7;
-}
-.tour-lede { margin: 0 0 12px; }
-/* The two secondary notes match the body text size (just a slightly muted tone),
-   with consistent spacing. */
+/* Welcome card typography: one line-height throughout, a clean two-tier colour
+   hierarchy (primary copy in --fg, the closing footnotes in --muted), the same
+   1rem body size everywhere, and an even vertical rhythm. */
+.tour-lede,
+.tour-verbs li,
 .tour-demo,
 .tour-ethos {
-  color: var(--muted);
   font-size: 1rem;
   line-height: 1.6;
-  margin: 6px 0 0;
 }
+.tour-lede {
+  margin: 0 0 18px;
+  color: var(--fg);
+}
+.tour-verbs {
+  list-style: none;
+  padding-left: 0;
+  margin: 0 0 20px;
+}
+.tour-verbs li {
+  padding: 10px 0;
+  border-top: 1px solid var(--border);
+  color: var(--fg);
+}
+.tour-verbs li:first-child { border-top: 0; padding-top: 2px; }
+.tour-verbs li:last-child { padding-bottom: 2px; }
+/* The two closing footnotes: one consistent muted tone, tight as a pair, set off
+   from the list above and given room before the buttons below. */
+.tour-demo { margin: 0; color: var(--muted); }
+.tour-ethos { margin: 4px 0 0; color: var(--muted); }
 .tour-ethos code { font-size: 0.95em; }
-.tour-verbs { list-style: none; padding-left: 0; margin: 0 0 12px; }
-.tour-verbs li { padding: 6px 0; border-top: 1px solid var(--border); }
-.tour-verbs li:first-child { border-top: 0; }
-/* Breathing room between the notes and the action buttons. */
-.tour-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: stretch; margin-top: 20px; }
+.tour-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: stretch; margin-top: 22px; }
 
 .tour-dismiss {
   display: inline-flex;
@@ -1256,7 +1268,8 @@ button.speed-value {
 
 .menu-item:hover:not(:disabled),
 .menu-item:focus-visible { background: var(--btn-hover); }
-.menu-item:disabled { opacity: 0.45; cursor: default; }
+.menu-item:disabled,
+.menu-item.menu-item-disabled { opacity: 0.45; cursor: default; pointer-events: none; }
 .menu-item-check { width: 14px; color: var(--accent); }
 .menu-item-label { flex: 1; }
 .menu-item-shortcut,
