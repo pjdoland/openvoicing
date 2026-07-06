@@ -480,12 +480,14 @@ export function RecordingPanel({
                 +
               </button>
             </label>
-            <span className="control zoom-controls">
-              <button onClick={() => changeZoom(Math.max(1, zoom / 2))} disabled={zoom <= 1}>
+            <span className="control zoom-controls" title="Waveform zoom">
+              Zoom
+              <button aria-label="Zoom out" onClick={() => changeZoom(Math.max(1, zoom / 2))} disabled={zoom <= 1}>
                 −
               </button>
-              {zoom}×
+              <span className="speed-value">{zoom}×</span>
               <button
+                aria-label="Zoom in"
                 onClick={() => changeZoom(Math.min(MAX_ZOOM, zoom * 2))}
                 disabled={zoom >= MAX_ZOOM}
               >

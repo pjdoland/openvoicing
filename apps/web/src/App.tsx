@@ -3058,7 +3058,7 @@ export function App() {
   const isPlaying = playing || mediaPlaying;
 
   return (
-    <div className={`app${standMode ? " stand-mode" : ""}${closed ? " closed" : ""}${noteInputMode ? " note-input" : ""}`}>
+    <div className={`app${advanced ? " advanced" : ""}${standMode ? " stand-mode" : ""}${closed ? " closed" : ""}${noteInputMode ? " note-input" : ""}`}>
       <header className="header" role="banner">
         <h1><button type="button" className="wordmark-home" onClick={goHome} title="Back to the start (exit edit mode and return to the clean view)">OpenVoicing</button></h1>
         {scoreTitle && <span className="tagline">{scoreTitle}</span>}

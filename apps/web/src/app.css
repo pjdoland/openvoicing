@@ -1688,12 +1688,18 @@ button.speed-value {
 .header { flex-wrap: wrap; }
 .menubar { flex-wrap: wrap; justify-content: flex-end; }
 
-/* On phone-width screens a single row genuinely can't hold every control, so
-   fall back to graceful wrapping there (desktop/tablet keep the stable row). */
+/* A single row can't hold every control forever, so fall back to graceful
+   wrapping before it would overflow/overlap. Listen mode is sparse (wraps only
+   on phones); Practice mode carries many more controls, so it wraps earlier. */
 @media (max-width: 900px) {
   .toolbar { flex-wrap: wrap; row-gap: 6px; }
   .tb-zone { flex-wrap: wrap; row-gap: 6px; }
   .tb-zone.tb-right { margin-left: 0; }
+}
+@media (max-width: 1120px) {
+  .app.advanced .toolbar { flex-wrap: wrap; row-gap: 6px; }
+  .app.advanced .tb-zone { flex-wrap: wrap; row-gap: 6px; }
+  .app.advanced .tb-zone.tb-right { margin-left: 0; }
 }
 
 /* Floating surfaces never exceed the viewport. */
