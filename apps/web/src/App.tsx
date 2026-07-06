@@ -1221,6 +1221,27 @@ export function App() {
   }
 
   const syncConfidence = useMemo(() => computeSyncConfidence(syncPoints), [syncPoints]);
+  const flaggedCount = useMemo(
+    () => (syncConfidence ? syncConfidence.filter((c) => c !== "good").length : 0),
+    [syncConfidence],
+  );
+  // Auto-sync needs decoded audio: always present for an audio take, only when a
+  // video has paired audio attached.
+  const canAutoSync = activeMediaKind === "audio" || hasPairedAudio;
+
+  // Seek to (and focus) the next bar whose sync looks off, wrapping around.
+  function jumpToNextFlagged() {
+    const conf = syncConfidence;
+    const points = syncPointsRef.current;
+    if (!conf || !points) return;
+    const flagged = points.map((_, i) => i).filter((i) => conf[i] !== "good");
+    if (flagged.length === 0) return;
+    const now = media().position;
+    const next = flagged.find((i) => points[i]!.timeSeconds > now + 0.05) ?? flagged[0]!;
+    media().seek(points[next]!.timeSeconds);
+    const marker = document.querySelector<HTMLElement>(`.sync-marker[data-index="${next}"]`);
+    marker?.focus();
+  }
 
   useEffect(() => {
     if (tapCount === null) return;
@@ -1524,6 +1545,18 @@ export function App() {
         case "Space": {
           e.preventDefault();
           togglePlayRef.current();
+          return;
+        }
+        case "KeyG": {
+          if (editModeRef.current) return;
+          e.preventDefault();
+          document.querySelector<HTMLInputElement>(".navigate input")?.focus();
+          return;
+        }
+        case "Home": {
+          if (editModeRef.current) return;
+          e.preventDefault();
+          jumpToBarIndex(0);
           return;
         }
         case "Minus":
@@ -2529,13 +2562,14 @@ export function App() {
 
     // Overflow-eligible groups collapse into "More" in this tier order (highest
     // minTier collapses first): ornaments/dynamics, then marks, then accidental.
-    const eligible: Array<{ minTier: number; node: ReactNode }> = [];
-    if (note && !v1Sel.tab) eligible.push({ minTier: 1, node: accidentalGroup });
-    if (note) eligible.push({ minTier: 2, node: marksGroup });
-    if (note) eligible.push({ minTier: 3, node: ornamentsGroup });
-    if (note) eligible.push({ minTier: 3, node: dynamicsGroup });
+    const eligible: Array<{ minTier: number; node: ReactNode; label: string }> = [];
+    if (note && !v1Sel.tab)
+      eligible.push({ minTier: 1, node: accidentalGroup, label: "Pitch & accidentals" });
+    if (note) eligible.push({ minTier: 2, node: marksGroup, label: "Articulation" });
+    if (note) eligible.push({ minTier: 3, node: ornamentsGroup, label: "Ornaments" });
+    if (note) eligible.push({ minTier: 3, node: dynamicsGroup, label: "Dynamics & harmony" });
     const inline = eligible.filter((g) => toolbarTier >= g.minTier).map((g) => g.node);
-    const overflow = eligible.filter((g) => toolbarTier < g.minTier).map((g) => g.node);
+    const overflowItems = eligible.filter((g) => toolbarTier < g.minTier);
 
     const scoreGroup = (
       <div className="etb-group etb-right" role="group" aria-label="Score settings" key="score">
@@ -2585,14 +2619,19 @@ export function App() {
         </div>
         {inline}
         <div className="etb-trailing">
-          {overflow.length > 0 && (
+          {overflowItems.length > 0 && (
             <div className="etb-group etb-more" role="group" aria-label="More">
-              <button className={"etb-btn wide" + (moreOpen ? " active" : "")} aria-expanded={moreOpen} aria-haspopup="menu" aria-label={`More editing tools (${overflow.length} groups)`} title="More editing tools" onClick={() => setMoreOpen((o) => !o)}>
+              <button className={"etb-btn wide" + (moreOpen ? " active" : "")} aria-expanded={moreOpen} aria-haspopup="menu" aria-label={`More editing tools (${overflowItems.length} groups)`} title="More editing tools" onClick={() => setMoreOpen((o) => !o)}>
                 More ▾
               </button>
               {moreOpen && (
                 <div className="etb-popover etb-more-popover etb-sheet" role="menu" aria-label="More editing tools">
-                  {overflow}
+                  {overflowItems.map((g) => (
+                    <div className="etb-more-section" key={g.label}>
+                      <span className="menu-heading">{g.label}</span>
+                      {g.node}
+                    </div>
+                  ))}
                 </div>
               )}
             </div>
@@ -2736,10 +2775,27 @@ export function App() {
           tabIndex={-1}
         />
         <nav className="menubar" aria-label="Main menu">
-          {!locked && <Menu label="File" icon={<FileIcon />} items={fileMenu} />}
-          <Menu label="View" icon={<ViewIcon />} items={viewMenu} />
-          {!locked && <Menu label="Share" icon={<ShareIcon />} items={shareMenu} />}
-          <Menu label="Help" icon={<HelpIcon />} items={helpMenu} />
+          <span className="menubar-full">
+            {!locked && <Menu label="File" icon={<FileIcon />} items={fileMenu} />}
+            <Menu label="View" icon={<ViewIcon />} items={viewMenu} />
+            {!locked && <Menu label="Share" icon={<ShareIcon />} items={shareMenu} />}
+            <Menu label="Help" icon={<HelpIcon />} items={helpMenu} />
+          </span>
+          {/* On phones the four labels don't fit and bare icons are unguessable,
+              so collapse them into one labeled "Menu" (a conventional hamburger). */}
+          <span className="menubar-compact">
+            <Menu
+              label="Menu"
+              items={[
+                ...(!locked ? [{ label: "File", heading: true }, ...fileMenu] : []),
+                { label: "View", heading: true },
+                ...viewMenu,
+                ...(!locked ? [{ label: "Share", heading: true }, ...shareMenu] : []),
+                { label: "Help", heading: true },
+                ...helpMenu,
+              ]}
+            />
+          </span>
           {!locked && library.length > 0 && (
             <Menu
               label="My pieces"
@@ -2807,12 +2863,18 @@ export function App() {
             onClick={() => togglePlayRef.current()}
             disabled={!ready}
             aria-label={isPlaying ? "Pause" : "Play"}
-            title={activeRecId !== null ? "Play the recording" : "Play the score"}
+            title={isPlaying ? "Pause (Space)" : "Play (Space)"}
           >
             {isPlaying ? <PauseIcon /> : <PlayIcon />}
             {isPlaying ? "Pause" : "Play"}
           </button>
-          <button className="btn-icon" onClick={transportStop} disabled={!ready} aria-label="Stop" title="Stop">
+          <button
+            className="btn-icon"
+            onClick={transportStop}
+            disabled={!ready}
+            aria-label="Stop"
+            title="Stop and return to start (Home)"
+          >
             <StopIcon />
           </button>
           <SpeedControl value={speed} onChange={setSynthSpeed} />
@@ -2820,7 +2882,7 @@ export function App() {
             label="Loop"
             icon={<LoopIcon />}
             active={loop}
-            title="Loop settings"
+            title="Loop these bars ([ and ])"
           >
             <label className="control">
               <input type="checkbox" checked={loop} onChange={toggleLoop} /> Loop playback
@@ -2857,8 +2919,8 @@ export function App() {
                 onClick={() => switchSource("recording")}
                 title={
                   activeMediaKind === "youtube"
-                    ? "Play the synced YouTube video"
-                    : "Play the reference recording of this piece"
+                    ? "Play the synced YouTube video (V to switch)"
+                    : "Play the reference recording of this piece (V to switch)"
                 }
               >
                 {activeMediaKind === "youtube" ? "Video" : "Performance"}
@@ -2867,7 +2929,7 @@ export function App() {
                 className={preferredSource === "synth" ? "on" : ""}
                 aria-pressed={preferredSource === "synth"}
                 onClick={() => switchSource("synth")}
-                title="Play the written notes (computer sound)"
+                title="Play the written notes, computer sound (V to switch)"
               >
                 Notes
               </button>
@@ -3091,8 +3153,35 @@ export function App() {
             <div className="sync-bar" role="region" aria-label="Sync">
               {tapCount === null ? (
                 <>
+                  {/* Mini-transport: play/speed/position by the waveform so your
+                      gaze stays here while syncing. Mirrors the main transport. */}
+                  <span className="mini-transport">
+                    <button
+                      type="button"
+                      className="btn-icon"
+                      onClick={() => togglePlayRef.current()}
+                      aria-label={isPlaying ? "Pause" : "Play"}
+                      title={isPlaying ? "Pause (Space)" : "Play (Space)"}
+                    >
+                      {isPlaying ? <PauseIcon /> : <PlayIcon />}
+                    </button>
+                    <SpeedControl value={speed} onChange={setSynthSpeed} />
+                    <span className="position">
+                      {formatTime(position.current)} / {formatTime(position.total)}
+                    </span>
+                  </span>
                   <span className="subgroup-label">Sync</span>
-                  <button onClick={autoSync}>Auto sync</button>
+                  <button
+                    onClick={autoSync}
+                    disabled={!canAutoSync}
+                    title={
+                      canAutoSync
+                        ? "Detect bar times from the audio"
+                        : "Add an audio file (Add → Audio for waveform & auto-sync) to enable Auto sync"
+                    }
+                  >
+                    Auto sync
+                  </button>
                   <button onClick={startTapSync}>Start tap sync</button>
                   {syncPoints ? (
                     <>
@@ -3107,12 +3196,29 @@ export function App() {
                       <button onClick={undoSync} disabled={!syncCanUndo} title="Undo sync edit (Cmd+Z)">
                         Undo sync
                       </button>
-                      <span className="hint">
-                        {syncPoints.length} bars synced; play + tap P to fix a bar, drag or arrow-nudge a marker
+                      {flaggedCount > 0 && (
+                        <button onClick={jumpToNextFlagged} title="Seek to the next bar that needs checking">
+                          Next flagged ({flaggedCount})
+                        </button>
+                      )}
+                      <span className="hint" role="status">
+                        {syncPoints.length} of {barCount} bars synced
+                        {syncConfidence
+                          ? flaggedCount > 0
+                            ? `, ${flaggedCount} need checking`
+                            : ", all look aligned"
+                          : ""}
                       </span>
+                      {syncConfidence && (
+                        <span className="sync-legend">
+                          <span className="lg lg-good">● good</span>
+                          <span className="lg lg-fair">▲ check</span>
+                          <span className="lg lg-poor">✕ off</span>
+                        </span>
+                      )}
                     </>
                   ) : (
-                    <span className="hint">not synced yet; auto-sync or tap each bar's downbeat</span>
+                    <span className="hint">not synced yet; Auto sync or tap each bar&rsquo;s downbeat</span>
                   )}
                 </>
               ) : (

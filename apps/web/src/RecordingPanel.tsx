@@ -551,6 +551,25 @@ export function RecordingPanel({
           </>
         )}
       </div>
+      {!hasActive && (
+        <div className="rec-empty">
+          <p>
+            Play along with a <strong>YouTube video</strong> or an{" "}
+            <strong>audio recording</strong> — the notation follows as it plays.
+          </p>
+          <div className="rec-empty-actions">
+            {onAddYouTube && (
+              <button type="button" className="btn-primary" onClick={onAddYouTube}>
+                Add YouTube video…
+              </button>
+            )}
+            <label className="control open-file">
+              Add audio file…
+              <input type="file" accept="audio/*" onChange={openFile} />
+            </label>
+          </div>
+        </div>
+      )}
       {hasActive && isVideo && !playbackMedia && (
         <p className="hint video-note">
           Video plays above. Sync it with tap-sync, or use{" "}
@@ -584,6 +603,8 @@ export function RecordingPanel({
                     <div
                       key={i}
                       className={cls}
+                      data-index={i}
+                      data-conf={confidence ?? ""}
                       style={{ left: `${(p.timeSeconds / duration) * 100}%` }}
                       tabIndex={0}
                       role="slider"

@@ -303,6 +303,34 @@ body {
   max-width: 60ch;
 }
 
+/* Empty state inviting the headline play-along feature. */
+.rec-empty {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px 14px;
+}
+.rec-empty p {
+  margin: 0;
+  max-width: 54ch;
+}
+.rec-empty-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+/* Mini-transport docked with the waveform during sync. */
+.mini-transport {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-right: 4px;
+  padding-right: 10px;
+  border-right: 1px solid var(--border);
+}
+
 /* The consolidated "Add…" menu (audio / YouTube / paired audio). */
 .add-menu {
   display: flex;
@@ -441,6 +469,45 @@ body {
 }
 .sync-marker.conf-poor {
   background: #dc2626;
+}
+/* Non-color cue so confidence survives grayscale / colorblindness (WCAG 1.4.1):
+   a small corner glyph on anything that isn't "good". */
+.sync-marker.conf-fair::after,
+.sync-marker.conf-poor::after {
+  position: absolute;
+  top: -7px;
+  right: -5px;
+  font-size: 9px;
+  line-height: 1;
+  color: inherit;
+  background: var(--panel, #fff);
+  border-radius: 2px;
+  padding: 1px;
+}
+.sync-marker.conf-fair::after {
+  content: "▲";
+  color: #b45309;
+}
+.sync-marker.conf-poor::after {
+  content: "✕";
+  color: #dc2626;
+}
+
+/* Legend for the sync markers. */
+.sync-legend {
+  display: inline-flex;
+  gap: 10px;
+  font-size: 12px;
+  color: var(--muted);
+}
+.sync-legend .lg-good {
+  color: #2563eb;
+}
+.sync-legend .lg-fair {
+  color: #b45309;
+}
+.sync-legend .lg-poor {
+  color: #dc2626;
 }
 
 .sync-bar {
@@ -1128,6 +1195,8 @@ body {
    labeled cards so the collapsed view is the same map, just vertical. */
 .etb-more-popover { flex-direction: column; align-items: stretch; min-width: 220px; }
 .etb-more-popover .etb-group { justify-content: flex-start; flex-wrap: wrap; }
+.etb-more-section { display: flex; flex-direction: column; gap: 4px; padding-bottom: 6px; }
+.etb-more-section + .etb-more-section { border-top: 1px solid var(--border); padding-top: 6px; }
 .etb-pop-row { display: flex; align-items: center; gap: 6px; }
 .etb-pop-row .etb-label { min-width: 62px; }
 .etb-pop-row select { flex: 1; }
@@ -1399,11 +1468,21 @@ body {
 /* Score and waveform fill the available width. */
 .score, .score-surface, .wave-scroll { max-width: 100%; }
 
+/* Wide: the four labeled menus. Narrow: one labeled "Menu" overflow, because
+   four bare icons were unguessable (hallway test C10) and four labels don't fit. */
+.menubar-full {
+  display: contents;
+}
+.menubar-compact {
+  display: none;
+}
 @media (max-width: 600px) {
-  /* Keep File/View/Share/Help labeled as long as possible (hallway test C10:
-     bare glyphs were unguessable); only fall back to icons on true phones. */
-  .menubar .menu > .menu-trigger .menu-trigger-label { display: none; }
-  .menubar .menu > .menu-trigger { padding: 5px 8px; }
+  .menubar-full {
+    display: none;
+  }
+  .menubar-compact {
+    display: inline-flex;
+  }
 }
 
 @media (max-width: 768px) {
