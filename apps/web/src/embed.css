@@ -1,3 +1,20 @@
+:root {
+  --panel: #fff;
+  --panel-alt: #fafbfc;
+  --fg: #1b1f27;
+  --muted: #5e6775;
+  --border-strong: #c8ceda;
+  --accent: #2563eb;
+  --on-accent: #fff;
+  --accent-soft: #f2f7ff;
+  --accent-soft-border: #d5e3f7;
+  --btn-hover: #eef1f5;
+  --focus: #1d4ed8;
+  --ctl-h: 30px;
+  --ctl-radius: 6px;
+  --ctl-gap: 8px;
+}
+
 * {
   box-sizing: border-box;
 }
@@ -67,8 +84,16 @@ textarea {
   font-size: 11px;
 }
 
-.embed-fs {
+/* Right-hand cluster (info + fullscreen), pushed to the far right; fullscreen
+   is the last child so it sits at the very edge. */
+.embed-right {
   margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.embed-fs {
   min-width: 0;
   width: 32px;
   height: 30px;
@@ -78,9 +103,141 @@ textarea {
 }
 
 .embed-brand {
-  margin-left: 10px;
   color: #5b6470;
   text-decoration: none;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+/* ---- Shared controls (speed control, loop popover) ---- */
+.control {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.num-input {
+  width: 52px;
+  height: var(--ctl-h);
+  min-width: 0;
+  padding: 2px 4px 2px 8px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--ctl-radius);
+  background: var(--panel);
+  font: inherit;
+  font-size: 13px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Speed control (single readout button + presets/slider/input popover). */
+.speed-control {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ctl-gap);
+}
+.embed-toolbar button.speed-value {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 52px;
+  justify-content: center;
+  font-variant-numeric: tabular-nums;
+}
+.speed-caret {
+  font-size: 0.7em;
+  color: var(--muted);
+}
+.speed-slider {
+  width: 100%;
+  accent-color: var(--accent);
+}
+.speed-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 210px;
+}
+.speed-presets {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 4px;
+}
+.embed-toolbar .speed-preset {
+  min-width: 0;
+  padding: 5px 6px;
+  font-variant-numeric: tabular-nums;
+}
+.embed-toolbar .speed-preset.on {
+  background: var(--accent-soft);
+  border-color: var(--accent-soft-border);
+}
+.speed-numeric {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Popover (Loop). */
+.popover {
+  position: relative;
+  display: inline-flex;
+}
+.popover-panel {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 30;
+  min-width: 220px;
+  padding: 12px;
+  background: var(--panel);
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+}
+.popover-trigger.active {
+  background: #dbeafe;
+  border-color: var(--accent);
+  color: var(--focus);
+}
+
+/* Loop + speed-trainer panel. */
+.embed-loop-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.embed-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+}
+.embed-loop-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.embed-loop-row button {
+  min-width: 0;
+}
+.embed-loop-divider {
+  height: 1px;
+  background: var(--border-strong);
+  opacity: 0.6;
+}
+.embed-ramp {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.embed-hint {
+  color: var(--muted);
   font-size: 12px;
 }
 
