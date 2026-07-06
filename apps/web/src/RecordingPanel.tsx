@@ -417,85 +417,92 @@ export function RecordingPanel({
   return (
     <section className="recording">
       <div className="recording-toolbar">
-        <span className="tb-zone-label" title="Recording take">Take</span>
-        {recordings.length > 0 && (
-          <select
-            value={activeId ?? ""}
-            onChange={(e) => onSelect(e.target.value)}
-            title="Switch recording"
-          >
-            {recordings.map((r) => (
-              <option key={r.id} value={r.id}>
-                {r.name}
-              </option>
-            ))}
-          </select>
-        )}
-        {hasActive && (
-          <button
-            title="Remove this recording"
-            onClick={() => activeId && onRemove(activeId)}
-          >
-            ✕
-          </button>
-        )}
-        <Popover label="Add…" className="add-media" title="Add a recording">
-          <div className="add-menu" role="menu">
-            <label className="add-menu-item">
-              <input type="file" accept="audio/*" onChange={openFile} />
-              Audio file…
-            </label>
-            {onAddYouTube && (
-              <button type="button" className="add-menu-item" onClick={onAddYouTube}>
-                YouTube video…
-              </button>
-            )}
-            {isVideo && onAddPairedAudio && (
+        <span className="rtb-group" role="group" aria-label="Take">
+          <span className="tb-zone-label" title="Recording take">Take</span>
+          {recordings.length > 0 && (
+            <select
+              value={activeId ?? ""}
+              onChange={(e) => onSelect(e.target.value)}
+              title="Switch recording"
+            >
+              {recordings.map((r) => (
+                <option key={r.id} value={r.id}>
+                  {r.name}
+                </option>
+              ))}
+            </select>
+          )}
+          {hasActive && (
+            <button
+              title="Remove this recording"
+              onClick={() => activeId && onRemove(activeId)}
+            >
+              ✕
+            </button>
+          )}
+          <Popover label="Add…" className="add-media" title="Add a recording">
+            <div className="add-menu" role="menu">
               <label className="add-menu-item">
-                <input type="file" accept="audio/*" onChange={openPairedFile} />
-                Audio for waveform &amp; auto-sync…
+                <input type="file" accept="audio/*" onChange={openFile} />
+                Audio file…
               </label>
-            )}
-          </div>
-        </Popover>
+              {onAddYouTube && (
+                <button type="button" className="add-menu-item" onClick={onAddYouTube}>
+                  YouTube video…
+                </button>
+              )}
+              {isVideo && onAddPairedAudio && (
+                <label className="add-menu-item">
+                  <input type="file" accept="audio/*" onChange={openPairedFile} />
+                  Audio for waveform &amp; auto-sync…
+                </label>
+              )}
+            </div>
+          </Popover>
+        </span>
         {hasActive && !isVideo && (
           <>
-            <label className="control" title="Pitch shift in semitones">
-              Pitch
-              <button
-                aria-label="Pitch down"
-                onClick={() => onPitchChange(pitchSemitones - 1)}
-                disabled={pitchSemitones <= -12}
-              >
-                −
-              </button>
-              <span className="speed-value">
-                {pitchSemitones > 0 ? `+${pitchSemitones}` : pitchSemitones}
+            <span className="rtb-group" role="group" aria-label="Pitch">
+              <span className="tb-zone-label" title="Pitch shift in semitones">Pitch</span>
+              <span className="control pitch-stepper">
+                <button
+                  aria-label="Pitch down"
+                  onClick={() => onPitchChange(pitchSemitones - 1)}
+                  disabled={pitchSemitones <= -12}
+                >
+                  −
+                </button>
+                <span className="speed-value">
+                  {pitchSemitones > 0 ? `+${pitchSemitones}` : pitchSemitones}
+                </span>
+                <button
+                  aria-label="Pitch up"
+                  onClick={() => onPitchChange(pitchSemitones + 1)}
+                  disabled={pitchSemitones >= 12}
+                >
+                  +
+                </button>
               </span>
-              <button
-                aria-label="Pitch up"
-                onClick={() => onPitchChange(pitchSemitones + 1)}
-                disabled={pitchSemitones >= 12}
-              >
-                +
-              </button>
-            </label>
-            <span className="control zoom-controls" title="Waveform zoom">
-              Zoom
-              <button aria-label="Zoom out" onClick={() => changeZoom(Math.max(1, zoom / 2))} disabled={zoom <= 1}>
-                −
-              </button>
-              <span className="speed-value">{zoom}×</span>
-              <button
-                aria-label="Zoom in"
-                onClick={() => changeZoom(Math.min(MAX_ZOOM, zoom * 2))}
-                disabled={zoom >= MAX_ZOOM}
-              >
-                +
-              </button>
+            </span>
+            <span className="rtb-group" role="group" aria-label="Waveform zoom">
+              <span className="tb-zone-label" title="Waveform zoom">Zoom</span>
+              <span className="control zoom-controls">
+                <button aria-label="Zoom out" onClick={() => changeZoom(Math.max(1, zoom / 2))} disabled={zoom <= 1}>
+                  −
+                </button>
+                <span className="speed-value">{zoom}×</span>
+                <button
+                  aria-label="Zoom in"
+                  onClick={() => changeZoom(Math.min(MAX_ZOOM, zoom * 2))}
+                  disabled={zoom >= MAX_ZOOM}
+                >
+                  +
+                </button>
+              </span>
             </span>
             {loop && (
-              <>
+              <span className="rtb-group" role="group" aria-label="Loop">
+                <span className="tb-zone-label">Loop</span>
                 <button onClick={clearLoop} title={`Clear the loop (${formatTime(loop.start)} to ${formatTime(loop.end)})`}>
                   Clear loop
                 </button>
@@ -526,7 +533,7 @@ export function RecordingPanel({
                     <option value={3}>3s</option>
                   </select>
                 </label>
-              </>
+              </span>
             )}
             {savedLoops.length > 0 && (
               <span className="control">
