@@ -18,12 +18,6 @@ export interface MenuItem {
   divider?: boolean;
   /** Render a submenu of items instead of an action. */
   submenu?: MenuItem[];
-  /**
-   * Id of a hidden `<input type="file">` this item opens. Rendered as a native
-   * `<label>` so the browser opens the file picker itself, which is more robust
-   * than a programmatic input.click() (some browsers refuse the latter).
-   */
-  fileInputId?: string;
 }
 
 /**
@@ -86,30 +80,6 @@ export function Menu({
             ) : item.heading ? (
               <li key={i} className="menu-heading" role="presentation">
                 {item.label}
-              </li>
-            ) : item.fileInputId ? (
-              <li key={i} role="none">
-                {/* Native label: clicking opens the file picker via the browser,
-                    not a programmatic click. Keyboard activation triggers the
-                    input from within the key gesture, which browsers do allow. */}
-                <label
-                  role="menuitem"
-                  className={item.disabled ? "menu-item menu-item-disabled" : "menu-item"}
-                  htmlFor={item.disabled ? undefined : item.fileInputId}
-                  aria-disabled={item.disabled}
-                  tabIndex={item.disabled ? -1 : 0}
-                  onClick={item.disabled ? undefined : () => setOpen(false)}
-                  onKeyDown={(e) => {
-                    if (!item.disabled && (e.key === "Enter" || e.key === " ")) {
-                      e.preventDefault();
-                      document.getElementById(item.fileInputId!)?.click();
-                      setOpen(false);
-                    }
-                  }}
-                >
-                  <span className="menu-item-check" aria-hidden="true" />
-                  <span className="menu-item-label">{item.label}</span>
-                </label>
               </li>
             ) : (
               <li key={i} role="none">

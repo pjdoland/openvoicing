@@ -3040,8 +3040,8 @@ export function App() {
   const fileMenu: MenuItem[] = [
     { label: "New / Open", heading: true },
     { label: "New score", onSelect: newScore, disabled: locked },
-    { label: "Open score file…", fileInputId: "ov-file-score", disabled: locked },
-    { label: "Open bundle…", fileInputId: "ov-file-bundle" },
+    { label: "Open score file…", onSelect: () => scoreInputRef.current?.click(), disabled: locked },
+    { label: "Open bundle…", onSelect: () => bundleInputRef.current?.click() },
     { label: "Open from URL…", onSelect: () => void openFromUrl() },
     { label: "Add recording…", onSelect: () => audioInputRef.current?.click(), disabled: locked },
     { divider: true },
@@ -3106,21 +3106,21 @@ export function App() {
         )}
         {/* Hidden file inputs driven by File-menu items and the palette. */}
         <input
-          id="ov-file-score"
           ref={scoreInputRef}
           type="file"
           accept=".musicxml,.xml,.mxl,.gp,.gp3,.gp4,.gp5,.gpx"
           onChange={openFile}
           className="visually-hidden-input"
+          aria-hidden="true"
           tabIndex={-1}
         />
         <input
-          id="ov-file-bundle"
           ref={bundleInputRef}
           type="file"
           accept=".ovb,application/zip,application/octet-stream"
           onChange={openBundle}
           className="visually-hidden-input"
+          aria-hidden="true"
           tabIndex={-1}
         />
         <input

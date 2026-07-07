@@ -1268,8 +1268,7 @@ button.speed-value {
 
 .menu-item:hover:not(:disabled),
 .menu-item:focus-visible { background: var(--btn-hover); }
-.menu-item:disabled,
-.menu-item.menu-item-disabled { opacity: 0.45; cursor: default; pointer-events: none; }
+.menu-item:disabled { opacity: 0.45; cursor: default; }
 .menu-item-check { width: 14px; color: var(--accent); }
 .menu-item-label { flex: 1; }
 .menu-item-shortcut,
