@@ -20,6 +20,17 @@ Once the format and embed API stabilize, the project will adopt
 
 Work in progress on `main`. Notable recent changes:
 
+### Changed
+
+- **Relicensed to MIT.** The whole project (app and libraries) is now MIT,
+  replacing the previous AGPL-3.0 (app) and MPL-2.0 (libraries) split. Bundled
+  third-party components keep their own permissive licenses (alphaTab MPL-2.0,
+  the fonts OFL-1.1, the FluidR3Mono soundfont MIT); see `LICENSING.md` and
+  `THIRD-PARTY-NOTICES.md`.
+- **Corrected the soundfont notices.** The shipped FluidR3Mono soundfont is MIT;
+  the folder previously carried an unrelated Apache-2.0 / Sonivox notice. Removed
+  the unused Sonivox soundfont files from the build.
+
 ### Added
 
 - **UX overhaul from a seven-expert review (vs. commercial tools).** Highlights:

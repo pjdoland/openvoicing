@@ -117,14 +117,12 @@ The player runs inside a sandboxed `<iframe>` and talks to the host page via
 Only embed bundles you trust: a bundle is arbitrary content rendered in the player
 iframe.
 
-## AGPL and self-hosting
+## Licensing
 
-`apps/web` is licensed **AGPL-3.0-only**. Under section 13, offering a **modified**
-version over a network counts as distribution: if you change the app and let other
-people use it, you must offer those users the complete corresponding source of your
-modified version (a link to your public fork in the UI or docs satisfies this).
-Running the app **unmodified** carries no such obligation. See
-[LICENSING.md](../LICENSING.md).
+OpenVoicing is **MIT** licensed, so you can deploy it, modify it, and run it
+publicly with no share-back obligation; just keep the copyright notice. A few
+bundled components (alphaTab, the fonts, the soundfont) keep their own permissive
+notices, which you preserve in your build. See [LICENSING.md](../LICENSING.md).
 
 ## Troubleshooting
 

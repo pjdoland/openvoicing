@@ -3,7 +3,7 @@
 **Living sheet music: notation that plays, slows down without changing pitch, and syncs to real recordings.**
 
 [![CI](https://github.com/pjdoland/openvoicing/actions/workflows/ci.yml/badge.svg)](https://github.com/pjdoland/openvoicing/actions/workflows/ci.yml)
-![License: AGPL-3.0 / MPL-2.0](https://img.shields.io/badge/license-AGPL--3.0%20%2F%20MPL--2.0-blue)
+![License: MIT](https://img.shields.io/badge/license-MIT-blue)
 ![Node](https://img.shields.io/badge/node-%E2%89%A522-brightgreen)
 ![Status: early development](https://img.shields.io/badge/status-early%20development-orange)
 
@@ -127,16 +127,18 @@ Everything is indexed at [docs/index.md](docs/index.md):
 ## Layout
 
 ```
-packages/score-model   # document format, converters, sync maps (MPL-2.0)
-packages/player        # embeddable player (MPL-2.0)
-packages/audio-engine  # time-stretch playback, waveforms (MPL-2.0)
-packages/bundle        # .ovb bundle format: create, read, validate (MPL-2.0)
-apps/web               # authoring app + embeddable player page (AGPL-3.0)
+packages/score-model   # document format, converters, sync maps
+packages/player        # embeddable player
+packages/audio-engine  # time-stretch playback, waveforms
+packages/bundle        # .ovb bundle format: create, read, validate
+apps/web               # authoring app + embeddable player page
 docs/                  # documentation (docs/internal/ = design drafts)
 ```
 
 ## License
 
-Libraries (`packages/*`) are **MPL-2.0**; the app (`apps/web`) is **AGPL-3.0**. If
-you run a modified instance over a network, AGPL asks you to share your source.
-See [LICENSING.md](LICENSING.md) and [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
+OpenVoicing is **MIT** licensed: use, modify, host, embed, and redistribute it,
+including in commercial products, as long as you keep the copyright notice. A few
+bundled third-party components (alphaTab under MPL-2.0, the fonts under OFL-1.1,
+the FluidR3Mono soundfont under MIT) keep their own permissive notices. See
+[LICENSING.md](LICENSING.md) and [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).

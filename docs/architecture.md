@@ -45,7 +45,7 @@ independent and the app is "just" a client.
 | `player` | Wraps [alphaTab](https://alphatab.net) behind a renderer-agnostic API: render a `ScoreV1`, highlight beats/notes, synth playback, loop markers. | alphaTab is a *rebuildable render target*, not the source of truth. |
 | `audio-engine` | A `MediaPlayer` interface with two implementations: `RecordingPlayer` (a real audio take through the [Signalsmith Stretch](https://signalsmith-audio.co.uk/code/stretch/) AudioWorklet, so speed changes preserve pitch; looping; waveform peaks) and `YouTubePlayer` (a video through YouTube's IFrame API; discrete speeds; emulated loop). | Owns the media clock. |
 | `bundle` | The `.ovb` format (a ZIP with a `manifest.json`), plus create/read/validate and the `ovb` CLI. | Bundles carry a `formatVersion`; readers reject unknown majors. |
-| `apps/web` | The React authoring app and the embeddable player page (`embed.html`). Glue only: state, UI, and the sync-point editor live here. | AGPL-3.0; the packages are MPL-2.0. |
+| `apps/web` | The React authoring app and the embeddable player page (`embed.html`). Glue only: state, UI, and the sync-point editor live here. | MIT (the whole project). |
 
 ## The two clocks
 

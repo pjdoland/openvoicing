@@ -56,15 +56,16 @@ SOFTWARE.
 
 ---
 
-## FluidR3 GM soundfont
+## FluidR3Mono GM soundfont
 
 General MIDI soundfont used for notation ("Notes") playback. Shipped in the web
-build under `apps/web/public/soundfont/`.
+build at `apps/web/public/soundfont/FluidR3Mono_GM.sf3`.
 
-- License: **Apache License 2.0**
-- Copyright (c) 2004-2006 Sonic Network Inc.
-- Full text: `apps/web/public/soundfont/LICENSE` and
-  https://www.apache.org/licenses/LICENSE-2.0
+- License: **MIT**
+- A mono conversion of Frank Wen's FluidR3_GM soundfont, as distributed with
+  MuseScore.
+- Copyright (c) Frank Wen and the FluidR3Mono contributors.
+- Full text: `apps/web/public/soundfont/LICENSE`
 
 ---
 

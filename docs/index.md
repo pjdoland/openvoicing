@@ -11,7 +11,7 @@ Start here. Pick the path that fits you.
 
 - **[Deployment & self-hosting](deploy-app.md)**, build and host the app, serve
   `.ovb` bundles (MIME/CORS/caching), embedding & CSP, sub-path deploys,
-  troubleshooting, and the AGPL self-hosting note.
+  troubleshooting.
 - **[Embeddable player reference](embed-api.md)**, the `OpenVoicing.create` API,
   data attributes, methods, and events.
 - **[`ovb` CLI reference](cli.md)**, create, validate, and inspect bundles.

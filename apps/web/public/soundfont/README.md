@@ -1,19 +1,15 @@
-SONiVOX EAS Version 2.10 Editing Software: Synthfont Viena
+# Soundfont
 
-Ported from Samsung GT-E1272, SM-B109E, SM-B310E, Spreadtrum, and Android Soundfont of SONiVOX EAS Full Presets and Full Keys Range (no reverb). Frequency 11khz - 32khz
-Using a Creative Sound Blaster GM bank. Using a Software Creative Vienna Soundfont Studio. Copy a Soundfont wt210k_G.sf2 from in 3.5 Floppy Disk 1.44MB Assembled of Indonesia.
+This folder ships one soundfont:
 
-Recommended Synthesizer: CoolSoft VirtualMIDISynth and BASSMIDI Driver.
+- **`FluidR3Mono_GM.sf3`**: a General MIDI soundfont used for "Notes" (notation)
+  playback. It is a mono conversion of Frank Wen's FluidR3_GM soundfont, as
+  distributed with MuseScore. Licensed under the **MIT** license; see
+  [`LICENSE`](./LICENSE).
 
-Windows OS Update 2021
-Microsoft Community https://answers.microsoft.com/
-English: SONiVOX Sound That Rocks Japanese: SONiVOX 揺れる音
-Available in country: Hong Kong Taiwan Japan
-Powered by BASSMIDI Copyright 1993 Sonic Network, Inc. All Rights Reserved Sonivox Corporation Tokyo Japan. Made in Japan
+The app loads this soundfont on first playback (see `soundFontUrl` in
+`apps/web/src/App.tsx` and `embed.tsx`). It is large (~24 MB), so it is fetched
+and cached on demand rather than precached.
 
-https://musical-artifacts.com/artifacts/1517
-
-This soundfont is based on the Sonivox EAS synthesizer, Copyright Sonic Network Inc. 2006. 
-Sonivox EAS belongs to the Android Open Source Project. 
-https://android.googlesource.com/platform/external/sonivox/+/refs/heads/master
-
+alphaTab also carries its own small fallback soundfont inside its distribution;
+that is separate from this file and is covered by alphaTab's own license.

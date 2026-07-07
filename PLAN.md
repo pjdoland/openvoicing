@@ -120,10 +120,10 @@ speed.
 ```
 openvoicing/
   packages/
-    score-model/       # canonical format, converters, sync maps (MPL-2.0)
-    player/            # rendering + playback + practice tools (MPL-2.0)
-    audio-engine/      # time-stretch, waveforms, mixing (MPL-2.0)
-    bundle/            # .ovb format: create, read, validate (MPL-2.0)
+    score-model/       # canonical format, converters, sync maps
+    player/            # rendering + playback + practice tools
+    audio-engine/      # time-stretch, waveforms, mixing
+    bundle/            # .ovb format: create, read, validate
   apps/
     web/               # local-first authoring app + embeddable player page
   docs/                # format specs: bundle manifest, score JSON
@@ -190,13 +190,14 @@ see Status above. What remains, in order:
 - Video recordings in bundles; YouTube sync as a convenience tier with
   documented ToS limits (no audio extraction, coarse rate control)
 - Optional community layer: a static-friendly gallery that indexes bundles
-  hosted elsewhere; an optional AGPL classroom server for institutions
+  hosted elsewhere; an optional classroom server for institutions
 
 ## 7. Licensing and Governance
 
-- **All core packages and apps: MPL-2.0.** With no hosted service in the core,
-  AGPL's SaaS protection buys little; MPL keeps embedding frictionless, which
-  is the adoption path. Any future optional server layer: AGPL-3.0
+- **All core packages and apps: MIT.** The most permissive option, which keeps
+  embedding and reuse frictionless: that is the adoption path. Nothing in the
+  dependency tree forces copyleft on our own code (alphaTab is MPL-2.0, but that
+  is file-level and does not reach code that merely uses it).
 - **Format specs (bundle manifest, score JSON): CC-BY.** The format outliving
   the software is a feature, not a risk
 - DCO for contributions; BDFL-with-maintainers until there are more than 3

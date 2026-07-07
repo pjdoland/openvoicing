@@ -1,7 +1,7 @@
 # Publishing packages
 
 The player, score model, and bundle format are meant to be embedded by others,
-so the reusable packages are published to npm under the MPL-2.0 license.
+so the reusable packages are published to npm under the MIT license, like the rest of the project.
 
 ## Packages intended for npm
 
