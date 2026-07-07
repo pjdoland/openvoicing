@@ -36,7 +36,7 @@ jobs:
           rm -rf _site
           mkdir -p _site/app
           cp -R apps/web/dist/. _site/app/
-          cp site/index.html _site/index.html
+          cp site/*.html _site/
           cp site/style.css _site/style.css
           cp site/*.png _site/
           cp -R site/fonts _site/fonts

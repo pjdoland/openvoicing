@@ -1,0 +1,261 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Why open · OpenVoicing</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23111'/%3E%3Ccircle cx='16' cy='16' r='7' fill='%23fff'/%3E%3C/svg%3E" />
+<meta name="description" content="What OpenVoicing is and why it is built as an open file format you own rather than a hosted service you rent: living sheet music, the .ovb bundle, the licensing in plain language, and the honest tradeoffs." />
+<link rel="stylesheet" href="./style.css" />
+</head>
+<body class="bg-paper text-ink font-sans antialiased">
+  <header class="sticky top-0 z-20 bg-paper border-b border-ink">
+    <div class="shell flex items-center gap-x-6 h-15">
+      <a href="./" class="shrink-0 text-[1.05rem] font-bold tracking-tight">OpenVoicing</a>
+      <nav class="hidden md:flex gap-x-6 ml-3">
+        <a href="./start.html" class="text-[.82rem] text-grey hover:text-ink">Get started</a>
+        <a href="./practice.html" class="text-[.82rem] text-grey hover:text-ink">Practice</a>
+        <a href="./publish.html" class="text-[.82rem] text-grey hover:text-ink">Publish</a>
+        <a href="./why.html" class="text-[.82rem] font-semibold text-ink">Why open</a>
+        <a href="./reference.html" class="text-[.82rem] text-grey hover:text-ink">Reference</a>
+      </nav>
+      <span class="flex-1"></span>
+      <a href="https://github.com/pjdoland/openvoicing" class="hidden sm:inline text-[.82rem] text-grey hover:text-ink">GitHub</a>
+      <a href="./app/" class="whitespace-nowrap text-[.82rem] font-semibold border border-ink px-4 py-2 transition-colors hover:bg-ink hover:text-paper">Launch&nbsp;the&nbsp;app&nbsp;&rarr;</a>
+    </div>
+  </header>
+
+  <main>
+  <section class="shell grid grid-cols-12 gap-x-gutter pt-[clamp(40px,7vw,96px)] pb-[clamp(28px,4vw,56px)]">
+    <p class="col-span-full mb-1.5 flex items-center gap-x-3.5 text-[.72rem] font-semibold uppercase tracking-[.14em] text-grey">
+      Why open
+      <span class="h-px flex-1 bg-hair"></span>
+    </p>
+    <h1 class="col-span-full lg:col-span-9 m-0 text-[clamp(2rem,5vw,3.6rem)] font-bold leading-[1.02] tracking-[-.03em] text-balance">Living sheet music you own, not a service you rent.</h1>
+    <p class="col-span-full md:col-span-8 mt-6 max-w-[54ch] text-[clamp(1.05rem,1.7vw,1.3rem)] leading-normal text-grey">OpenVoicing turns a score into something you can play, slow down, loop, sync to a real recording, and edit, all in the browser. The important part is underneath: every piece is an open file you hold, played by open-source code you can run yourself.</p>
+  </section>
+
+  <section id="what-it-is" class="shell border-t border-hair">
+    <div class="grid grid-cols-12 gap-x-gutter py-[clamp(28px,4vw,52px)]">
+      <div class="col-span-full md:col-span-4">
+        <span class="text-[.72rem] font-semibold uppercase tracking-[.14em] text-brand tabular-nums">04.1</span>
+        <h2 class="mt-2 text-h3 font-semibold leading-tight tracking-[-.02em]">What OpenVoicing actually is</h2>
+        <p class="mt-2 text-[.9rem] text-grey">For a new user evaluating the product.</p>
+      </div>
+      <div class="col-span-full md:col-start-6 md:col-span-7 mt-4 md:mt-0 max-w-[62ch] text-[clamp(1rem,1.4vw,1.1rem)] leading-relaxed text-grey [&_p]:mb-4 [&_strong]:text-ink [&_a]:border-b-2 [&_a]:border-brand [&_a]:text-ink [&_h3]:text-ink [&_h3]:font-semibold [&_h3]:mt-6 [&_h3]:mb-2 [&_h3]:text-[1.05rem] [&_code]:font-mono [&_code]:text-[.9em] [&_code]:text-ink [&_ol]:my-4 [&_ol]:list-decimal [&_ol]:pl-5 [&_ol>li]:mb-2 [&_ul]:my-4 [&_ul]:list-disc [&_ul]:pl-5 [&_ul>li]:mb-2">
+        <p>OpenVoicing is living sheet music. It takes a score and turns it into something you can play, slow down, loop, sync to a real performance, edit, and share, all in a web browser with nothing to install.</p>
+        <p>Here is the concrete version, with no marketing gloss. You open the app and a demo piece loads immediately (currently Bach's Invention No. 8, with a synced audio recording, so you can hear the notation follow a real performance the moment the page loads). You press play, or the spacebar, and the notation highlights the note that is sounding and scrolls to keep up. You drop the speed to half and the music slows down while every pitch stays exactly where it should be. You drag across a hard passage and loop it. If you have a recording of the piece, you line it up to the score so playback follows the notation bar by bar. When you want to change the music itself, you switch to Edit mode and it behaves like a real notation editor, not a viewer with a few knobs.</p>
+        <p>There are three things you do with any piece, and the app is organized around exactly these three:</p>
+        <ol>
+          <li><strong>Listen.</strong> A clean player for viewing and playing a piece, with the notation cursor following along.</li>
+          <li><strong>Practice.</strong> The tools you reach for when you are learning something: slow it down without changing pitch, loop a section, add a count-in and a metronome, and sync a real recording or a YouTube video to the score.</li>
+          <li><strong>Edit.</strong> A full notation editor: enter and change notes, voices, ornaments, dynamics, ties, and lyrics, with autosave and undo.</li>
+        </ol>
+        <p>Everything you do autosaves to your browser as you work; the header simply reads <strong>"All changes saved."</strong> There is no Save button to hunt for and no account to create before you can start. When you want a permanent, portable copy, you export the whole piece as a single <code>.ovb</code> file that you can host anywhere, email to a student, or embed in your own website.</p>
+        <p>That is the product. The rest of this page explains the idea underneath it, which is the part that makes OpenVoicing different from the practice apps you may already know: it is built on an open file format that you own, not a hosted service you rent.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="living-sheet-music" class="shell border-t border-hair">
+    <div class="grid grid-cols-12 gap-x-gutter py-[clamp(28px,4vw,52px)]">
+      <div class="col-span-full md:col-span-4">
+        <span class="text-[.72rem] font-semibold uppercase tracking-[.14em] text-brand tabular-nums">04.2</span>
+        <h2 class="mt-2 text-h3 font-semibold leading-tight tracking-[-.02em]">What "living sheet music" means</h2>
+        <p class="mt-2 text-[.9rem] text-grey">The idea, defined for someone who has never seen it.</p>
+      </div>
+      <div class="col-span-full md:col-start-6 md:col-span-7 mt-4 md:mt-0 max-w-[62ch] text-[clamp(1rem,1.4vw,1.1rem)] leading-relaxed text-grey [&_p]:mb-4 [&_strong]:text-ink [&_a]:border-b-2 [&_a]:border-brand [&_a]:text-ink [&_h3]:text-ink [&_h3]:font-semibold [&_h3]:mt-6 [&_h3]:mb-2 [&_h3]:text-[1.05rem] [&_code]:font-mono [&_code]:text-[.9em] [&_code]:text-ink [&_ol]:my-4 [&_ol]:list-decimal [&_ol]:pl-5 [&_ol>li]:mb-2 [&_ul]:my-4 [&_ul]:list-disc [&_ul]:pl-5 [&_ul>li]:mb-2">
+        <p>A PDF of a score is a picture of music. It does not know what note is playing, it cannot slow down, and it cannot follow a recording. "Living sheet music" is the opposite: the notation is connected to sound and to time, so the page can respond to you.</p>
+        <p>In practice that means a piece in OpenVoicing knows several things a static score never can:</p>
+        <ul>
+          <li><strong>What is sounding right now.</strong> As playback moves, the exact note being played is highlighted and the page scrolls to it. Turn on Follow and the score stays pinned to the spot that is playing.</li>
+          <li><strong>How to change speed without changing pitch.</strong> Slowing a passage to 50 percent lowers the tempo but keeps every note at its correct pitch, both for the built-in notation playback and for a real recording you have synced. This is genuine time-stretching, not a pitch-dropping tape effect.</li>
+          <li><strong>How a real performance lines up with the page.</strong> A sync map ties positions in a recording (in seconds) to positions in the score (in musical time), so the notation can follow an actual audio take or a YouTube video, and you can loop and slow the real thing while watching the page keep pace.</li>
+          <li><strong>Its own structure.</strong> Because the underlying document is real notation and not an image, the app can transpose a note, respell an enharmonic, insert a beat, or export clean MusicXML for another program.</li>
+        </ul>
+        <p>The payoff is that the same file serves three jobs that normally need three separate tools: it is a readable score, a practice companion that plays and loops and slows down, and an editable document you can revise. It is "living" because the notation and the sound are the same object, kept in step by the sync map.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="open-format" class="shell border-t border-hair">
+    <div class="grid grid-cols-12 gap-x-gutter py-[clamp(28px,4vw,52px)]">
+      <div class="col-span-full md:col-span-4">
+        <span class="text-[.72rem] font-semibold uppercase tracking-[.14em] text-brand tabular-nums">04.3</span>
+        <h2 class="mt-2 text-h3 font-semibold leading-tight tracking-[-.02em]">An open format, not a hosted service you rent</h2>
+        <p class="mt-2 text-[.9rem] text-grey">For anyone weighing subscriptions and lock-in.</p>
+      </div>
+      <div class="col-span-full md:col-start-6 md:col-span-7 mt-4 md:mt-0 max-w-[62ch] text-[clamp(1rem,1.4vw,1.1rem)] leading-relaxed text-grey [&_p]:mb-4 [&_strong]:text-ink [&_a]:border-b-2 [&_a]:border-brand [&_a]:text-ink [&_h3]:text-ink [&_h3]:font-semibold [&_h3]:mt-6 [&_h3]:mb-2 [&_h3]:text-[1.05rem] [&_code]:font-mono [&_code]:text-[.9em] [&_code]:text-ink [&_ol]:my-4 [&_ol]:list-decimal [&_ol]:pl-5 [&_ol>li]:mb-2 [&_ul]:my-4 [&_ul]:list-disc [&_ul]:pl-5 [&_ul>li]:mb-2">
+        <p>This is the core of what makes OpenVoicing different, so it is worth being precise about it.</p>
+        <p>Most interactive-notation and practice products are services. Your pieces live on the company's servers. You reach them through the company's app, under the company's account, on the company's terms, usually for a recurring fee. That arrangement is convenient right up until it is not: if the subscription lapses, the company pivots, the servers shut down, or the terms change, your library can become unreachable or unusable, and there is often no clean way to take a piece somewhere else.</p>
+        <p>OpenVoicing is built the other way around. The canonical thing is not an account on a server; it is a file. Every piece is a self-contained <code>.ovb</code> bundle that holds the score, any recordings, and the sync map that aligns them. The app is a client that reads and writes those files. The embeddable player is just static files that load a bundle. There is no server that has to stay online for your music to keep working, because there is no server in the loop at all: the app runs entirely in your browser, and your work autosaves locally to that browser, not to somebody's cloud.</p>
+        <p>What this buys you, concretely:</p>
+        <ul>
+          <li><strong>No account, no sign-up, no subscription.</strong> Open the app and start playing. Nothing gates the first note behind a login or a trial.</li>
+          <li><strong>You hold the artifact.</strong> Export a bundle and you have a single file on your own disk. Copy it, back it up, put it on a USB stick, host it on your own site. It is yours the way a document is yours.</li>
+          <li><strong>Host it anywhere static.</strong> A bundle plus the player is a set of static files. Any plain web host, a personal site, a GitHub Pages repo, an S3 bucket, will serve it. There is no special backend to run.</li>
+          <li><strong>It keeps working offline.</strong> An audio-backed bundle is fully self-contained: the recording is packed inside the file, so it plays without a network connection. (The one exception is a bundle that references a YouTube video, which is covered honestly below.)</li>
+        </ul>
+        <p>"Not a service you rent" is not a slogan here; it is the architecture. The format is the product, and the code is how you create, read, and play the format.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="ovb-file" class="shell border-t border-hair">
+    <div class="grid grid-cols-12 gap-x-gutter py-[clamp(28px,4vw,52px)]">
+      <div class="col-span-full md:col-span-4">
+        <span class="text-[.72rem] font-semibold uppercase tracking-[.14em] text-brand tabular-nums">04.4</span>
+        <h2 class="mt-2 text-h3 font-semibold leading-tight tracking-[-.02em]">The .ovb file: what is inside and why it is portable</h2>
+        <p class="mt-2 text-[.9rem] text-grey">For the curious user, the self-hoster, the teacher.</p>
+      </div>
+      <div class="col-span-full md:col-start-6 md:col-span-7 mt-4 md:mt-0 max-w-[62ch] text-[clamp(1rem,1.4vw,1.1rem)] leading-relaxed text-grey [&_p]:mb-4 [&_strong]:text-ink [&_a]:border-b-2 [&_a]:border-brand [&_a]:text-ink [&_h3]:text-ink [&_h3]:font-semibold [&_h3]:mt-6 [&_h3]:mb-2 [&_h3]:text-[1.05rem] [&_code]:font-mono [&_code]:text-[.9em] [&_code]:text-ink [&_ol]:my-4 [&_ol]:list-decimal [&_ol]:pl-5 [&_ol>li]:mb-2 [&_ul]:my-4 [&_ul]:list-disc [&_ul]:pl-5 [&_ul>li]:mb-2">
+        <p>An <code>.ovb</code> bundle is a single portable file that packages one interactive piece. Technically it is a standard ZIP archive with a <code>manifest.json</code> at its root, which is deliberately boring: a ZIP is a format that will still open in fifty years, and the manifest is plain, readable JSON.</p>
+        <p>Inside a bundle you will find:</p>
+        <ul>
+          <li><strong>The score</strong>, as a real notation document (imported from MusicXML, Guitar Pro, or AlphaTex).</li>
+          <li><strong>Zero or more recordings.</strong> A recording is either an audio take packed right inside the file, or a reference to a YouTube video. Audio recordings should use widely decodable formats; MP3 is the recommended choice because it plays across Safari, Chrome, and Firefox without fuss.</li>
+          <li><strong>The sync maps</strong> that anchor each recording to the score. A sync map is a short list of points, each tying a position in the recording (in seconds) to a position in the score (in musical ticks). Playback between anchors is interpolated, so the notation can follow the recording smoothly, and "jump to bar 20" can move both the page and the audio playhead together.</li>
+          <li><strong>A manifest</strong> listing the title, optional attribution (composer, artist, copyright, license, source), and whether the bundle is self-contained or references external media.</li>
+        </ul>
+        <p>Because everything a piece needs travels inside the one file, sharing is trivial and durable. Hand someone the <code>.ovb</code> and they see exactly the interactive piece you made: same score, same recording, same sync, no account required. Point the embeddable player at the file's URL and it plays on any page. The format is specified in a public, normative spec (the bundle-format document), and the spec itself is licensed CC-BY 4.0, so anyone is free to build a tool that reads or writes <code>.ovb</code> files. That is what "open format" means in practice: the file is documented, the documentation is freely licensed, and OpenVoicing is not the only program that is allowed to understand it.</p>
+        <div class="my-5 border-l-2 border-brand bg-[#faf7f7] px-4 py-3 text-[.95rem]">
+          <strong class="text-ink">One honest caveat about self-containment.</strong> A bundle that uses a packed audio recording is fully self-contained and works offline. A bundle that references a YouTube video is marked <code class="font-mono">external</code> in its manifest, because the video is streamed through YouTube's official player and never downloaded. That kind of bundle needs an internet connection to play, and it will break if the video is later removed from YouTube. If durability and offline use matter to you, prefer audio-backed bundles; the format tells you which kind you have.
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="who-its-for" class="shell border-t border-hair">
+    <div class="grid grid-cols-12 gap-x-gutter py-[clamp(28px,4vw,52px)]">
+      <div class="col-span-full md:col-span-4">
+        <span class="text-[.72rem] font-semibold uppercase tracking-[.14em] text-brand tabular-nums">04.5</span>
+        <h2 class="mt-2 text-h3 font-semibold leading-tight tracking-[-.02em]">Who OpenVoicing is for</h2>
+        <p class="mt-2 text-[.9rem] text-grey">For prospective users deciding if it fits them.</p>
+      </div>
+      <div class="col-span-full md:col-start-6 md:col-span-7 mt-4 md:mt-0 max-w-[62ch] text-[clamp(1rem,1.4vw,1.1rem)] leading-relaxed text-grey [&_p]:mb-4 [&_strong]:text-ink [&_a]:border-b-2 [&_a]:border-brand [&_a]:text-ink [&_h3]:text-ink [&_h3]:font-semibold [&_h3]:mt-6 [&_h3]:mb-2 [&_h3]:text-[1.05rem] [&_code]:font-mono [&_code]:text-[.9em] [&_code]:text-ink [&_ol]:my-4 [&_ol]:list-decimal [&_ol]:pl-5 [&_ol>li]:mb-2 [&_ul]:my-4 [&_ul]:list-disc [&_ul]:pl-5 [&_ul>li]:mb-2">
+        <p>OpenVoicing is built for a few overlapping groups. You do not need to be technical to use it, and you do not need to be a musician to host it.</p>
+        <h3>Musicians and learners</h3>
+        <p>If you are practicing a piece, this is a tool you actually reach for: slow a hard bar to half speed without the pitch dropping, loop it until it is clean, turn on a count-in and metronome, and follow a real recording or a lesson video as it plays so you can hear how a passage should sound while watching the page. Open the app and start; there is no sign-up and the demo piece is already loaded.</p>
+        <h3>Teachers</h3>
+        <p>You can prepare a piece with a synced reference recording, mark it up, and hand a student a single <code>.ovb</code> file or an embedded player on your own studio page. The student needs no account and no purchase to open it. Because you can sync to a YouTube lesson or performance, you can build study materials around videos your students already watch, with the notation following along bar by bar.</p>
+        <h3>Self-hosters and publishers</h3>
+        <p>If you run a website, a method book, a blog, or a digital score catalog, you can publish interactive pieces on infrastructure you already control. A bundle plus the player is static files: drop them on any host, add a one-line script tag, and point a div at the bundle. No backend, no database, no per-play fees. The deployment guide and the static-hosting cookbook cover MIME types, CORS, caching, and sub-path deploys.</p>
+        <h3>Developers</h3>
+        <p>OpenVoicing ships an embeddable player and a JavaScript SDK (<code>OpenVoicing.create</code>) with data attributes, methods, and events, so you can put a piece on a page declaratively or drive it from code. The reusable libraries (the score model, the player, the audio engine, and the bundle tooling) are separate packages under a permissive copyleft license, so you can build your own tools on the format. There is also an <code>ovb</code> command-line tool to create, validate, and inspect bundles.</p>
+        <h3>People who care about ownership and longevity</h3>
+        <p>If you have been burned by a service shutting down, a subscription you resent, or a library you could not export, the pitch is simple: here your pieces are files you hold, in a documented open format, played by open-source code you can run yourself. Nothing has to stay online for your music to keep working.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="how-it-differs" class="shell border-t border-hair">
+    <div class="grid grid-cols-12 gap-x-gutter py-[clamp(28px,4vw,52px)]">
+      <div class="col-span-full md:col-span-4">
+        <span class="text-[.72rem] font-semibold uppercase tracking-[.14em] text-brand tabular-nums">04.6</span>
+        <h2 class="mt-2 text-h3 font-semibold leading-tight tracking-[-.02em]">How it differs from closed platforms, honestly</h2>
+        <p class="mt-2 text-[.9rem] text-grey">For anyone comparing OpenVoicing to a rented service.</p>
+      </div>
+      <div class="col-span-full md:col-start-6 md:col-span-7 mt-4 md:mt-0 max-w-[62ch] text-[clamp(1rem,1.4vw,1.1rem)] leading-relaxed text-grey [&_p]:mb-4 [&_strong]:text-ink [&_a]:border-b-2 [&_a]:border-brand [&_a]:text-ink [&_h3]:text-ink [&_h3]:font-semibold [&_h3]:mt-6 [&_h3]:mb-2 [&_h3]:text-[1.05rem] [&_code]:font-mono [&_code]:text-[.9em] [&_code]:text-ink [&_ol]:my-4 [&_ol]:list-decimal [&_ol]:pl-5 [&_ol>li]:mb-2 [&_ul]:my-4 [&_ul]:list-disc [&_ul]:pl-5 [&_ul>li]:mb-2">
+        <p>It is only fair to be specific about the differences, including where a closed platform might suit you better. This is not a claim that OpenVoicing wins on every axis.</p>
+        <div class="my-5 overflow-x-auto">
+          <table class="w-full border-collapse text-[.92rem]">
+            <thead><tr class="border-b border-ink text-left"><th class="py-2 pr-4 font-semibold align-top">Axis</th><th class="py-2 pr-4 font-semibold align-top">OpenVoicing</th><th class="py-2 font-semibold align-top">A closed platform</th></tr></thead>
+            <tbody>
+              <tr class="border-b border-hair"><td class="py-2 pr-4 align-top"><strong class="text-ink">Where your library lives</strong></td><td class="py-2 pr-4 align-top">An <code class="font-mono">.ovb</code> file you hold and can move.</td><td class="py-2 align-top">An account on someone else's servers.</td></tr>
+              <tr class="border-b border-hair"><td class="py-2 pr-4 align-top"><strong class="text-ink">Storage format</strong></td><td class="py-2 pr-4 align-top">Publicly specified, CC-BY spec other tools can read and write.</td><td class="py-2 align-top">An internal format you often cannot fully export.</td></tr>
+              <tr class="border-b border-hair"><td class="py-2 pr-4 align-top"><strong class="text-ink">Source code</strong></td><td class="py-2 pr-4 align-top">Open: read it, run it, audit it, fork it, self-host it.</td><td class="py-2 align-top">A black box you must trust.</td></tr>
+              <tr class="border-b border-hair"><td class="py-2 pr-4 align-top"><strong class="text-ink">Cost to start</strong></td><td class="py-2 pr-4 align-top">No account, no subscription, no meter running.</td><td class="py-2 align-top">A login and usually a recurring fee.</td></tr>
+              <tr class="border-b border-hair"><td class="py-2 pr-4 align-top"><strong class="text-ink">Where data goes</strong></td><td class="py-2 pr-4 align-top">Local and private: autosaves to your own browser.</td><td class="py-2 align-top">Cloud by default; your library and habits sit on a server.</td></tr>
+              <tr class="border-b border-hair"><td class="py-2 pr-4 align-top"><strong class="text-ink">Publishing</strong></td><td class="py-2 pr-4 align-top">Self-hostable and embeddable with a script tag and a div.</td><td class="py-2 align-top">Publishing happens inside the vendor's product.</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <h3>Where a closed platform may still fit you better, said plainly</h3>
+        <ul>
+          <li><strong>Huge managed catalogs.</strong> Commercial services often license and host enormous libraries of arrangements. OpenVoicing gives you tools and a format, not a pre-stocked store of copyrighted sheet music.</li>
+          <li><strong>Cross-device cloud sync out of the box.</strong> Because OpenVoicing keeps your work in your browser rather than a cloud account, moving a work-in-progress between devices means exporting and reopening a bundle, not automatic sync. That is the tradeoff for having no server hold your data.</li>
+          <li><strong>Turnkey collaboration and social features.</strong> A hosted platform can offer accounts, sharing dashboards, and comment threads. OpenVoicing's sharing model is a portable file and an embeddable player, which is simpler and more durable but less feature-rich as a social product.</li>
+          <li><strong>A vendor's support desk.</strong> With an open-source project you rely on the docs, the source, and the community rather than a paid support contract.</li>
+        </ul>
+        <p>The honest summary: if you want a managed catalog and cloud convenience and you are comfortable renting, a closed platform may serve you well. If you want to own your files, keep your work private, host it yourself, and not depend on any company staying in business, OpenVoicing is built for exactly that.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="licensing" class="shell border-t border-hair">
+    <div class="grid grid-cols-12 gap-x-gutter py-[clamp(28px,4vw,52px)]">
+      <div class="col-span-full md:col-span-4">
+        <span class="text-[.72rem] font-semibold uppercase tracking-[.14em] text-brand tabular-nums">04.7</span>
+        <h2 class="mt-2 text-h3 font-semibold leading-tight tracking-[-.02em]">The open-source licensing, in plain language</h2>
+        <p class="mt-2 text-[.9rem] text-grey">For developers, self-hosters, and license-conscious users.</p>
+      </div>
+      <div class="col-span-full md:col-start-6 md:col-span-7 mt-4 md:mt-0 max-w-[62ch] text-[clamp(1rem,1.4vw,1.1rem)] leading-relaxed text-grey [&_p]:mb-4 [&_strong]:text-ink [&_a]:border-b-2 [&_a]:border-brand [&_a]:text-ink [&_h3]:text-ink [&_h3]:font-semibold [&_h3]:mt-6 [&_h3]:mb-2 [&_h3]:text-[1.05rem] [&_code]:font-mono [&_code]:text-[.9em] [&_code]:text-ink [&_ol]:my-4 [&_ol]:list-decimal [&_ol]:pl-5 [&_ol>li]:mb-2 [&_ul]:my-4 [&_ul]:list-disc [&_ul]:pl-5 [&_ul>li]:mb-2">
+        <p>OpenVoicing is a mixed-license open-source project. Two licenses are in play, and which one applies depends on which part of the code you mean. Here is the plain-language version; the authoritative details live in the LICENSING document.</p>
+        <h3>The reusable libraries are MPL-2.0</h3>
+        <p>These are the building blocks: the score model (document format, importers and exporters, sync math), the player (notation rendering and playback), the audio engine (time-stretch playback, onset detection, waveforms), and the bundle tooling (the <code>.ovb</code> format and the <code>ovb</code> CLI). The Mozilla Public License 2.0 is a file-level copyleft license. In practice that means you can combine these libraries with your own code, including proprietary code, and you only have to share back changes you make to the MPL-licensed files themselves. This is deliberately permissive so that developers can build tools on the format.</p>
+        <h3>The application is AGPL-3.0</h3>
+        <p>The authoring app and the embeddable player page (<code>apps/web</code>), and the project as a whole, are licensed under the GNU Affero General Public License, version 3. The important clause is section 13, which treats running the software as a network service the same as distributing it. In plain terms: if you modify the app and then run your modified version so other people can use it over a network, you must make the complete corresponding source of your modified version available to those users. Publishing a link to your fork's source in the UI or the docs is enough to satisfy this.</p>
+        <h3>What this means for you, by situation</h3>
+        <ol>
+          <li><strong>You just use the hosted app or self-host it unchanged.</strong> Nothing is required of you. Use it freely.</li>
+          <li><strong>You embed a piece on your own site with the standard player.</strong> Nothing is required of you beyond the normal license notices; you are using the software, not modifying and redistributing it.</li>
+          <li><strong>You build your own tool on the libraries.</strong> You work under MPL-2.0: keep the libraries' files under MPL and share back changes to those files; your surrounding code stays yours.</li>
+          <li><strong>You modify the app and run your modified version publicly.</strong> AGPL-3.0 applies: publish the source of your modified app to your users.</li>
+        </ol>
+        <p>Two more things worth knowing. Bundled and dependency licenses (alphaTab, which does the engraving, the Signalsmith Stretch time-stretch worklet, and the FluidR3 soundfont) are listed in the project's third-party notices.</p>
+        <div class="my-5 border-l-2 border-brand bg-[#faf7f7] px-4 py-3 text-[.95rem]">
+          <strong class="text-ink">On the name.</strong> The name "OpenVoicing" and any logo are not covered by the code licenses. You are free to fork and redistribute the code, but you are asked to rename your fork if you distribute or run it publicly, so users are not confused about which project they are dealing with.
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="owning-matters" class="shell border-t border-hair">
+    <div class="grid grid-cols-12 gap-x-gutter py-[clamp(28px,4vw,52px)]">
+      <div class="col-span-full md:col-span-4">
+        <span class="text-[.72rem] font-semibold uppercase tracking-[.14em] text-brand tabular-nums">04.8</span>
+        <h2 class="mt-2 text-h3 font-semibold leading-tight tracking-[-.02em]">Why owning your files actually matters</h2>
+        <p class="mt-2 text-[.9rem] text-grey">For anyone burned by shutdowns or subscriptions.</p>
+      </div>
+      <div class="col-span-full md:col-start-6 md:col-span-7 mt-4 md:mt-0 max-w-[62ch] text-[clamp(1rem,1.4vw,1.1rem)] leading-relaxed text-grey [&_p]:mb-4 [&_strong]:text-ink [&_a]:border-b-2 [&_a]:border-brand [&_a]:text-ink [&_h3]:text-ink [&_h3]:font-semibold [&_h3]:mt-6 [&_h3]:mb-2 [&_h3]:text-[1.05rem] [&_code]:font-mono [&_code]:text-[.9em] [&_code]:text-ink [&_ol]:my-4 [&_ol]:list-decimal [&_ol]:pl-5 [&_ol>li]:mb-2 [&_ul]:my-4 [&_ul]:list-disc [&_ul]:pl-5 [&_ul>li]:mb-2">
+        <p>"Own your files" can sound abstract until a service you relied on changes the deal. Here is the concrete case for why it matters, tied to how OpenVoicing works.</p>
+        <h3>Longevity</h3>
+        <p>Practice materials are things you come back to for years. A hosted library lasts exactly as long as the company hosting it, and companies pivot, get acquired, and shut down. An <code>.ovb</code> file on your own disk has no such expiry. It is a ZIP with plain JSON and standard media formats inside, so even far in the future it opens with ordinary tools, and the format is publicly specified so a new reader can always be written for it.</p>
+        <h3>Control</h3>
+        <p>When your pieces are files, you decide where they live, who gets them, and how they are backed up. You can keep a folder of bundles under version control, sync them with whatever backup tool you already trust, or archive them offline. You are never one billing failure or one terms-of-service change away from losing access.</p>
+        <h3>Privacy</h3>
+        <p>Because the app runs in your browser and autosaves locally, your library and your practice sessions are not sitting in someone else's database by default. There is no server collecting what you practice or how often. If you never export or embed a piece, it simply never leaves your machine.</p>
+        <h3>Portability and reuse</h3>
+        <p>Owning the file means you can take the work elsewhere. Every piece can also export plain MusicXML, so the score opens in other notation programs; you are not trapped in one app's ecosystem. And because the bundle format is open, the same file can be played by the OpenVoicing app, the embeddable player, or any future tool that implements the spec.</p>
+        <h3>Independence from any one vendor, including this one</h3>
+        <p>This is the part that makes the ownership claim credible rather than convenient. Even if the OpenVoicing project itself stalled, your files would keep working, because they do not depend on the project's servers (there are none) and the code that reads them is open source and self-hostable. The promise is not "trust us to stay online." The promise is "you do not have to."</p>
+        <div class="my-5 border-l-2 border-brand bg-[#faf7f7] px-4 py-3 text-[.95rem]">
+          <strong class="text-ink">The honest counterweight.</strong> Owning files means you are also the one responsible for backing them up and moving them between devices. There is no cloud safety net doing that for you automatically. For many people that tradeoff is exactly the point; for some it is a chore. Either way, you should know which side of it you are choosing.
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="shell border-t border-ink py-[clamp(28px,4vw,52px)]">
+    <p class="text-[.72rem] font-semibold uppercase tracking-[.14em] text-grey mb-4">Keep going</p>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-x-gutter gap-y-6">
+      <a href="./start.html" class="group block"><span class="text-[.82rem] text-grey">Try it</span><h3 class="mt-1 text-[1.15rem] font-semibold group-hover:text-brand">Get started &rarr;</h3><p class="mt-1 text-[.92rem] text-grey">Open the app, load a piece, and play your first note in seconds.</p></a>
+      <a href="./publish.html" class="group block"><span class="text-[.82rem] text-grey">Ship it</span><h3 class="mt-1 text-[1.15rem] font-semibold group-hover:text-brand">Publish and embed &rarr;</h3><p class="mt-1 text-[.92rem] text-grey">Put an interactive piece on your own site with static files and a script tag.</p></a>
+      <a href="./reference.html" class="group block"><span class="text-[.82rem] text-grey">Go deep</span><h3 class="mt-1 text-[1.15rem] font-semibold group-hover:text-brand">Reference &rarr;</h3><p class="mt-1 text-[.92rem] text-grey">The bundle format, the SDK, the CLI, and the licensing details in full.</p></a>
+    </div>
+  </section>
+  </main>
+
+  <footer class="shell flex flex-wrap items-baseline justify-between gap-4 py-10 pb-16 border-t border-ink">
+    <span class="font-bold">OpenVoicing</span>
+    <span class="text-[.8rem] text-greymid">Free and open source · Engraving by alphaTab</span>
+    <span class="text-[.82rem] text-grey">
+      <a href="https://github.com/pjdoland/openvoicing" class="border-b border-hair hover:text-ink">GitHub</a>
+      &nbsp;
+      <a href="https://github.com/pjdoland/openvoicing/blob/main/docs/index.md" class="border-b border-hair hover:text-ink">Docs</a>
+      &nbsp;
+      <a href="./app/" class="border-b border-hair hover:text-ink">App</a>
+    </span>
+  </footer>
+</body>
+</html>

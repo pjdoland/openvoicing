@@ -1,0 +1,283 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Get started · OpenVoicing</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23111'/%3E%3Ccircle cx='16' cy='16' r='7' fill='%23fff'/%3E%3C/svg%3E" />
+<meta name="description" content="A complete from-zero guide to OpenVoicing: reach the app in your browser, meet the Invention 8 demo, learn the Listen, Practice, and Edit modes, open your own files, start a blank score, and trust the autosave." />
+<link rel="stylesheet" href="./style.css" />
+</head>
+<body class="bg-paper text-ink font-sans antialiased">
+  <header class="sticky top-0 z-20 bg-paper border-b border-ink">
+    <div class="shell flex items-center gap-x-6 h-15">
+      <a href="./" class="shrink-0 text-[1.05rem] font-bold tracking-tight">OpenVoicing</a>
+      <nav class="hidden md:flex gap-x-6 ml-3">
+        <a href="./start.html" class="text-[.82rem] font-semibold text-ink">Get started</a>
+        <a href="./practice.html" class="text-[.82rem] text-grey hover:text-ink">Practice</a>
+        <a href="./publish.html" class="text-[.82rem] text-grey hover:text-ink">Publish</a>
+        <a href="./why.html" class="text-[.82rem] text-grey hover:text-ink">Why open</a>
+        <a href="./reference.html" class="text-[.82rem] text-grey hover:text-ink">Reference</a>
+      </nav>
+      <span class="flex-1"></span>
+      <a href="https://github.com/pjdoland/openvoicing" class="hidden sm:inline text-[.82rem] text-grey hover:text-ink">GitHub</a>
+      <a href="./app/" class="whitespace-nowrap text-[.82rem] font-semibold border border-ink px-4 py-2 transition-colors hover:bg-ink hover:text-paper">Launch&nbsp;the&nbsp;app&nbsp;&rarr;</a>
+    </div>
+  </header>
+
+  <main>
+  <section class="shell grid grid-cols-12 gap-x-gutter pt-[clamp(40px,7vw,96px)] pb-[clamp(28px,4vw,56px)]">
+    <p class="col-span-full mb-1.5 flex items-center gap-x-3.5 text-[.72rem] font-semibold uppercase tracking-[.14em] text-grey">
+      Get started
+      <span class="h-px flex-1 bg-hair"></span>
+    </p>
+    <h1 class="col-span-full lg:col-span-9 m-0 text-[clamp(2rem,5vw,3.6rem)] font-bold leading-[1.02] tracking-[-.03em] text-balance">From a link to your first piece, in one sitting</h1>
+    <p class="col-span-full md:col-span-8 mt-6 max-w-[54ch] text-[clamp(1.05rem,1.7vw,1.3rem)] leading-normal text-grey">OpenVoicing runs in your browser with nothing to install and no account to create. This guide takes you from opening the app to confidently loading a piece, picking the right mode, and trusting that your work is safe.</p>
+  </section>
+
+  <section id="reach-the-app" class="shell border-t border-hair">
+    <div class="grid grid-cols-12 gap-x-gutter py-[clamp(28px,4vw,52px)]">
+      <div class="col-span-full md:col-span-4">
+        <span class="text-[.72rem] font-semibold uppercase tracking-[.14em] text-brand tabular-nums">01</span>
+        <h2 class="mt-2 text-h3 font-semibold leading-tight tracking-[-.02em]">Reaching the app</h2>
+        <p class="mt-2 text-[.9rem] text-grey">It runs in your browser. Nothing to install.</p>
+      </div>
+      <div class="col-span-full md:col-start-6 md:col-span-7 mt-4 md:mt-0 max-w-[62ch] text-[clamp(1rem,1.4vw,1.1rem)] leading-relaxed text-grey [&_p]:mb-4 [&_strong]:text-ink [&_a]:border-b-2 [&_a]:border-brand [&_a]:text-ink [&_h3]:text-ink [&_h3]:font-semibold [&_h3]:mt-6 [&_h3]:mb-2 [&_h3]:text-[1.05rem] [&_code]:font-mono [&_code]:text-[.9em] [&_code]:text-ink [&_ol]:my-4 [&_ol]:list-decimal [&_ol]:pl-5 [&_ol>li]:mb-2 [&_ul]:my-4 [&_ul]:list-disc [&_ul]:pl-5 [&_ul>li]:mb-2">
+        <p>OpenVoicing is a web app. You do not download it, install it, or create an account. You open a web page and start playing.</p>
+        <p>From the OpenVoicing home page, click <strong>Launch the app</strong> (top right, and again in the hero). That opens the app at the <code>/app/</code> address. If someone sent you a direct link to the app, or to a specific piece, just open that link. The app is the same either way.</p>
+        <p>There is no sign-up wall, no trial, and no paywall between you and the app. Click the link and you are in.</p>
+        <h3>A few practical notes</h3>
+        <ul>
+          <li><strong>Any modern browser works.</strong> OpenVoicing is built and tested for current versions of Safari, Chrome, and Firefox, on desktop and on tablets and phones. The recordings that pieces play are standard MP3 audio, which is exactly why they play in Safari as well as Chrome and Firefox. You do not need a plugin.</li>
+          <li><strong>The first visit does a little loading, then it is quick.</strong> The app fetches a sound library (the instrument sounds used to play notation back to you) the first time you press play. Your browser caches it, so later visits are faster. If your connection is slow, give that first playback a couple of seconds.</li>
+          <li><strong>A desktop or laptop is the most comfortable place to edit.</strong> You can view, play, and practice happily on a phone or tablet. Note input and detailed editing are easier with a real keyboard, because so much of the editor is driven by single keystrokes.</li>
+          <li><strong>You can bookmark the app.</strong> Because your work is saved right in the browser, returning to the same bookmark on the same browser brings your last piece back exactly where you left it.</li>
+        </ul>
+        <h3>The short version</h3>
+        <ol>
+          <li>Open the OpenVoicing home page.</li>
+          <li>Click <strong>Launch the app</strong> (top right or in the hero).</li>
+          <li>Wait a moment on the very first playback while the sound library loads.</li>
+          <li>Optionally bookmark the app so you can return to your work later.</li>
+        </ol>
+      </div>
+    </div>
+  </section>
+
+  <section id="what-loads-first" class="shell border-t border-hair">
+    <div class="grid grid-cols-12 gap-x-gutter py-[clamp(28px,4vw,52px)]">
+      <div class="col-span-full md:col-span-4">
+        <span class="text-[.72rem] font-semibold uppercase tracking-[.14em] text-brand tabular-nums">02</span>
+        <h2 class="mt-2 text-h3 font-semibold leading-tight tracking-[-.02em]">What loads first</h2>
+        <p class="mt-2 text-[.9rem] text-grey">The Invention 8 demo and the welcome tour.</p>
+      </div>
+      <div class="col-span-full md:col-start-6 md:col-span-7 mt-4 md:mt-0 max-w-[62ch] text-[clamp(1rem,1.4vw,1.1rem)] leading-relaxed text-grey [&_p]:mb-4 [&_strong]:text-ink [&_a]:border-b-2 [&_a]:border-brand [&_a]:text-ink [&_h3]:text-ink [&_h3]:font-semibold [&_h3]:mt-6 [&_h3]:mb-2 [&_h3]:text-[1.05rem] [&_code]:font-mono [&_code]:text-[.9em] [&_code]:text-ink [&_ol]:my-4 [&_ol]:list-decimal [&_ol]:pl-5 [&_ol>li]:mb-2 [&_ul]:my-4 [&_ul]:list-disc [&_ul]:pl-5 [&_ul>li]:mb-2">
+        <p>The first time you open the app, you do not stare at a blank page. A real, finished piece is already loaded so you can try everything immediately: <strong>Bach's Invention No. 8</strong>, with its notation lined up to an audio recording.</p>
+        <p>That demo is deliberate. It is a complete example of what OpenVoicing does, so you can learn by pressing buttons rather than by reading. Press the <strong>spacebar</strong> (or click <strong>Play</strong>) and watch: the app highlights the note that is sounding and scrolls the score to follow along. Drop the speed and the music slows down while every note stays at its correct pitch. Because the demo has a recording attached, you can also hear the real performance follow the notation.</p>
+        <h3>The Welcome panel: three things you can do</h3>
+        <p>Alongside the demo, a short <strong>Welcome</strong> panel introduces the three things you can do with any piece:</p>
+        <ul>
+          <li><strong>Play</strong> it at any tempo, slowing down without changing pitch.</li>
+          <li><strong>Practice</strong> it, looping a passage or playing along with a recording or a YouTube video while the notation follows.</li>
+          <li><strong>Edit</strong> it, changing the notes yourself.</li>
+        </ul>
+        <p>The welcome panel gives you three ways to move on:</p>
+        <ol>
+          <li><strong>Explore the demo</strong> dismisses the panel and leaves the Invention loaded so you can experiment.</li>
+          <li><strong>Load a file</strong> opens the file picker so you can bring in your own music right away.</li>
+          <li><strong>Start a new score</strong> clears the way to a blank piece.</li>
+        </ol>
+        <div class="my-5 border-l-2 border-brand bg-[#faf7f7] px-4 py-3 text-[.95rem]">
+          <strong class="text-ink">Tip.</strong> You can reopen the welcome tour at any time from the <strong>Help</strong> menu, or search "welcome tour" in the command palette with <code>Cmd/Ctrl+K</code>. There is no penalty for dismissing it early.
+        </div>
+        <p>One important detail: the demo only greets you on a truly fresh start. <strong>If you have used OpenVoicing before on this browser, the app reopens the piece you were last working on</strong>, right where you left it, instead of the demo. That is autosave doing its job, covered further down.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="three-modes" class="shell border-t border-hair">
+    <div class="grid grid-cols-12 gap-x-gutter py-[clamp(28px,4vw,52px)]">
+      <div class="col-span-full md:col-span-4">
+        <span class="text-[.72rem] font-semibold uppercase tracking-[.14em] text-brand tabular-nums">03</span>
+        <h2 class="mt-2 text-h3 font-semibold leading-tight tracking-[-.02em]">The three modes</h2>
+        <p class="mt-2 text-[.9rem] text-grey">Listen, Practice, and Edit, and when to use each.</p>
+      </div>
+      <div class="col-span-full md:col-start-6 md:col-span-7 mt-4 md:mt-0 max-w-[62ch] text-[clamp(1rem,1.4vw,1.1rem)] leading-relaxed text-grey [&_p]:mb-4 [&_strong]:text-ink [&_a]:border-b-2 [&_a]:border-brand [&_a]:text-ink [&_h3]:text-ink [&_h3]:font-semibold [&_h3]:mt-6 [&_h3]:mb-2 [&_h3]:text-[1.05rem] [&_code]:font-mono [&_code]:text-[.9em] [&_code]:text-ink [&_ol]:my-4 [&_ol]:list-decimal [&_ol]:pl-5 [&_ol>li]:mb-2 [&_ul]:my-4 [&_ul]:list-disc [&_ul]:pl-5 [&_ul>li]:mb-2">
+        <p>OpenVoicing keeps its surface calm by only showing the controls you need for what you are doing right now. You choose that with two controls near the top right: a <strong>Listen / Practice</strong> toggle, and a separate <strong>Edit</strong> switch. Together they give you three ways of working.</p>
+        <h3>Listen: a clean player for viewing and playing</h3>
+        <p>This is the quiet default. You get the score, a play button, and a speed control, and not much else. Use Listen when you just want to read a piece, play it through, or hand a clean view to someone else (for example on a music stand or a shared screen). The tooltip on this mode says it plainly: "Just view and play."</p>
+        <h3>Practice: the tools you reach for while learning</h3>
+        <p>Switch the toggle to Practice and the practice aids appear. This is where you:</p>
+        <ul>
+          <li>Slow a passage down without changing pitch, in 5 percent steps, or press <strong>h</strong> to jump straight to half speed.</li>
+          <li>Loop a section so it repeats while you drill it. You can drag across the notes you want, or set the loop live with <strong>[</strong> and <strong>]</strong> during playback.</li>
+          <li>Turn on a <strong>count-in</strong> and a <strong>metronome</strong> so you can come in on time and keep time.</li>
+          <li>Open the <strong>Recording &amp; sync</strong> panel to line a real audio recording, or a YouTube video, up with the score so playback follows the notation. You can then loop and slow the real performance, not just the computer playback.</li>
+        </ul>
+        <p>Use Practice mode for the actual work of learning music. Its tooltip: "Practice, sync and record tools."</p>
+        <h3>Edit: change the notes yourself</h3>
+        <p>Edit is a separate switch (top right) because it changes what clicks and keystrokes do. Turn it on and the editing toolbar appears: click a note to select it, or press <strong>N</strong> to enter note-input mode where typing pitches places notes and moves you along. Type <strong>A</strong> through <strong>G</strong> for pitch and <strong>1 2 4 8 6 3</strong> for note lengths, and use the toolbar for accidentals, ties, dynamics, and the piece's title, tempo, key, and time signature. Use Edit mode when you are correcting an imported score, transcribing, or writing something new. Turn it back off to return to a clean playing view.</p>
+        <div class="my-5 border-l-2 border-brand bg-[#faf7f7] px-4 py-3 text-[.95rem]">
+          <strong class="text-ink">How to think about it.</strong> Listen is for reading and playing. Practice is for learning. Edit is for changing. You move between them freely and nothing is lost when you switch, so there is no wrong time to try one. If you ever cannot find a control, open the command palette with <code>Cmd/Ctrl+K</code> and search for it by name; it can even switch modes for you ("Switch to Practice view").
+        </div>
+        <div class="my-5 overflow-x-auto">
+          <table class="w-full border-collapse text-[.92rem]">
+            <thead><tr class="border-b border-ink text-left"><th class="py-2 pr-4 font-semibold">Mode</th><th class="py-2 pr-4 font-semibold">Use it to</th><th class="py-2 font-semibold">How you turn it on</th></tr></thead>
+            <tbody>
+              <tr class="border-b border-hair"><td class="py-2 pr-4">Listen</td><td class="py-2 pr-4">Read and play a piece cleanly</td><td class="py-2">Listen / Practice toggle set to Listen</td></tr>
+              <tr class="border-b border-hair"><td class="py-2 pr-4">Practice</td><td class="py-2 pr-4">Slow down, loop, count in, sync to audio or video</td><td class="py-2">Listen / Practice toggle set to Practice</td></tr>
+              <tr class="border-b border-hair"><td class="py-2 pr-4">Edit</td><td class="py-2 pr-4">Change notes, voices, ornaments, dynamics</td><td class="py-2">Separate Edit switch, top right</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="open-your-files" class="shell border-t border-hair">
+    <div class="grid grid-cols-12 gap-x-gutter py-[clamp(28px,4vw,52px)]">
+      <div class="col-span-full md:col-span-4">
+        <span class="text-[.72rem] font-semibold uppercase tracking-[.14em] text-brand tabular-nums">04</span>
+        <h2 class="mt-2 text-h3 font-semibold leading-tight tracking-[-.02em]">Opening your own files</h2>
+        <p class="mt-2 text-[.9rem] text-grey">MusicXML, Guitar Pro, and .ovb bundles.</p>
+      </div>
+      <div class="col-span-full md:col-start-6 md:col-span-7 mt-4 md:mt-0 max-w-[62ch] text-[clamp(1rem,1.4vw,1.1rem)] leading-relaxed text-grey [&_p]:mb-4 [&_strong]:text-ink [&_a]:border-b-2 [&_a]:border-brand [&_a]:text-ink [&_h3]:text-ink [&_h3]:font-semibold [&_h3]:mt-6 [&_h3]:mb-2 [&_h3]:text-[1.05rem] [&_code]:font-mono [&_code]:text-[.9em] [&_code]:text-ink [&_ol]:my-4 [&_ol]:list-decimal [&_ol]:pl-5 [&_ol>li]:mb-2 [&_ul]:my-4 [&_ul]:list-disc [&_ul]:pl-5 [&_ul>li]:mb-2">
+        <p>The demo is there to explore, but the point is to work on your own music. OpenVoicing opens the two formats most scores travel in, plus its own bundle format.</p>
+        <h3>What you can open</h3>
+        <ul>
+          <li><strong>MusicXML</strong>, the standard interchange format that almost every notation program can export. OpenVoicing accepts <code>.musicxml</code>, <code>.xml</code>, and the compressed <code>.mxl</code> variant.</li>
+          <li><strong>Guitar Pro</strong> files: <code>.gp</code>, <code>.gp3</code>, <code>.gp4</code>, <code>.gp5</code>, and <code>.gpx</code>.</li>
+          <li><strong>OpenVoicing bundles</strong> (<code>.ovb</code>), a self-contained file that carries a score together with its recording and sync map. Bundles are how finished pieces are shared; you open one the same way, and it arrives complete with its audio and alignment already in place.</li>
+        </ul>
+        <div class="my-5 overflow-x-auto">
+          <table class="w-full border-collapse text-[.92rem]">
+            <thead><tr class="border-b border-ink text-left"><th class="py-2 pr-4 font-semibold">Format</th><th class="py-2 pr-4 font-semibold">Extensions</th><th class="py-2 font-semibold">Includes audio?</th></tr></thead>
+            <tbody>
+              <tr class="border-b border-hair"><td class="py-2 pr-4">MusicXML</td><td class="py-2 pr-4"><code>.musicxml</code>, <code>.xml</code>, <code>.mxl</code></td><td class="py-2">No, notation only</td></tr>
+              <tr class="border-b border-hair"><td class="py-2 pr-4">Guitar Pro</td><td class="py-2 pr-4"><code>.gp</code>, <code>.gp3</code>, <code>.gp4</code>, <code>.gp5</code>, <code>.gpx</code></td><td class="py-2">No, notation only</td></tr>
+              <tr class="border-b border-hair"><td class="py-2 pr-4">OpenVoicing bundle</td><td class="py-2 pr-4"><code>.ovb</code></td><td class="py-2">Yes, score plus recording plus sync</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <h3>To open a score file</h3>
+        <ol>
+          <li>Open the <strong>File</strong> menu (top left of the app).</li>
+          <li>Choose <strong>Open score file</strong> and pick a MusicXML or Guitar Pro file from your computer.</li>
+          <li>The score loads and engraves. Press play to hear it, or switch to Practice or Edit to work on it.</li>
+        </ol>
+        <p>To open a shared piece complete with its recording, use <strong>File &gt; Open bundle</strong> and pick a <code>.ovb</code> file instead. If a piece is hosted at a web address, <strong>File &gt; Open from URL</strong> loads it straight from that link.</p>
+        <h3>A few things worth knowing</h3>
+        <ul>
+          <li><strong>The recording travels only in bundles.</strong> A plain MusicXML or Guitar Pro file carries the notation, not any audio. If you want the score to play along with a real recording, you attach one yourself in Practice mode (see the Recording &amp; sync tools), or you open an <code>.ovb</code> bundle that already includes one.</li>
+          <li><strong>Imported scores are fully editable.</strong> OpenVoicing does not treat an import as a locked picture. Once a piece is open you can turn on Edit and change notes, voices, ornaments, and dynamics like anything else.</li>
+          <li><strong>Opening a file replaces what is on screen.</strong> If you were in the middle of another piece, save it first (see the autosave section) or export it as a bundle so you can come back to it.</li>
+        </ul>
+        <h3>Exporting back out</h3>
+        <p>When you are done, you are never stuck inside the app. From the <strong>File</strong> menu you can <strong>Export MusicXML</strong> to open the score in other notation software, <strong>Export MIDI</strong>, <strong>Print / save as PDF</strong>, or <strong>Export bundle</strong> to write a single <code>.ovb</code> that holds the score, any recording, and the sync so you can host or share the whole interactive piece.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="blank-score" class="shell border-t border-hair">
+    <div class="grid grid-cols-12 gap-x-gutter py-[clamp(28px,4vw,52px)]">
+      <div class="col-span-full md:col-span-4">
+        <span class="text-[.72rem] font-semibold uppercase tracking-[.14em] text-brand tabular-nums">05</span>
+        <h2 class="mt-2 text-h3 font-semibold leading-tight tracking-[-.02em]">Starting a blank score</h2>
+        <p class="mt-2 text-[.9rem] text-grey">Begin from an empty piece and write it yourself.</p>
+      </div>
+      <div class="col-span-full md:col-start-6 md:col-span-7 mt-4 md:mt-0 max-w-[62ch] text-[clamp(1rem,1.4vw,1.1rem)] leading-relaxed text-grey [&_p]:mb-4 [&_strong]:text-ink [&_a]:border-b-2 [&_a]:border-brand [&_a]:text-ink [&_h3]:text-ink [&_h3]:font-semibold [&_h3]:mt-6 [&_h3]:mb-2 [&_h3]:text-[1.05rem] [&_code]:font-mono [&_code]:text-[.9em] [&_code]:text-ink [&_ol]:my-4 [&_ol]:list-decimal [&_ol]:pl-5 [&_ol>li]:mb-2 [&_ul]:my-4 [&_ul]:list-disc [&_ul]:pl-5 [&_ul>li]:mb-2">
+        <p>If you are not importing anything, you can begin with an empty piece and write it yourself.</p>
+        <ol>
+          <li>From the <strong>File</strong> menu choose <strong>New score</strong> (or click <strong>Start a new score</strong> in the welcome panel, or search "New score" in the command palette with <code>Cmd/Ctrl+K</code>).</li>
+          <li>You get a blank canvas: an empty score of rests, ready to fill.</li>
+          <li>Turn on <strong>Edit</strong> (top right). Press <strong>N</strong> to enter note-input mode, then type pitches with <strong>A</strong> through <strong>G</strong> and set note lengths with <strong>1 2 4 8 6 3</strong>. Notes place and the cursor advances as you go.</li>
+          <li>Set the piece's identity from the edit toolbar: the <strong>Title</strong> button names the piece and also sets composer, tempo, time signature, and key, and the <strong>Tempo</strong> button sets the beats per minute.</li>
+        </ol>
+        <p>A blank score behaves like any other piece. It autosaves as you type, you can play it back at any tempo, and you can export it as MusicXML or as a bundle when it is ready. There is nothing special you have to do to "start a project"; making the first note is starting the project.</p>
+        <div class="my-5 border-l-2 border-brand bg-[#faf7f7] px-4 py-3 text-[.95rem]">
+          <strong class="text-ink">Tip.</strong> If you would rather learn the note-entry keys before writing something real, the full list lives in the app under the <code>?</code> key (the keyboard shortcut sheet), and the command palette (<code>Cmd/Ctrl+K</code>) can run any editor action by name while you get comfortable.
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="autosave" class="shell border-t border-hair">
+    <div class="grid grid-cols-12 gap-x-gutter py-[clamp(28px,4vw,52px)]">
+      <div class="col-span-full md:col-span-4">
+        <span class="text-[.72rem] font-semibold uppercase tracking-[.14em] text-brand tabular-nums">06</span>
+        <h2 class="mt-2 text-h3 font-semibold leading-tight tracking-[-.02em]">Your work saves itself</h2>
+        <p class="mt-2 text-[.9rem] text-grey">Autosave, no account, no Save button.</p>
+      </div>
+      <div class="col-span-full md:col-start-6 md:col-span-7 mt-4 md:mt-0 max-w-[62ch] text-[clamp(1rem,1.4vw,1.1rem)] leading-relaxed text-grey [&_p]:mb-4 [&_strong]:text-ink [&_a]:border-b-2 [&_a]:border-brand [&_a]:text-ink [&_h3]:text-ink [&_h3]:font-semibold [&_h3]:mt-6 [&_h3]:mb-2 [&_h3]:text-[1.05rem] [&_code]:font-mono [&_code]:text-[.9em] [&_code]:text-ink [&_ol]:my-4 [&_ol]:list-decimal [&_ol]:pl-5 [&_ol>li]:mb-2 [&_ul]:my-4 [&_ul]:list-disc [&_ul]:pl-5 [&_ul>li]:mb-2">
+        <p>OpenVoicing has no Save button, and that is on purpose. Everything you do saves automatically, right in your browser, the moment you do it.</p>
+        <h3>How you can tell it is working</h3>
+        <p>While you edit, the header shows <strong>"All changes saved"</strong> (and a brief "Saving..." as it writes). Hover over it and the tooltip confirms: your work is saved automatically in this browser. There is nothing to remember to click and no unsaved-changes trap to fall into.</p>
+        <h3>What that means in practice</h3>
+        <ul>
+          <li><strong>Close the tab and come back and your piece is still there.</strong> Because the app remembers your last session, reopening the app on the same browser brings back the exact piece you were working on, along with your practice tempo, loop, and playback position. The welcome demo only appears on a genuinely first visit.</li>
+          <li><strong>No account, ever.</strong> You do not sign up, log in, or hand over an email. There is nothing to lock you out and nothing to lose a password to.</li>
+          <li><strong>It is per browser, per device.</strong> Your work lives in the browser you used, not in a cloud account. Open the app on a different computer, or a different browser, or a private/incognito window, and it starts fresh there. Clearing your browser's site data will also clear it.</li>
+        </ul>
+        <div class="my-5 border-l-2 border-brand bg-[#faf7f7] px-4 py-3 text-[.95rem]">
+          <strong class="text-ink">Important.</strong> Because it is local, keep copies of anything important. Autosave is a convenience, not a backup.
+        </div>
+        <p>To hold on to a piece, or to move it to another device or share it, use the <strong>File</strong> menu:</p>
+        <ul>
+          <li><strong>Save to My pieces</strong> keeps a named copy in the app's own library (the <strong>My pieces</strong> menu), so you can juggle several pieces without exporting each one.</li>
+          <li><strong>Export bundle</strong> writes a single self-contained <code>.ovb</code> file with the score, any recording, and the sync map. That file is yours: back it up, host it anywhere static, email it, or point the embeddable player at it. Anyone who opens it sees the same interactive piece, no account needed.</li>
+          <li><strong>Export MusicXML</strong> hands the notation to any other notation program.</li>
+        </ul>
+        <p>The short version: trust the autosave for day-to-day work, and export a bundle for anything you want to keep, move, or share.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="first-five-minutes" class="shell border-t border-hair">
+    <div class="grid grid-cols-12 gap-x-gutter py-[clamp(28px,4vw,52px)]">
+      <div class="col-span-full md:col-span-4">
+        <span class="text-[.72rem] font-semibold uppercase tracking-[.14em] text-brand tabular-nums">07</span>
+        <h2 class="mt-2 text-h3 font-semibold leading-tight tracking-[-.02em]">Your first five minutes</h2>
+        <p class="mt-2 text-[.9rem] text-grey">A quickstart: open, play, slow down, loop, edit, export.</p>
+      </div>
+      <div class="col-span-full md:col-start-6 md:col-span-7 mt-4 md:mt-0 max-w-[62ch] text-[clamp(1rem,1.4vw,1.1rem)] leading-relaxed text-grey [&_p]:mb-4 [&_strong]:text-ink [&_a]:border-b-2 [&_a]:border-brand [&_a]:text-ink [&_h3]:text-ink [&_h3]:font-semibold [&_h3]:mt-6 [&_h3]:mb-2 [&_h3]:text-[1.05rem] [&_code]:font-mono [&_code]:text-[.9em] [&_code]:text-ink [&_ol]:my-4 [&_ol]:list-decimal [&_ol]:pl-5 [&_ol>li]:mb-2 [&_ul]:my-4 [&_ul]:list-disc [&_ul]:pl-5 [&_ul>li]:mb-2">
+        <p>If you want the shortest path from opening the app to feeling capable, follow this.</p>
+        <ol>
+          <li><strong>Open the app</strong> and let the Bach Invention No. 8 demo load.</li>
+          <li><strong>Press the spacebar.</strong> Watch the highlighted note and the score scrolling to follow. Press space again to pause.</li>
+          <li><strong>Switch to Practice</strong> with the toggle near the top right. Press the speed minus button a few times, or press <strong>h</strong> for half speed, and play again: slower, same pitch.</li>
+          <li><strong>Loop a bit.</strong> Drag across a handful of notes, then play. It repeats. That is how you drill a hard passage.</li>
+          <li><strong>Peek at editing.</strong> Turn on <strong>Edit</strong>, click a note, and press an arrow key to nudge it. Press <code>Cmd/Ctrl+Z</code> to undo. Turn Edit back off.</li>
+          <li><strong>Bring in your own music.</strong> File &gt; <strong>Open score file</strong> for a MusicXML or Guitar Pro file, or File &gt; <strong>New score</strong> for a blank page.</li>
+          <li><strong>Relax about saving.</strong> Notice the header says "All changes saved." When you have something worth keeping, File &gt; <strong>Export bundle</strong> writes a portable <code>.ovb</code> you own.</li>
+        </ol>
+        <p>That is the whole loop: open, play, slow down, loop, edit, and export. Everything else in OpenVoicing is a deeper version of one of these steps.</p>
+        <div class="my-5 border-l-2 border-brand bg-[#faf7f7] px-4 py-3 text-[.95rem]">
+          <strong class="text-ink">Two help surfaces to remember.</strong> Press <code>?</code> at any time for the full keyboard shortcut sheet, or <code>Cmd/Ctrl+K</code> to search every action by name.
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="shell border-t border-ink py-[clamp(28px,4vw,52px)]">
+    <p class="text-[.72rem] font-semibold uppercase tracking-[.14em] text-grey mb-4">Keep going</p>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-x-gutter gap-y-6">
+      <a href="./practice.html" class="group block"><span class="text-[.82rem] text-grey">Next</span><h3 class="mt-1 text-[1.15rem] font-semibold group-hover:text-brand">Practice a piece &rarr;</h3><p class="mt-1 text-[.92rem] text-grey">Slow down, loop, count in, and sync a real recording or a YouTube video to the score.</p></a>
+      <a href="./publish.html" class="group block"><span class="text-[.82rem] text-grey">Then</span><h3 class="mt-1 text-[1.15rem] font-semibold group-hover:text-brand">Publish and share &rarr;</h3><p class="mt-1 text-[.92rem] text-grey">Export a self-contained .ovb bundle and embed the interactive player anywhere.</p></a>
+      <a href="./reference.html" class="group block"><span class="text-[.82rem] text-grey">Look up</span><h3 class="mt-1 text-[1.15rem] font-semibold group-hover:text-brand">Reference &rarr;</h3><p class="mt-1 text-[.92rem] text-grey">Every keyboard shortcut, menu, and file format in one place.</p></a>
+    </div>
+  </section>
+  </main>
+
+  <footer class="shell flex flex-wrap items-baseline justify-between gap-4 py-10 pb-16 border-t border-ink">
+    <span class="font-bold">OpenVoicing</span>
+    <span class="text-[.8rem] text-greymid">Free and open source · Engraving by alphaTab</span>
+    <span class="text-[.82rem] text-grey">
+      <a href="https://github.com/pjdoland/openvoicing" class="border-b border-hair hover:text-ink">GitHub</a>
+      &nbsp;
+      <a href="https://github.com/pjdoland/openvoicing/blob/main/docs/index.md" class="border-b border-hair hover:text-ink">Docs</a>
+      &nbsp;
+      <a href="./app/" class="border-b border-hair hover:text-ink">App</a>
+    </span>
+  </footer>
+</body>
+</html>

@@ -1,0 +1,407 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Reference · OpenVoicing</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23111'/%3E%3Ccircle cx='16' cy='16' r='7' fill='%23fff'/%3E%3C/svg%3E" />
+<meta name="description" content="The OpenVoicing reference desk: complete keyboard shortcuts, supported file formats, browser and device support, the blue, amber, and red sync-confidence flags, offline and install behavior, and a thorough FAQ." />
+<link rel="stylesheet" href="./style.css" />
+</head>
+<body class="bg-paper text-ink font-sans antialiased">
+  <header class="sticky top-0 z-20 bg-paper border-b border-ink">
+    <div class="shell flex items-center gap-x-6 h-15">
+      <a href="./" class="shrink-0 text-[1.05rem] font-bold tracking-tight">OpenVoicing</a>
+      <nav class="hidden md:flex gap-x-6 ml-3">
+        <a href="./start.html" class="text-[.82rem] text-grey hover:text-ink">Get started</a>
+        <a href="./practice.html" class="text-[.82rem] text-grey hover:text-ink">Practice</a>
+        <a href="./publish.html" class="text-[.82rem] text-grey hover:text-ink">Publish</a>
+        <a href="./why.html" class="text-[.82rem] text-grey hover:text-ink">Why open</a>
+        <a href="./reference.html" class="text-[.82rem] font-semibold text-ink">Reference</a>
+      </nav>
+      <span class="flex-1"></span>
+      <a href="https://github.com/pjdoland/openvoicing" class="hidden sm:inline text-[.82rem] text-grey hover:text-ink">GitHub</a>
+      <a href="./app/" class="whitespace-nowrap text-[.82rem] font-semibold border border-ink px-4 py-2 transition-colors hover:bg-ink hover:text-paper">Launch&nbsp;the&nbsp;app&nbsp;&rarr;</a>
+    </div>
+  </header>
+
+  <main>
+  <section class="shell grid grid-cols-12 gap-x-gutter pt-[clamp(40px,7vw,96px)] pb-[clamp(28px,4vw,56px)]">
+    <p class="col-span-full mb-1.5 flex items-center gap-x-3.5 text-[.72rem] font-semibold uppercase tracking-[.14em] text-grey">
+      Reference
+      <span class="h-px flex-1 bg-hair"></span>
+    </p>
+    <h1 class="col-span-full lg:col-span-9 m-0 text-[clamp(2rem,5vw,3.6rem)] font-bold leading-[1.02] tracking-[-.03em] text-balance">The reference desk</h1>
+    <p class="col-span-full md:col-span-8 mt-6 max-w-[54ch] text-[clamp(1.05rem,1.7vw,1.3rem)] leading-normal text-grey">Every shortcut, every format, every flag, in one place. This is where you look something up: the complete keyboard reference, what the app opens and exports, which browsers and devices work, what the sync colors mean, how offline and install behave, and answers to the questions people actually ask.</p>
+  </section>
+
+  <!-- 05.1 Keyboard shortcuts -->
+  <section id="keyboard-shortcuts" class="shell border-t border-hair">
+    <div class="grid grid-cols-12 gap-x-gutter py-[clamp(28px,4vw,52px)]">
+      <div class="col-span-full md:col-span-4">
+        <span class="text-[.72rem] font-semibold uppercase tracking-[.14em] text-brand tabular-nums">05.1</span>
+        <h2 class="mt-2 text-h3 font-semibold leading-tight tracking-[-.02em]">Keyboard shortcuts</h2>
+        <p class="mt-2 text-[.9rem] text-grey">For power users and anyone who would rather not reach for the mouse.</p>
+      </div>
+      <div class="col-span-full md:col-start-6 md:col-span-7 mt-4 md:mt-0 max-w-[62ch] text-[clamp(1rem,1.4vw,1.1rem)] leading-relaxed text-grey [&_p]:mb-4 [&_strong]:text-ink [&_a]:border-b-2 [&_a]:border-brand [&_a]:text-ink [&_h3]:text-ink [&_h3]:font-semibold [&_h3]:mt-6 [&_h3]:mb-2 [&_h3]:text-[1.05rem] [&_code]:font-mono [&_code]:text-[.9em] [&_code]:text-ink [&_ol]:my-4 [&_ol]:list-decimal [&_ol]:pl-5 [&_ol>li]:mb-2 [&_ul]:my-4 [&_ul]:list-disc [&_ul]:pl-5 [&_ul>li]:mb-2 [&_kbd]:font-mono [&_kbd]:text-ink [&_kbd]:text-[.9em]">
+        <p>OpenVoicing is built to run from the keyboard. Almost every action has a shortcut, and if you forget one you never have to leave the app to find it. Press <kbd>?</kbd> at any time to open the in-app shortcut sheet, which is the authoritative source; the tables below mirror it. If you would rather search for an action by name than memorize a key, press <kbd>Cmd+K</kbd> (macOS) or <kbd>Ctrl+K</kbd> (Windows and Linux) to open the command palette and type what you want to do.</p>
+        <p>A note on the modifier keys used below: <strong>Cmd</strong> is the Command key on macOS, and its equivalent on Windows and Linux is <strong>Ctrl</strong>. Where a shortcut uses Shift, hold Shift together with the listed key.</p>
+
+        <h3>Transport (works in every mode)</h3>
+        <p>These control playback and are available whether you are in Listen, Practice, or Edit.</p>
+        <div class="my-5 overflow-x-auto">
+          <table class="w-full border-collapse text-[.92rem]">
+            <thead><tr class="border-b border-ink text-left"><th class="py-2 pr-4 font-semibold">Key</th><th class="py-2 font-semibold">Action</th></tr></thead>
+            <tbody>
+              <tr class="border-b border-hair"><td class="py-2 pr-4"><kbd class="font-mono text-ink">Space</kbd></td><td class="py-2">Play or pause</td></tr>
+              <tr class="border-b border-hair"><td class="py-2 pr-4"><kbd class="font-mono text-ink">&minus; / +</kbd></td><td class="py-2">Slow down or speed up by 5% (pitch stays the same)</td></tr>
+              <tr class="border-b border-hair"><td class="py-2 pr-4"><kbd class="font-mono text-ink">h</kbd></td><td class="py-2">Toggle half speed</td></tr>
+              <tr class="border-b border-hair"><td class="py-2 pr-4"><kbd class="font-mono text-ink">[</kbd></td><td class="py-2">Set the loop start at the current playhead (during playback)</td></tr>
+              <tr class="border-b border-hair"><td class="py-2 pr-4"><kbd class="font-mono text-ink">]</kbd></td><td class="py-2">Set the loop end at the current playhead (during playback)</td></tr>
+              <tr class="border-b border-hair"><td class="py-2 pr-4"><kbd class="font-mono text-ink">1 to 9</kbd></td><td class="py-2">Recall a saved loop</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="my-5 border-l-2 border-brand bg-[#faf7f7] px-4 py-3 text-[.95rem]">
+          <strong class="text-ink">Tip.</strong> Because <kbd class="font-mono text-ink">&minus;</kbd> and <kbd class="font-mono text-ink">+</kbd> move in 5% steps, you can creep a hard passage down to a tempo you can actually play, then nudge it back up 5% at a time as you get comfortable. The pitch never shifts, so the music stays in tune at every speed.
+        </div>
+
+        <h3>Sync (aligning a recording to the score)</h3>
+        <p>Use these in Practice mode when you have a recording or a YouTube video attached and you are placing or fixing sync points.</p>
+        <div class="my-5 overflow-x-auto">
+          <table class="w-full border-collapse text-[.92rem]">
+            <thead><tr class="border-b border-ink text-left"><th class="py-2 pr-4 font-semibold">Key</th><th class="py-2 font-semibold">Action</th></tr></thead>
+            <tbody>
+              <tr class="border-b border-hair"><td class="py-2 pr-4"><kbd class="font-mono text-ink">p</kbd></td><td class="py-2">Plant a sync point at the playhead (this is how you tap sync bar by bar)</td></tr>
+              <tr class="border-b border-hair"><td class="py-2 pr-4"><kbd class="font-mono text-ink">Cmd/Ctrl+Z</kbd></td><td class="py-2">Undo a sync edit</td></tr>
+              <tr class="border-b border-hair"><td class="py-2 pr-4"><kbd class="font-mono text-ink">&larr; / &rarr;</kbd></td><td class="py-2">Nudge a focused sync marker earlier or later</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="my-5 border-l-2 border-brand bg-[#faf7f7] px-4 py-3 text-[.95rem]">
+          <strong class="text-ink">Tip.</strong> To tap sync a recording, press play and press <kbd class="font-mono text-ink">p</kbd> on each bar's downbeat as it goes by. If one marker lands slightly off, click it to focus it and use the arrow keys to nudge it into place rather than redoing the whole pass.
+        </div>
+
+        <h3>Editor (Edit mode only)</h3>
+        <p>Turn on Edit (top-right) to use these. Many of them assume a note is selected or that you are in note-input mode (press <kbd>N</kbd> to enter it, where typing pitches places notes and advances automatically).</p>
+        <div class="my-5 overflow-x-auto">
+          <table class="w-full border-collapse text-[.92rem]">
+            <thead><tr class="border-b border-ink text-left"><th class="py-2 pr-4 font-semibold">Key</th><th class="py-2 font-semibold">Action</th></tr></thead>
+            <tbody>
+              <tr class="border-b border-hair"><td class="py-2 pr-4"><kbd class="font-mono text-ink">a to g</kbd></td><td class="py-2">Set the pitch of the selected or next note</td></tr>
+              <tr class="border-b border-hair"><td class="py-2 pr-4"><kbd class="font-mono text-ink">Shift+a to g</kbd></td><td class="py-2">Add a note to the current chord</td></tr>
+              <tr class="border-b border-hair"><td class="py-2 pr-4"><kbd class="font-mono text-ink">&larr; / &rarr;</kbd></td><td class="py-2">Move the selection to the previous or next note</td></tr>
+              <tr class="border-b border-hair"><td class="py-2 pr-4"><kbd class="font-mono text-ink">Shift+&larr; / &rarr;</kbd></td><td class="py-2">Extend the selection</td></tr>
+              <tr class="border-b border-hair"><td class="py-2 pr-4"><kbd class="font-mono text-ink">&uarr; / &darr;</kbd></td><td class="py-2">Transpose the note up or down (hold Shift for a whole octave)</td></tr>
+              <tr class="border-b border-hair"><td class="py-2 pr-4"><kbd class="font-mono text-ink">1 2 4 8 6 3</kbd></td><td class="py-2">Set the note value (whole, half, quarter, eighth, sixteenth, and so on)</td></tr>
+              <tr class="border-b border-hair"><td class="py-2 pr-4"><kbd class="font-mono text-ink">.</kbd></td><td class="py-2">Toggle a dot on the note value</td></tr>
+              <tr class="border-b border-hair"><td class="py-2 pr-4"><kbd class="font-mono text-ink">+ / &minus;</kbd></td><td class="py-2">Sharpen or flatten the note</td></tr>
+              <tr class="border-b border-hair"><td class="py-2 pr-4"><kbd class="font-mono text-ink">Shift+3</kbd></td><td class="py-2">Toggle a triplet</td></tr>
+              <tr class="border-b border-hair"><td class="py-2 pr-4"><kbd class="font-mono text-ink">r</kbd></td><td class="py-2">Turn the selection into a rest</td></tr>
+              <tr class="border-b border-hair"><td class="py-2 pr-4"><kbd class="font-mono text-ink">b</kbd></td><td class="py-2">Repeat the previous bar</td></tr>
+              <tr class="border-b border-hair"><td class="py-2 pr-4"><kbd class="font-mono text-ink">t</kbd></td><td class="py-2">Tie to the next note</td></tr>
+              <tr class="border-b border-hair"><td class="py-2 pr-4"><kbd class="font-mono text-ink">j</kbd></td><td class="py-2">Respell the note enharmonically (for example G-sharp to A-flat)</td></tr>
+              <tr class="border-b border-hair"><td class="py-2 pr-4"><kbd class="font-mono text-ink">l</kbd></td><td class="py-2">Edit the lyric under the note</td></tr>
+              <tr class="border-b border-hair"><td class="py-2 pr-4"><kbd class="font-mono text-ink">i</kbd></td><td class="py-2">Insert a beat</td></tr>
+              <tr class="border-b border-hair"><td class="py-2 pr-4"><kbd class="font-mono text-ink">x</kbd></td><td class="py-2">Delete a beat</td></tr>
+              <tr class="border-b border-hair"><td class="py-2 pr-4"><kbd class="font-mono text-ink">Cmd/Ctrl+C</kbd></td><td class="py-2">Copy</td></tr>
+              <tr class="border-b border-hair"><td class="py-2 pr-4"><kbd class="font-mono text-ink">Cmd/Ctrl+X</kbd></td><td class="py-2">Cut</td></tr>
+              <tr class="border-b border-hair"><td class="py-2 pr-4"><kbd class="font-mono text-ink">Cmd/Ctrl+V</kbd></td><td class="py-2">Paste</td></tr>
+              <tr class="border-b border-hair"><td class="py-2 pr-4"><kbd class="font-mono text-ink">Cmd/Ctrl+Z</kbd></td><td class="py-2">Undo (add Shift to redo)</td></tr>
+              <tr class="border-b border-hair"><td class="py-2 pr-4"><kbd class="font-mono text-ink">Esc</kbd></td><td class="py-2">Deselect</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p>A word on Delete in Edit mode: pressing Delete does not remove a note from the bar; it clears the selected note to a rest, and that is fully undoable with <kbd>Cmd/Ctrl+Z</kbd>. This keeps the bar's rhythm intact so you do not accidentally shift everything after it.</p>
+
+        <h3>General</h3>
+        <div class="my-5 overflow-x-auto">
+          <table class="w-full border-collapse text-[.92rem]">
+            <thead><tr class="border-b border-ink text-left"><th class="py-2 pr-4 font-semibold">Key</th><th class="py-2 font-semibold">Action</th></tr></thead>
+            <tbody>
+              <tr class="border-b border-hair"><td class="py-2 pr-4"><kbd class="font-mono text-ink">?</kbd></td><td class="py-2">Show the shortcut sheet</td></tr>
+              <tr class="border-b border-hair"><td class="py-2 pr-4"><kbd class="font-mono text-ink">Cmd/Ctrl+K</kbd></td><td class="py-2">Open the command palette (search every action by name)</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p>If you are ever unsure whether an action has a shortcut, open the command palette: it lists actions with their bound keys, so it doubles as a discoverable menu of everything the app can do.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 05.2 Supported file formats -->
+  <section id="file-formats" class="shell border-t border-hair">
+    <div class="grid grid-cols-12 gap-x-gutter py-[clamp(28px,4vw,52px)]">
+      <div class="col-span-full md:col-span-4">
+        <span class="text-[.72rem] font-semibold uppercase tracking-[.14em] text-brand tabular-nums">05.2</span>
+        <h2 class="mt-2 text-h3 font-semibold leading-tight tracking-[-.02em]">Supported file formats</h2>
+        <p class="mt-2 text-[.9rem] text-grey">What you can open and what you can export.</p>
+      </div>
+      <div class="col-span-full md:col-start-6 md:col-span-7 mt-4 md:mt-0 max-w-[62ch] text-[clamp(1rem,1.4vw,1.1rem)] leading-relaxed text-grey [&_p]:mb-4 [&_strong]:text-ink [&_a]:border-b-2 [&_a]:border-brand [&_a]:text-ink [&_h3]:text-ink [&_h3]:font-semibold [&_h3]:mt-6 [&_h3]:mb-2 [&_h3]:text-[1.05rem] [&_code]:font-mono [&_code]:text-[.9em] [&_code]:text-ink [&_ol]:my-4 [&_ol]:list-decimal [&_ol]:pl-5 [&_ol>li]:mb-2 [&_ul]:my-4 [&_ul]:list-disc [&_ul]:pl-5 [&_ul>li]:mb-2">
+        <p>OpenVoicing reads standard notation formats so you can bring in music you already have, and it exports formats that keep your work portable and yours.</p>
+
+        <h3>Files you can open</h3>
+        <p>Choose <strong>File &rarr; Open score file</strong> and pick any of these:</p>
+        <div class="my-5 overflow-x-auto">
+          <table class="w-full border-collapse text-[.92rem]">
+            <thead><tr class="border-b border-ink text-left"><th class="py-2 pr-4 font-semibold">Format</th><th class="py-2 pr-4 font-semibold">Extensions</th><th class="py-2 font-semibold">Notes</th></tr></thead>
+            <tbody>
+              <tr class="border-b border-hair"><td class="py-2 pr-4">MusicXML</td><td class="py-2 pr-4"><code>.musicxml</code>, <code>.xml</code>, <code>.mxl</code></td><td class="py-2">The interchange format almost every notation app exports. Uncompressed, older, and compressed variants all open.</td></tr>
+              <tr class="border-b border-hair"><td class="py-2 pr-4">Guitar Pro</td><td class="py-2 pr-4">Guitar Pro files</td><td class="py-2">Tab and multi-track guitar arrangements come in with their tracks intact.</td></tr>
+              <tr class="border-b border-hair"><td class="py-2 pr-4">OpenVoicing bundle</td><td class="py-2 pr-4"><code>.ovb</code></td><td class="py-2">The app's own portable package. Restores the score, any packed recordings, and the sync map exactly as saved.</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p>If your notation software (Finale, Sibelius, MuseScore, Dorico, and others) can export MusicXML, OpenVoicing can open it. If you want to start from nothing instead, choose <strong>File &rarr; New score</strong> for a blank piece.</p>
+
+        <h3>Files you can export</h3>
+        <div class="my-5 overflow-x-auto">
+          <table class="w-full border-collapse text-[.92rem]">
+            <thead><tr class="border-b border-ink text-left"><th class="py-2 pr-4 font-semibold">Export</th><th class="py-2 pr-4 font-semibold">Menu</th><th class="py-2 font-semibold">What it contains</th></tr></thead>
+            <tbody>
+              <tr class="border-b border-hair"><td class="py-2 pr-4"><code>.ovb</code> bundle</td><td class="py-2 pr-4">File &rarr; Export bundle</td><td class="py-2">The whole interactive piece: score, any recording, and the sync map together in one self-contained file.</td></tr>
+              <tr class="border-b border-hair"><td class="py-2 pr-4">Plain MusicXML</td><td class="py-2 pr-4">File &rarr; Export</td><td class="py-2">The score alone, to reopen in another notation app. Drops the recording and sync (those are OpenVoicing concepts) but preserves the notation.</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p>Anyone with the <code>.ovb</code> file, or an embedded player pointed at it, sees the identical interactive piece with no account required. Under the hood a bundle is a standard ZIP archive with a <code>manifest.json</code> at its root, so it is a normal, inspectable file, not a black box.</p>
+
+        <h3>What lives inside a bundle</h3>
+        <p>A bundle's manifest records the score type (one of <code>musicxml</code>, <code>guitarpro</code>, or <code>alphatex</code>) and a list of recordings. Each recording is either an <strong>audio</strong> take packed inside the archive or a <strong>youtube</strong> reference to a video by id. When any recording points at media that is not packed inside the file (a YouTube video), the bundle is marked <strong>external</strong>, which signals that it needs a network connection to play and can break if that video is later removed. Audio-only bundles carry everything inside themselves and stay fully self-contained.</p>
+
+        <h3>Audio formats inside a bundle</h3>
+        <p>When you add an audio recording, the safe and recommended choice is <strong>MP3</strong>, because it decodes in every major browser (this is specifically why recordings play in Safari; see browser and device support). The format also accepts other widely decodable audio: Ogg Vorbis, FLAC, and WAV. Browser-based playback decodes audio through the Web Audio API, so anything the platform's decoder accepts will work, but MP3 is the most universally safe.</p>
+        <div class="my-5 border-l-2 border-brand bg-[#faf7f7] px-4 py-3 text-[.95rem]">
+          <strong class="text-ink">Tip.</strong> If you build bundles from the command line, the <code class="font-mono text-ink">ovb</code> CLI (<code class="font-mono text-ink">ovb create</code>) takes the same score formats and an optional <code class="font-mono text-ink">--recording</code> audio file or <code class="font-mono text-ink">--youtube</code> link, and <code class="font-mono text-ink">ovb validate</code> checks that a bundle is well-formed before you host it.
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 05.3 Browser and device support -->
+  <section id="browser-support" class="shell border-t border-hair">
+    <div class="grid grid-cols-12 gap-x-gutter py-[clamp(28px,4vw,52px)]">
+      <div class="col-span-full md:col-span-4">
+        <span class="text-[.72rem] font-semibold uppercase tracking-[.14em] text-brand tabular-nums">05.3</span>
+        <h2 class="mt-2 text-h3 font-semibold leading-tight tracking-[-.02em]">Browser and device support</h2>
+        <p class="mt-2 text-[.9rem] text-grey">Runs in the browser, plays in Safari, works on phones.</p>
+      </div>
+      <div class="col-span-full md:col-start-6 md:col-span-7 mt-4 md:mt-0 max-w-[62ch] text-[clamp(1rem,1.4vw,1.1rem)] leading-relaxed text-grey [&_p]:mb-4 [&_strong]:text-ink [&_a]:border-b-2 [&_a]:border-brand [&_a]:text-ink [&_h3]:text-ink [&_h3]:font-semibold [&_h3]:mt-6 [&_h3]:mb-2 [&_h3]:text-[1.05rem] [&_code]:font-mono [&_code]:text-[.9em] [&_code]:text-ink [&_ol]:my-4 [&_ol]:list-decimal [&_ol]:pl-5 [&_ol>li]:mb-2 [&_ul]:my-4 [&_ul]:list-disc [&_ul]:pl-5 [&_ul>li]:mb-2">
+        <p>OpenVoicing runs entirely in the browser. There is nothing to install to use it, though you can install it as an app if you want (see offline use and installing).</p>
+
+        <h3>Supported browsers</h3>
+        <p>The app targets current versions of the major browsers:</p>
+        <ul>
+          <li><strong>Google Chrome</strong> (and Chromium-based browsers such as Microsoft Edge and Brave)</li>
+          <li><strong>Mozilla Firefox</strong></li>
+          <li><strong>Apple Safari</strong> on macOS and iOS</li>
+        </ul>
+        <p>Use an up-to-date version. The app relies on modern web platform features (the Web Audio API for playback and pitch-preserving time-stretch, service workers for offline use, and standard ES modules), all of which are well supported in recent releases of these browsers.</p>
+
+        <h3>Why recordings play in Safari: they are MP3</h3>
+        <p>Synced audio recordings are stored as <strong>MP3</strong>, and that is a deliberate choice. MP3 decodes natively in Safari, Chrome, and Firefox alike, so a bundle with an audio recording plays the same in all three. This matters most for Safari and iOS users, where more exotic audio codecs are not guaranteed to decode. If you author bundles yourself, sticking with MP3 audio is the single best thing you can do to make sure your piece plays for everyone, including people on iPhones and iPads.</p>
+        <p>Playback decodes through the Web Audio API, so any format the browser's own decoder accepts will also work (Ogg Vorbis, FLAC, WAV), but those are not universal across Safari the way MP3 is.</p>
+
+        <h3>Notes playback and the soundfont</h3>
+        <p>When you choose to hear the computer play the written notation (the <strong>Notes</strong> source, as opposed to a real recording), the sound comes from a General MIDI soundfont that is about 24 MB. The first time you use Notes playback the browser downloads that soundfont, so the very first note can be silent or slightly delayed while it loads. After that it is cached and plays instantly. If Notes playback is quiet or slow on first use, this download is almost always the reason; give it a moment.</p>
+
+        <h3>YouTube-synced pieces need a connection</h3>
+        <p>A piece synced to a YouTube video plays that video through YouTube's official embedded player. The video is embedded, never downloaded, so a YouTube-backed piece needs an internet connection to play and will not work offline. Audio-file recordings, by contrast, are packed into the bundle and play offline. If you embed such a piece on your own site behind a Content-Security-Policy, your host must allow framing <code>https://www.youtube-nocookie.com</code>.</p>
+
+        <h3>Autoplay</h3>
+        <p>Browsers block audio from starting until you interact with the page. This is a browser policy, not a bug: the first press of Play (or the spacebar) is the gesture that unlocks sound, and everything plays normally from there.</p>
+
+        <h3>Mobile and touch</h3>
+        <p>The app works on phones and tablets, including iOS Safari. Touch works for the things you would expect (tapping Play, dragging to select a loop, tapping sync points). Full editing is more comfortable on a device with a physical keyboard, since the editor leans heavily on keyboard shortcuts, but playing and practicing are entirely usable by touch.</p>
+
+        <h3>At a glance</h3>
+        <div class="my-5 overflow-x-auto">
+          <table class="w-full border-collapse text-[.92rem]">
+            <thead><tr class="border-b border-ink text-left"><th class="py-2 pr-4 font-semibold">Capability</th><th class="py-2 font-semibold">Support</th></tr></thead>
+            <tbody>
+              <tr class="border-b border-hair"><td class="py-2 pr-4">Chrome, Edge, Brave</td><td class="py-2">Full support, current versions</td></tr>
+              <tr class="border-b border-hair"><td class="py-2 pr-4">Firefox</td><td class="py-2">Full support, current versions</td></tr>
+              <tr class="border-b border-hair"><td class="py-2 pr-4">Safari, macOS and iOS</td><td class="py-2">Full support; MP3 audio decodes natively</td></tr>
+              <tr class="border-b border-hair"><td class="py-2 pr-4">Phones and tablets</td><td class="py-2">Play and practice by touch; editing best with a keyboard</td></tr>
+              <tr class="border-b border-hair"><td class="py-2 pr-4">Audio-only bundles</td><td class="py-2">Play offline once cached</td></tr>
+              <tr class="border-b border-hair"><td class="py-2 pr-4">YouTube-synced pieces</td><td class="py-2">Need a network connection</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 05.4 Sync-confidence flags -->
+  <section id="sync-flags" class="shell border-t border-hair">
+    <div class="grid grid-cols-12 gap-x-gutter py-[clamp(28px,4vw,52px)]">
+      <div class="col-span-full md:col-span-4">
+        <span class="text-[.72rem] font-semibold uppercase tracking-[.14em] text-brand tabular-nums">05.4</span>
+        <h2 class="mt-2 text-h3 font-semibold leading-tight tracking-[-.02em]">Sync-confidence flags</h2>
+        <p class="mt-2 text-[.9rem] text-grey">What the blue, amber, and red numbers over each bar mean.</p>
+      </div>
+      <div class="col-span-full md:col-start-6 md:col-span-7 mt-4 md:mt-0 max-w-[62ch] text-[clamp(1rem,1.4vw,1.1rem)] leading-relaxed text-grey [&_p]:mb-4 [&_strong]:text-ink [&_a]:border-b-2 [&_a]:border-brand [&_a]:text-ink [&_h3]:text-ink [&_h3]:font-semibold [&_h3]:mt-6 [&_h3]:mb-2 [&_h3]:text-[1.05rem] [&_code]:font-mono [&_code]:text-[.9em] [&_code]:text-ink [&_ol]:my-4 [&_ol]:list-decimal [&_ol]:pl-5 [&_ol>li]:mb-2 [&_ul]:my-4 [&_ul]:list-disc [&_ul]:pl-5 [&_ul>li]:mb-2">
+        <p>When you align a real recording (or a YouTube video) to the score, OpenVoicing shows a colored number above each bar on the waveform. These are <strong>sync-confidence flags</strong>. They are a quick visual read on how evenly each bar's sync marker is spaced relative to its neighbors, so you can spot a marker that may have landed in the wrong place without listening to the whole thing.</p>
+
+        <h3>What each color means</h3>
+        <div class="my-5 overflow-x-auto">
+          <table class="w-full border-collapse text-[.92rem]">
+            <thead><tr class="border-b border-ink text-left"><th class="py-2 pr-4 font-semibold">Flag</th><th class="py-2 pr-4 font-semibold">Meaning</th><th class="py-2 font-semibold">What to do</th></tr></thead>
+            <tbody>
+              <tr class="border-b border-hair"><td class="py-2 pr-4"><strong>Blue</strong></td><td class="py-2 pr-4">Well aligned. Spaced consistently with the bars around it.</td><td class="py-2">Nothing. Most bars in a clean sync are blue.</td></tr>
+              <tr class="border-b border-hair"><td class="py-2 pr-4"><strong>Amber</strong></td><td class="py-2 pr-4">Worth a glance. Spacing is a little different from its neighbors.</td><td class="py-2">Check it: slightly misaligned, or a genuine musical event.</td></tr>
+              <tr class="border-b border-hair"><td class="py-2 pr-4"><strong>Red</strong></td><td class="py-2 pr-4">Probably off. Spacing is noticeably out of pattern.</td><td class="py-2">A likely candidate to drag or nudge into place.</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3>Why a real performance can legitimately flag amber or red</h3>
+        <p>The flags measure evenness, not correctness, so a bar can be flagged and still be perfectly synced. A genuine tempo change, a ritardando, a fermata, or expressive rubato will make one bar's marker sit at a different spacing than the bars around it, and that shows up as amber or red even though nothing is wrong. In other words, the colors point you at bars to check, not bars that are definitely broken. Trust your ears: if a flagged bar sounds aligned when you play it back with the score, it is fine.</p>
+
+        <h3>How to fix a bar that really is off</h3>
+        <ol>
+          <li>Play the passage back with <strong>Follow</strong> turned on so the cursor tracks the recording.</li>
+          <li>When the cursor drifts from the note you actually hear, note which bar is off (its flag is usually amber or red).</li>
+          <li>Click that bar's sync marker to focus it.</li>
+          <li>Nudge it with the <strong>&larr; / &rarr;</strong> arrow keys until the cursor lands on the beat, or drag the marker into place on the waveform.</li>
+          <li>If you make a mistake, <strong>Cmd/Ctrl+Z</strong> undoes the sync edit.</li>
+        </ol>
+        <div class="my-5 border-l-2 border-brand bg-[#faf7f7] px-4 py-3 text-[.95rem]">
+          <strong class="text-ink">Tip.</strong> Auto sync (available when you attach an audio file) places all the markers at once and usually produces a wall of blue. Tap sync, where you press <code class="font-mono text-ink">p</code> on each downbeat, is more prone to the odd stray marker, so amber and red are most useful for cleaning up a tapped pass.
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 05.5 Offline and install -->
+  <section id="offline-install" class="shell border-t border-hair">
+    <div class="grid grid-cols-12 gap-x-gutter py-[clamp(28px,4vw,52px)]">
+      <div class="col-span-full md:col-span-4">
+        <span class="text-[.72rem] font-semibold uppercase tracking-[.14em] text-brand tabular-nums">05.5</span>
+        <h2 class="mt-2 text-h3 font-semibold leading-tight tracking-[-.02em]">Offline use and installing</h2>
+        <p class="mt-2 text-[.9rem] text-grey">Autosave, offline behavior, and installing it as an app.</p>
+      </div>
+      <div class="col-span-full md:col-start-6 md:col-span-7 mt-4 md:mt-0 max-w-[62ch] text-[clamp(1rem,1.4vw,1.1rem)] leading-relaxed text-grey [&_p]:mb-4 [&_strong]:text-ink [&_a]:border-b-2 [&_a]:border-brand [&_a]:text-ink [&_h3]:text-ink [&_h3]:font-semibold [&_h3]:mt-6 [&_h3]:mb-2 [&_h3]:text-[1.05rem] [&_code]:font-mono [&_code]:text-[.9em] [&_code]:text-ink [&_ol]:my-4 [&_ol]:list-decimal [&_ol]:pl-5 [&_ol>li]:mb-2 [&_ul]:my-4 [&_ul]:list-disc [&_ul]:pl-5 [&_ul>li]:mb-2">
+        <p>OpenVoicing is a Progressive Web App (PWA). In practice that means two things: your work is saved automatically without any account, and after your first visit the app itself works offline.</p>
+
+        <h3>Autosave: there is no Save button</h3>
+        <p>Everything you do saves automatically to your browser as you go. The header shows <strong>"All changes saved."</strong> so you always know your work is captured. There is deliberately no Save button to hunt for. If you reload the page or come back later, your last session is restored right where you left it. Because this storage lives in your browser, it is tied to that browser on that device; to keep a copy, move a piece to another machine, or hand it to someone else, export an <code>.ovb</code> bundle (or MusicXML for the score alone).</p>
+        <div class="my-5 border-l-2 border-brand bg-[#faf7f7] px-4 py-3 text-[.95rem]">
+          <strong class="text-ink">Caveat.</strong> Since your work lives in the browser's storage, clearing your browsing data or site data for the app will erase saved pieces. Export a bundle before you clear browser data if you want to keep anything.
+        </div>
+
+        <h3>Working offline</h3>
+        <p>The app is cached on your first visit, so it loads and runs without a connection after that. The notation renderer, its worker and fonts, the interface, and any audio-only bundles all work offline. Two things do need the network:</p>
+        <ul>
+          <li><strong>YouTube-synced pieces</strong>, because the video streams from YouTube and is never downloaded. Offline, the score still opens but the video will not play. Pieces backed by an audio file packed into the bundle play fully offline.</li>
+          <li><strong>The first Notes-playback soundfont download</strong>. The General MIDI soundfont is about 24 MB, too large to preload, so it is fetched and cached the first time you use Notes playback. Do that once while online and it is available offline afterward.</li>
+        </ul>
+
+        <h3>Installing it as a standalone app</h3>
+        <p>Because it is a PWA, you can install OpenVoicing to your desktop or home screen and launch it in its own window like a native app:</p>
+        <ol>
+          <li>Open the app in Chrome, Edge, or Safari.</li>
+          <li>In Chrome or Edge, use the install icon in the address bar (or the browser menu's "Install" option).</li>
+          <li>On iOS Safari, use the Share sheet and choose "Add to Home Screen."</li>
+          <li>Launch it from your dock, taskbar, or home screen; it opens in a clean standalone window.</li>
+        </ol>
+
+        <h3>Updates and stale caches</h3>
+        <p>The app updates itself: when a new version is deployed, the service worker picks it up on your next load and refreshes the cache. If you ever suspect you are seeing an old version after an update, a hard reload forces it to update immediately. This is the fix behind the classic "old version keeps loading" symptom.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 05.6 FAQ -->
+  <section id="faq" class="shell border-t border-hair">
+    <div class="grid grid-cols-12 gap-x-gutter py-[clamp(28px,4vw,52px)]">
+      <div class="col-span-full md:col-span-4">
+        <span class="text-[.72rem] font-semibold uppercase tracking-[.14em] text-brand tabular-nums">05.6</span>
+        <h2 class="mt-2 text-h3 font-semibold leading-tight tracking-[-.02em]">Frequently asked questions</h2>
+        <p class="mt-2 text-[.9rem] text-grey">The questions real users, teachers, and developers ask.</p>
+      </div>
+      <div class="col-span-full md:col-start-6 md:col-span-7 mt-4 md:mt-0 max-w-[62ch] text-[clamp(1rem,1.4vw,1.1rem)] leading-relaxed text-grey [&_p]:mb-4 [&_strong]:text-ink [&_a]:border-b-2 [&_a]:border-brand [&_a]:text-ink [&_h3]:text-ink [&_h3]:font-semibold [&_h3]:mt-6 [&_h3]:mb-2 [&_h3]:text-[1.05rem] [&_code]:font-mono [&_code]:text-[.9em] [&_code]:text-ink [&_ol]:my-4 [&_ol]:list-decimal [&_ol]:pl-5 [&_ol>li]:mb-2 [&_ul]:my-4 [&_ul]:list-disc [&_ul]:pl-5 [&_ul>li]:mb-2">
+        <h3>Does slowing down change the pitch?</h3>
+        <p>No. Speed and pitch are independent. Slowing the tempo keeps every note at its correct pitch, for both the notation playback and a synced recording. You can drop a passage to 50% or even 25% and it stays in tune, which is what makes it useful for learning by ear.</p>
+
+        <h3>What is the slowest and fastest I can go?</h3>
+        <p>Speed ranges from 25% (0.25x) up to 150% (1.5x). The <code>&minus;</code> / <code>+</code> buttons and keys move in 5% steps for fine control, and pressing <code>h</code> toggles half speed as a quick shortcut. When a piece is synced to a YouTube video, speed snaps to YouTube's own steps (0.25x, 0.5x, and so on) because the video player controls playback.</p>
+
+        <h3>Where are my changes saved? Is there a Save button?</h3>
+        <p>There is no Save button. Everything autosaves to your browser automatically, and the header shows "All changes saved." Reloading restores your last session. To keep a copy or move it elsewhere, export an <code>.ovb</code> bundle or MusicXML.</p>
+
+        <h3>Do I need an account or an internet connection?</h3>
+        <p>No account, ever. After your first visit the app itself works offline, and pieces with an audio recording packed inside them play offline too. The only things that need a connection are YouTube-synced pieces (the video streams from YouTube) and the one-time download of the soundfont used for Notes playback.</p>
+
+        <h3>What files can I open?</h3>
+        <p>MusicXML (<code>.musicxml</code>, <code>.xml</code>, <code>.mxl</code>), Guitar Pro files, and OpenVoicing <code>.ovb</code> bundles. You can also start a blank piece with File &rarr; New score.</p>
+
+        <h3>What can I export?</h3>
+        <p>An <code>.ovb</code> bundle (the whole interactive piece: score, recording, and sync in one self-contained file) or plain MusicXML (the score alone, to open in other notation apps).</p>
+
+        <h3>Can I share a piece without the app?</h3>
+        <p>Yes. Export an <code>.ovb</code> bundle. It is a single self-contained file that holds the score, recording, and sync. Share the file, or embed the player pointed at it. Anyone who opens it sees the same interactive piece, no account needed.</p>
+
+        <h3>What is the default demo piece?</h3>
+        <p>When you first open the app, a demo loads so you can try everything right away. The default is Bach's Invention No. 8, a score with a synced audio recording, so you can press play, slow it down, loop a passage, and see the notation follow a real performance without importing anything of your own first.</p>
+
+        <h3>What are the Listen, Practice, and Edit modes?</h3>
+        <p><strong>Listen</strong> is a clean player for just viewing and playing. <strong>Practice</strong> reveals the practice tools: tempo, looping, count-in, metronome, and recording sync. <strong>Edit</strong> turns the piece into a full notation editor where you can change notes, voices, ornaments, and dynamics. You switch modes with the toggle in the top-right.</p>
+
+        <h3>Why is a bar marked amber or red?</h3>
+        <p>Those are sync-confidence flags. Amber or red means that bar's sync marker is spaced differently from its neighbors, so it might be misaligned, or it might be a real tempo change, fermata, or rubato. Blue means it looks well aligned. See sync-confidence flags for how to check and fix a bar.</p>
+
+        <h3>What is the difference between Auto sync and tap sync?</h3>
+        <p>Auto sync aligns a recording to the score automatically and lines up every bar at once; it is available when you attach an audio file. Tap sync is manual: you press play and tap each bar's downbeat (the <code>p</code> key) as it goes by. YouTube videos are synced by tapping, unless you also attach an audio file of the same performance to unlock Auto sync and a waveform.</p>
+
+        <h3>Can I sync the score to a YouTube video?</h3>
+        <p>Yes. In the Recording and sync panel, choose Add &rarr; YouTube video and paste a link or video id. The video appears above the score and the notation follows it as it plays. Because the video streams from YouTube, a bundle that references it is marked external: it needs a connection and breaks if the video is later removed. For a waveform and Auto sync (and finer speed), you can additionally attach an audio file of the same performance.</p>
+
+        <h3>Why does audio only start after I click?</h3>
+        <p>Browsers block sound until you interact with the page. Your first press of Play (or the spacebar) is the gesture that unlocks audio. This is expected browser behavior, not a fault in the app.</p>
+
+        <h3>Notes playback is silent or slow at first. Why?</h3>
+        <p>Notes playback uses a General MIDI soundfont of about 24 MB that downloads the first time you use it. The first note can be quiet or delayed while it loads, then it is cached and plays instantly afterward. Do this once while online and it works offline later.</p>
+
+        <h3>Will a recording play in Safari and on my iPhone?</h3>
+        <p>Yes, as long as the audio is MP3, which is the recommended and default choice. MP3 decodes in Safari, Chrome, and Firefox, so audio recordings play everywhere, including iOS.</p>
+
+        <h3>Can I use the app without a mouse?</h3>
+        <p>Largely, yes. Most actions have keyboard shortcuts, and Cmd/Ctrl+K opens a command palette that searches every action by name. The editor in particular is designed around the keyboard.</p>
+
+        <h3>I updated but keep seeing the old version. What do I do?</h3>
+        <p>That is the service worker cache serving the previous version. It updates on your next load, but you can force it immediately with a hard reload.</p>
+
+        <h3>Is it really free and open source?</h3>
+        <p>Yes. The app and format are open source. The bundle format is an open, documented spec, and a bundle is a plain ZIP archive you own and can host anywhere static. There is no hosted service to depend on and nothing to lock you in.</p>
+
+        <h3>Can I put a piece on my own website?</h3>
+        <p>Yes. Host the <code>.ovb</code> bundle anywhere static, include the embed script, and point a div at the bundle URL. There is also a JavaScript SDK (<code>OpenVoicing.create</code>) with methods like play, pause, seek, and setSpeed, plus ready, state, and position events, so you can drive the player from your own code. See the embeddable player reference for the full API.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Keep going -->
+  <section class="shell border-t border-ink py-[clamp(28px,4vw,52px)]">
+    <p class="text-[.72rem] font-semibold uppercase tracking-[.14em] text-grey mb-4">Keep going</p>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-x-gutter gap-y-6">
+      <a href="./practice.html" class="group block"><span class="text-[.82rem] text-grey">Put it to work</span><h3 class="mt-1 text-[1.15rem] font-semibold group-hover:text-brand">Practice &rarr;</h3><p class="mt-1 text-[.92rem] text-grey">Tempo, loops, count-in, and syncing a recording, step by step.</p></a>
+      <a href="./publish.html" class="group block"><span class="text-[.82rem] text-grey">Share your work</span><h3 class="mt-1 text-[1.15rem] font-semibold group-hover:text-brand">Publish &rarr;</h3><p class="mt-1 text-[.92rem] text-grey">Export a bundle and embed the player on your own site.</p></a>
+      <a href="./start.html" class="group block"><span class="text-[.82rem] text-grey">New here</span><h3 class="mt-1 text-[1.15rem] font-semibold group-hover:text-brand">Get started &rarr;</h3><p class="mt-1 text-[.92rem] text-grey">Open the app, load the demo, and find your way around.</p></a>
+    </div>
+  </section>
+  </main>
+
+  <footer class="shell flex flex-wrap items-baseline justify-between gap-4 py-10 pb-16 border-t border-ink">
+    <span class="font-bold">OpenVoicing</span>
+    <span class="text-[.8rem] text-greymid">Free and open source · Engraving by alphaTab</span>
+    <span class="text-[.82rem] text-grey">
+      <a href="https://github.com/pjdoland/openvoicing" class="border-b border-hair hover:text-ink">GitHub</a>
+      &nbsp;
+      <a href="https://github.com/pjdoland/openvoicing/blob/main/docs/index.md" class="border-b border-hair hover:text-ink">Docs</a>
+      &nbsp;
+      <a href="./app/" class="border-b border-hair hover:text-ink">App</a>
+    </span>
+  </footer>
+</body>
+</html>

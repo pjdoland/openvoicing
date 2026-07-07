@@ -1,0 +1,411 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Practice and training · OpenVoicing</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23111'/%3E%3Ccircle cx='16' cy='16' r='7' fill='%23fff'/%3E%3C/svg%3E" />
+<meta name="description" content="How to actually get better at a piece with OpenVoicing: slow down without changing pitch, loop the hardest bars, run the Speed Trainer, add a count-in and metronome, play along with a real recording or YouTube video, and follow a week-by-week routine. Written for players and teachers." />
+<link rel="stylesheet" href="./style.css" />
+</head>
+<body class="bg-paper text-ink font-sans antialiased">
+
+  <!-- masthead -->
+  <header class="sticky top-0 z-20 bg-paper border-b border-ink">
+    <div class="shell flex items-center gap-x-6 h-15">
+      <a href="./" class="shrink-0 text-[1.05rem] font-bold tracking-tight">OpenVoicing</a>
+      <nav class="hidden md:flex gap-x-6 ml-3">
+        <a href="./start.html" class="text-[.82rem] text-grey hover:text-ink">Get started</a>
+        <a href="./practice.html" class="text-[.82rem] font-semibold text-ink">Practice</a>
+        <a href="./publish.html" class="text-[.82rem] text-grey hover:text-ink">Publish</a>
+        <a href="./why.html" class="text-[.82rem] text-grey hover:text-ink">Why open</a>
+        <a href="./reference.html" class="text-[.82rem] text-grey hover:text-ink">Reference</a>
+      </nav>
+      <span class="flex-1"></span>
+      <a href="https://github.com/pjdoland/openvoicing" class="hidden sm:inline text-[.82rem] text-grey hover:text-ink">GitHub</a>
+      <a href="./app/" class="whitespace-nowrap text-[.82rem] font-semibold border border-ink px-4 py-2 transition-colors hover:bg-ink hover:text-paper">Launch&nbsp;the&nbsp;app&nbsp;&rarr;</a>
+    </div>
+  </header>
+
+  <main>
+
+  <!-- title band -->
+  <section class="shell grid grid-cols-12 gap-x-gutter pt-[clamp(40px,7vw,96px)] pb-[clamp(28px,4vw,56px)]">
+    <p class="col-span-full mb-1.5 flex items-center gap-x-3.5 text-[.72rem] font-semibold uppercase tracking-[.14em] text-grey">
+      Practice
+      <span class="h-px flex-1 bg-hair"></span>
+    </p>
+    <h1 class="col-span-full lg:col-span-9 m-0 text-[clamp(2rem,5vw,3.6rem)] font-bold leading-[1.02] tracking-[-.03em] text-balance">Practice the hard parts slowly, correctly, and often. Then let the tempo climb.</h1>
+    <p class="col-span-full md:col-span-8 mt-6 max-w-[54ch] text-[clamp(1.05rem,1.7vw,1.3rem)] leading-normal text-grey">A paper score cannot slow down, loop a bar, or keep your place. A living score can. This page walks through every practice tool in the app, in the order you would actually use it, and ends with a routine that ties them together.</p>
+  </section>
+
+  <!-- 02.1 How practice works here -->
+  <section id="how-it-works" class="shell border-t border-hair">
+    <div class="grid grid-cols-12 gap-x-gutter py-[clamp(28px,4vw,52px)]">
+      <div class="col-span-full md:col-span-4">
+        <span class="text-[.72rem] font-semibold uppercase tracking-[.14em] text-brand tabular-nums">02.1</span>
+        <h2 class="mt-2 text-h3 font-semibold leading-tight tracking-[-.02em]">How you actually improve here</h2>
+        <p class="mt-2 text-[.9rem] text-grey">Start here if you are deciding whether this fits how you practice.</p>
+      </div>
+      <div class="col-span-full md:col-start-6 md:col-span-7 mt-4 md:mt-0 max-w-[62ch] text-[clamp(1rem,1.4vw,1.1rem)] leading-relaxed text-grey [&_p]:mb-4 [&_strong]:text-ink [&_a]:border-b-2 [&_a]:border-brand [&_a]:text-ink [&_h3]:text-ink [&_h3]:font-semibold [&_h3]:mt-6 [&_h3]:mb-2 [&_h3]:text-[1.05rem] [&_code]:font-mono [&_code]:text-[.9em] [&_code]:text-ink [&_ol]:my-4 [&_ol]:list-decimal [&_ol]:pl-5 [&_ol>li]:mb-2 [&_ul]:my-4 [&_ul]:list-disc [&_ul]:pl-5 [&_ul>li]:mb-2">
+        <p>OpenVoicing is built around a simple idea from the practice room: you get better at a piece by playing the hard parts slowly, correctly, and often, then speeding them up only once they are clean. A paper score cannot do any of that for you. A living score can.</p>
+        <p>When you open the app, a demo piece loads right away (Bach's Invention No. 8, with a real recording already synced to the notation), so you can try every technique on this page without importing anything first. Press Play, or tap the spacebar, and the notation highlights the note that is sounding and scrolls to follow it.</p>
+        <h3>Everything here lives in Practice mode</h3>
+        <p>Up in the top-right of the app there is a mode toggle with three settings:</p>
+        <ul>
+          <li><strong>Listen</strong> is a clean player for just viewing and playing a piece, with the practice controls tucked away.</li>
+          <li><strong>Practice</strong> reveals the tools you reach for when learning: tempo, looping, the Speed Trainer, count-in, the metronome, and recording sync.</li>
+          <li><strong>Edit</strong> is the full notation editor, for when you want to change the music itself.</li>
+        </ul>
+        <p>So the first move, always, is to switch the toggle to <strong>Practice</strong>. Nothing you do needs saving. Your speed, your loops, your synced recording, and your place in the piece autosave to your browser, and the header confirms it with "All changes saved." Close the tab, come back tomorrow, and you are where you left off.</p>
+        <p>The rest of this page walks through each tool in the order you would actually use it: slow the passage down, loop the hard bars, ramp the tempo back up, add a count-in and a click, and play against a real performance. At the end there is a suggested weekly routine that ties them together.</p>
+        <div class="my-5 border-l-2 border-brand bg-[#faf7f7] px-4 py-3 text-[.95rem]">
+          <strong class="text-ink">The one promise underneath all of it.</strong> Slowing the music down never changes the pitch. A passage at half speed sounds an octave lower on a cheap app. Here it sounds like the same music, same key, just slower, so your ear is learning the right thing the whole time.
+        </div>
+        <h3>Getting going in four steps</h3>
+        <ol>
+          <li>Open the app; the Bach Invention No. 8 demo loads automatically.</li>
+          <li>Set the top-right mode toggle to <strong>Practice</strong>.</li>
+          <li>Press Play (or the spacebar) to hear it and watch the notation follow.</li>
+          <li>Trust that your settings and place autosave to the browser as you work.</li>
+        </ol>
+      </div>
+    </div>
+  </section>
+
+  <!-- 02.2 Slow down without pitch change -->
+  <section id="slow-down" class="shell border-t border-hair">
+    <div class="grid grid-cols-12 gap-x-gutter py-[clamp(28px,4vw,52px)]">
+      <div class="col-span-full md:col-span-4">
+        <span class="text-[.72rem] font-semibold uppercase tracking-[.14em] text-brand tabular-nums">02.2</span>
+        <h2 class="mt-2 text-h3 font-semibold leading-tight tracking-[-.02em]">Slow it down without changing the pitch</h2>
+        <p class="mt-2 text-[.9rem] text-grey">For a passage that is too fast to play cleanly.</p>
+      </div>
+      <div class="col-span-full md:col-start-6 md:col-span-7 mt-4 md:mt-0 max-w-[62ch] text-[clamp(1rem,1.4vw,1.1rem)] leading-relaxed text-grey [&_p]:mb-4 [&_strong]:text-ink [&_a]:border-b-2 [&_a]:border-brand [&_a]:text-ink [&_h3]:text-ink [&_h3]:font-semibold [&_h3]:mt-6 [&_h3]:mb-2 [&_h3]:text-[1.05rem] [&_code]:font-mono [&_code]:text-[.9em] [&_code]:text-ink [&_ol]:my-4 [&_ol]:list-decimal [&_ol]:pl-5 [&_ol>li]:mb-2 [&_ul]:my-4 [&_ul]:list-disc [&_ul]:pl-5 [&_ul>li]:mb-2">
+        <p>The single most useful thing you can do with a hard passage is play it slower than you think you need to. OpenVoicing lets you drop the tempo anywhere from <strong>25% up to 150%</strong> of the written speed, in <strong>5% steps</strong>, and the pitch never moves. Half speed sounds like the same piece played by a patient teacher, not a piece dragged down into a growl.</p>
+        <p>This works two ways, and both keep the pitch correct:</p>
+        <ul>
+          <li><strong>The notation played by the app</strong> (the built-in "Notes" sound) slows down cleanly.</li>
+          <li><strong>A real recording you have synced</strong> to the score slows down the same way, so you can hear an actual performer take the passage at 60% without the pitch sagging.</li>
+        </ul>
+        <h3>How to set the tempo</h3>
+        <ol>
+          <li>In Practice mode, find the <strong>Speed</strong> control in the transport bar. It shows the current tempo as a percentage, for example "100%."</li>
+          <li>Click the percentage to open a small panel with one-tap <strong>presets</strong> (50, 60, 70, 75, 80, 90, 100), a <strong>slider</strong>, and a box to <strong>type an exact number</strong> and press Enter.</li>
+          <li>Or nudge it without opening anything: hover the control and <strong>scroll</strong>, or focus it and use the <strong>arrow keys</strong>. Each nudge is 5%. Hold <strong>Shift</strong> while you scroll or arrow to jump in bigger 25% steps, so going from 100% down to 50% is two presses, not ten.</li>
+          <li>For an instant drop, press <code>h</code> to toggle <strong>half speed</strong> on and off. It is the fastest way to check a passage slowly and then hear it back up to tempo.</li>
+        </ol>
+        <div class="my-5 overflow-x-auto">
+          <table class="w-full border-collapse text-[.92rem]">
+            <thead><tr class="border-b border-ink text-left"><th class="py-2 pr-4 font-semibold">Setting</th><th class="py-2 font-semibold">Value</th></tr></thead>
+            <tbody>
+              <tr class="border-b border-hair"><td class="py-2 pr-4">Range</td><td class="py-2">25% to 150% of the written tempo</td></tr>
+              <tr class="border-b border-hair"><td class="py-2 pr-4">Fine step</td><td class="py-2">5% (scroll or arrow keys)</td></tr>
+              <tr class="border-b border-hair"><td class="py-2 pr-4">Coarse step</td><td class="py-2">25% (hold Shift while scrolling or arrowing)</td></tr>
+              <tr class="border-b border-hair"><td class="py-2 pr-4">Presets</td><td class="py-2">50, 60, 70, 75, 80, 90, 100</td></tr>
+              <tr class="border-b border-hair"><td class="py-2 pr-4">Exact entry</td><td class="py-2">Type a number and press Enter</td></tr>
+              <tr class="border-b border-hair"><td class="py-2 pr-4"><kbd class="font-mono text-ink">h</kbd></td><td class="py-2">Toggle half speed</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <h3>Tips</h3>
+        <ul>
+          <li>Pick a tempo where you can play the passage with <strong>zero mistakes and no tension</strong>, even if that feels absurdly slow. Slow-and-correct beats fast-and-sloppy every time, because you are practicing the version of the passage you will actually keep.</li>
+          <li>If 60% still trips you up, go to 50% or 40%. There is no prize for the fastest wrong notes.</li>
+          <li>Because pitch is preserved, you can tune to the slow playback, match intonation, and hear voice-leading that flies past at full speed.</li>
+          <li>Use the exact-number box when a teacher gives you a target like "practice this at 72% this week."</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- 02.3 Loop the hardest bars -->
+  <section id="loop-hardest-bars" class="shell border-t border-hair">
+    <div class="grid grid-cols-12 gap-x-gutter py-[clamp(28px,4vw,52px)]">
+      <div class="col-span-full md:col-span-4">
+        <span class="text-[.72rem] font-semibold uppercase tracking-[.14em] text-brand tabular-nums">02.3</span>
+        <h2 class="mt-2 text-h3 font-semibold leading-tight tracking-[-.02em]">Loop the hardest bars, and save them for tomorrow</h2>
+        <p class="mt-2 text-[.9rem] text-grey">For the one or two bars that keep falling apart.</p>
+      </div>
+      <div class="col-span-full md:col-start-6 md:col-span-7 mt-4 md:mt-0 max-w-[62ch] text-[clamp(1rem,1.4vw,1.1rem)] leading-relaxed text-grey [&_p]:mb-4 [&_strong]:text-ink [&_a]:border-b-2 [&_a]:border-brand [&_a]:text-ink [&_h3]:text-ink [&_h3]:font-semibold [&_h3]:mt-6 [&_h3]:mb-2 [&_h3]:text-[1.05rem] [&_code]:font-mono [&_code]:text-[.9em] [&_code]:text-ink [&_ol]:my-4 [&_ol]:list-decimal [&_ol]:pl-5 [&_ol>li]:mb-2 [&_ul]:my-4 [&_ul]:list-disc [&_ul]:pl-5 [&_ul>li]:mb-2">
+        <p>You do not practice a piece. You practice the three bars that keep falling apart. OpenVoicing makes it fast to isolate a passage, repeat it endlessly, and come back to it later without hunting for it again.</p>
+        <h3>Set a loop</h3>
+        <p>There are three ways; use whichever is quickest for the moment:</p>
+        <ol>
+          <li><strong>Drag across the notes</strong> you want to repeat, right on the score. The selected bars become the loop.</li>
+          <li>Click the <strong>Loop</strong> button and set the <strong>from</strong> and <strong>to</strong> bar numbers with the steppers, handy when you know exactly which bars you mean ("bars 17 to 20").</li>
+          <li><strong>On the fly, during playback</strong>, press <code>[</code> to set the loop start at the note that is sounding and <code>]</code> to set the loop end. This is the fastest way to lasso the exact spot that just went wrong.</li>
+        </ol>
+        <p>Once a loop is set, playback repeats it until you turn Loop off. Slow it down, run the Speed Trainer on it, or add a click; the loop is the unit everything else operates on.</p>
+        <h3>Put a breath between repeats</h3>
+        <p>Repeating a passage with no gap can train you to rush the downbeat. In the recording tools there is a <strong>Pause between reps</strong> setting that inserts a short silence (with a count-in) between loop repeats, so you get a beat to reset your hands and hear the next start coming. Set it to a bar or two when a passage needs a moment of reset between attempts.</p>
+        <h3>Save the passage so it is one keypress tomorrow</h3>
+        <p>When you find a spot worth drilling regularly, save it:</p>
+        <ol>
+          <li>With a loop active, click <strong>Save loop</strong> (in the Loop panel). Give it a name, or accept the default ("Loop 1," "Loop 2").</li>
+          <li>Your saved passages appear as a row of buttons. Click one to jump back to that exact loop instantly.</li>
+          <li>The first nine saved loops are bound to the <strong>number keys 1 through 9</strong>, so during a practice session you can bounce between "the trill in bar 12" and "the leap in bar 34" without touching the mouse.</li>
+        </ol>
+        <p>Saved loops autosave with the piece, so the trouble spots you flagged today are still there next time you open it.</p>
+        <div class="my-5 border-l-2 border-brand bg-[#faf7f7] px-4 py-3 text-[.95rem]">
+          <strong class="text-ink">Tip.</strong> Keep loops small. One or two bars is usually the real problem; looping a whole page just lets you rehearse the easy parts you already know. Name loops for the problem, not the location ("left-hand jump," "messy trill," "crossing"), and you will find them faster. Pair a saved loop with the Speed Trainer for a complete drill: recall the loop with a number key, then ramp it.
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 02.4 Speed Trainer -->
+  <section id="speed-trainer" class="shell border-t border-hair">
+    <div class="grid grid-cols-12 gap-x-gutter py-[clamp(28px,4vw,52px)]">
+      <div class="col-span-full md:col-span-4">
+        <span class="text-[.72rem] font-semibold uppercase tracking-[.14em] text-brand tabular-nums">02.4</span>
+        <h2 class="mt-2 text-h3 font-semibold leading-tight tracking-[-.02em]">The Speed Trainer: let the tempo climb as you succeed</h2>
+        <p class="mt-2 text-[.9rem] text-grey">For building a passage back up to tempo methodically.</p>
+      </div>
+      <div class="col-span-full md:col-start-6 md:col-span-7 mt-4 md:mt-0 max-w-[62ch] text-[clamp(1rem,1.4vw,1.1rem)] leading-relaxed text-grey [&_p]:mb-4 [&_strong]:text-ink [&_a]:border-b-2 [&_a]:border-brand [&_a]:text-ink [&_h3]:text-ink [&_h3]:font-semibold [&_h3]:mt-6 [&_h3]:mb-2 [&_h3]:text-[1.05rem] [&_code]:font-mono [&_code]:text-[.9em] [&_code]:text-ink [&_ol]:my-4 [&_ol]:list-decimal [&_ol]:pl-5 [&_ol>li]:mb-2 [&_ul]:my-4 [&_ul]:list-disc [&_ul]:pl-5 [&_ul>li]:mb-2">
+        <p>Slowing down is half the method. The other half is speeding back up gradually, and only when you have earned it. OpenVoicing has a built-in <strong>Speed Trainer</strong> that does exactly this: you loop a passage, and each time you get through it a set number of times, the trainer bumps the tempo up a notch, all the way to your target. It is the classic "metronome up 5 clicks" drill, automated, so you can keep your eyes on the music and your hands on the instrument.</p>
+        <h3>How to run the Speed Trainer</h3>
+        <ol>
+          <li>First choose the passage you want to drill (see <a href="#loop-hardest-bars">Looping the hardest bars</a>). The trainer always works on a loop.</li>
+          <li>In Practice mode, open the <strong>Loop</strong> panel and turn on the <strong>Speed trainer</strong> checkbox. Turning it on automatically enables looping, since the tempo can only step up between repeats.</li>
+          <li>Set the four numbers:
+            <ul>
+              <li><strong>Start</strong> is the tempo the trainer drops you to when you begin, for example 60%.</li>
+              <li><strong>+ N% every M loops</strong> is how much faster it goes and how often. For example "+5% every 2 loops" means every second time through, it adds five percent.</li>
+              <li><strong>up to</strong> is the target tempo it climbs toward and then holds, for example 100%.</li>
+            </ul>
+          </li>
+          <li>Press Play. The trainer immediately sets the tempo to your Start value and begins looping. Every time you complete the set number of repeats, it nudges the tempo up by your step until it reaches the target, then holds there so you can lock the passage in at speed.</li>
+        </ol>
+        <p>The live readout shows where you are, for example "now 70% to 100%," so you always know how much climb is left.</p>
+        <h3>Why practice this way</h3>
+        <ul>
+          <li>Your hands memorize the shape of the passage at a tempo they can handle, then feel it get faster in increments too small to notice. That is how a hard run becomes easy: not one heroic attempt at full speed, but many clean ones that creep upward.</li>
+          <li>Because the step is small (start with 5%), you rarely hit a wall. If you do, turn the trainer off, drop back down manually, and clean up the spot before ramping again.</li>
+          <li>The trainer works whether you are practicing against the app's own <strong>Notes</strong> sound or against a <strong>synced recording or YouTube video</strong>, so you can ramp your tempo against a real performance.</li>
+        </ul>
+        <div class="my-5 border-l-2 border-brand bg-[#faf7f7] px-4 py-3 text-[.95rem]">
+          <strong class="text-ink">Tips.</strong> Start conservative: Start 60%, +5% every 2 loops, up to 100% is a sane default for most passages. For a truly nasty bar, try +3% every 3 loops. Do not set the target above the tempo you can play the rest of the piece; the goal is to fold this passage back into the whole, not to make it your fastest party trick. Combine it with a count-in so each repeat starts in time.
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 02.5 Count-in and metronome -->
+  <section id="count-in-metronome" class="shell border-t border-hair">
+    <div class="grid grid-cols-12 gap-x-gutter py-[clamp(28px,4vw,52px)]">
+      <div class="col-span-full md:col-span-4">
+        <span class="text-[.72rem] font-semibold uppercase tracking-[.14em] text-brand tabular-nums">02.5</span>
+        <h2 class="mt-2 text-h3 font-semibold leading-tight tracking-[-.02em]">Count-in and metronome: start in time, stay in time</h2>
+        <p class="mt-2 text-[.9rem] text-grey">For anyone who rushes, drags, or starts cold.</p>
+      </div>
+      <div class="col-span-full md:col-start-6 md:col-span-7 mt-4 md:mt-0 max-w-[62ch] text-[clamp(1rem,1.4vw,1.1rem)] leading-relaxed text-grey [&_p]:mb-4 [&_strong]:text-ink [&_a]:border-b-2 [&_a]:border-brand [&_a]:text-ink [&_h3]:text-ink [&_h3]:font-semibold [&_h3]:mt-6 [&_h3]:mb-2 [&_h3]:text-[1.05rem] [&_code]:font-mono [&_code]:text-[.9em] [&_code]:text-ink [&_ol]:my-4 [&_ol]:list-decimal [&_ol]:pl-5 [&_ol>li]:mb-2 [&_ul]:my-4 [&_ul]:list-disc [&_ul]:pl-5 [&_ul>li]:mb-2">
+        <p>Two small tools fix a lot of timing problems: a count-in so you enter in tempo instead of guessing the first beat, and a metronome so you have a steady pulse to lock to.</p>
+        <h3>Count-in</h3>
+        <p>A count-in gives you a lead-in before the music starts, the musical equivalent of a conductor's "one, two, ready, play," so your first note lands in time instead of a beat late.</p>
+        <ol>
+          <li>In Practice mode, tick the <strong>Count-in</strong> checkbox.</li>
+          <li>Choose the length: <strong>1 bar, 2 bars, or 4 bars</strong>. Pick based on how much runway you need; two bars is a comfortable default.</li>
+          <li>Press Play. You get an audible and on-screen count that matches the meter (it counts the right number of beats per bar for the piece), then the music comes in.</li>
+        </ol>
+        <p>The count-in is especially valuable when looping. With a count-in on, every repeat of a loop gives you that lead-in, so you never scramble to catch a downbeat that arrives with no warning.</p>
+        <h3>Metronome</h3>
+        <p>The metronome adds a click on the beat so you can hear whether you are steady.</p>
+        <ol>
+          <li>In Practice mode, click the <strong>Metronome</strong> button (the pendulum icon) to toggle it on.</li>
+          <li>Play. The click marks the beats; if your playing drifts against it, you will hear it immediately.</li>
+        </ol>
+        <p>There is a nice extra when you are playing along with a <strong>synced real recording</strong>: the metronome can click on each bar's downbeat as mapped by the sync, so the click lines up with the actual performance rather than a robotic grid. That lets you feel where a live player pushes and pulls while still having a reference pulse.</p>
+        <div class="my-5 border-l-2 border-brand bg-[#faf7f7] px-4 py-3 text-[.95rem]">
+          <strong class="text-ink">Tips.</strong> Turn the metronome on for the first few slow repeats of a passage, then off once it feels internalized, then back on at a faster tempo to check that you held the pulse. Use count-in plus loop plus Speed Trainer together for a complete, hands-free drill. If a click on every beat feels busy, slow the tempo instead of removing the click; a steady pulse at 60% teaches more than a vague one at 100%.
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 02.6 Play along with a recording -->
+  <section id="play-along" class="shell border-t border-hair">
+    <div class="grid grid-cols-12 gap-x-gutter py-[clamp(28px,4vw,52px)]">
+      <div class="col-span-full md:col-span-4">
+        <span class="text-[.72rem] font-semibold uppercase tracking-[.14em] text-brand tabular-nums">02.6</span>
+        <h2 class="mt-2 text-h3 font-semibold leading-tight tracking-[-.02em]">Play along with a real recording (or a YouTube video)</h2>
+        <p class="mt-2 text-[.9rem] text-grey">For anyone who learns by imitation.</p>
+      </div>
+      <div class="col-span-full md:col-start-6 md:col-span-7 mt-4 md:mt-0 max-w-[62ch] text-[clamp(1rem,1.4vw,1.1rem)] leading-relaxed text-grey [&_p]:mb-4 [&_strong]:text-ink [&_a]:border-b-2 [&_a]:border-brand [&_a]:text-ink [&_h3]:text-ink [&_h3]:font-semibold [&_h3]:mt-6 [&_h3]:mb-2 [&_h3]:text-[1.05rem] [&_code]:font-mono [&_code]:text-[.9em] [&_code]:text-ink [&_ol]:my-4 [&_ol]:list-decimal [&_ol]:pl-5 [&_ol>li]:mb-2 [&_ul]:my-4 [&_ul]:list-disc [&_ul]:pl-5 [&_ul>li]:mb-2">
+        <p>Reading the notes is one thing. Hearing how a real musician phrases them is another. OpenVoicing can line a real performance up with the score so that playback follows the notation bar by bar. You can then slow that real performance down (pitch intact), loop the tricky spot, and play along.</p>
+        <p>Recordings are ordinary <strong>MP3 audio</strong>, so they play in Safari, Chrome, and Firefox with nothing to install. The default demo piece already has a recording synced, so you can try all of this immediately.</p>
+        <h3>Attach and sync an audio recording</h3>
+        <ol>
+          <li>In Practice mode, open the <strong>Recording &amp; sync</strong> panel and choose <strong>Add, then Audio file</strong> to attach an MP3 of a performance of the same piece.</li>
+          <li>Align it to the score in one of two ways:
+            <ul>
+              <li><strong>Auto sync</strong> aligns every bar automatically from the audio. Start here; it does the whole map at once.</li>
+              <li><strong>Tap sync</strong> lets you tap each bar's downbeat yourself as the recording plays, useful for free or rubato playing where automatic alignment struggles.</li>
+            </ul>
+          </li>
+          <li>Use the <strong>Sound</strong> toggle to choose what you hear: <strong>Recording</strong> (the real performer) or <strong>Notes</strong> (the app playing the written notation). Switch between them to compare your reading of the score with how it is actually played.</li>
+          <li>Above the waveform you will see colored bar numbers, the <strong>sync-confidence flags</strong>: <strong>blue</strong> means that bar looks well aligned, <strong>amber</strong> means give it a glance, <strong>red</strong> means it probably needs a nudge. Drag a marker to fix a spot. A real tempo change or a held fermata can legitimately show amber or red, so trust your ears, not just the color.</li>
+        </ol>
+        <div class="my-5 overflow-x-auto">
+          <table class="w-full border-collapse text-[.92rem]">
+            <thead><tr class="border-b border-ink text-left"><th class="py-2 pr-4 font-semibold">Flag</th><th class="py-2 font-semibold">Meaning</th></tr></thead>
+            <tbody>
+              <tr class="border-b border-hair"><td class="py-2 pr-4"><strong>Blue</strong></td><td class="py-2">The bar looks well aligned; leave it.</td></tr>
+              <tr class="border-b border-hair"><td class="py-2 pr-4"><strong>Amber</strong></td><td class="py-2">Give it a glance; it may be fine or may need a nudge.</td></tr>
+              <tr class="border-b border-hair"><td class="py-2 pr-4"><strong>Red</strong></td><td class="py-2">Probably needs a nudge; drag the marker into place.</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p>Once synced, slowing the recording down keeps the performer in the correct key, and looping works on the real audio, so you can take a phrase at 60% from an actual recording and play right along with it.</p>
+        <h3>Or sync to a YouTube video</h3>
+        <p>Instead of an audio file you can sync the score to a <strong>YouTube video</strong>, for instance a lesson or a performance, and the notation follows the video as it plays.</p>
+        <ol>
+          <li>In the Recording &amp; sync panel, choose <strong>Add, then YouTube video</strong>, and paste the video link (or its id). The video appears above the score, and the Sound toggle now offers <strong>Video</strong> or <strong>Notes</strong>.</li>
+          <li>Sync it with <strong>tap sync</strong>: press play, then tap each bar's downbeat as it goes by.</li>
+          <li>Play as usual. The cursor follows the video, Follow keeps the score in view, and looping works. One difference: speed <strong>snaps to YouTube's own steps</strong> (0.25, 0.5, and so on) rather than 5% increments.</li>
+          <li>If you want a waveform, finer speed control, and one-shot Auto sync, choose <strong>Add, then Audio for waveform and auto-sync</strong> and attach an audio file of the same performance. Auto sync then aligns every bar at once and you can drag markers to fine-tune, while playback stays on the video.</li>
+        </ol>
+        <h3>Two things to know about YouTube</h3>
+        <ul>
+          <li>The video is <strong>embedded, never downloaded</strong> (through YouTube's official player), so it needs an internet connection to play.</li>
+          <li>A piece that references a YouTube video is marked <strong>external</strong>: it is not a fully self-contained file, and playback breaks if the video is later taken down. Audio-only pieces stay fully self-contained and work offline.</li>
+        </ul>
+        <div class="my-5 border-l-2 border-brand bg-[#faf7f7] px-4 py-3 text-[.95rem]">
+          <strong class="text-ink">Tips.</strong> Practice against a recording the way you would with a duet partner: play the Notes sound first to learn the notes, then switch to Recording and try to match the phrasing and rubato. Loop a phrase, drop the recording to 70%, and shadow the performer's dynamics and timing; this trains musicality, not just accuracy. Sync a recording of your teacher's own demo, and you have their interpretation attached to the page forever.
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 02.7 Follow -->
+  <section id="follow" class="shell border-t border-hair">
+    <div class="grid grid-cols-12 gap-x-gutter py-[clamp(28px,4vw,52px)]">
+      <div class="col-span-full md:col-span-4">
+        <span class="text-[.72rem] font-semibold uppercase tracking-[.14em] text-brand tabular-nums">02.7</span>
+        <h2 class="mt-2 text-h3 font-semibold leading-tight tracking-[-.02em]">Use Follow to keep your place on the page</h2>
+        <p class="mt-2 text-[.9rem] text-grey">For anyone reading and playing at the same time.</p>
+      </div>
+      <div class="col-span-full md:col-start-6 md:col-span-7 mt-4 md:mt-0 max-w-[62ch] text-[clamp(1rem,1.4vw,1.1rem)] leading-relaxed text-grey [&_p]:mb-4 [&_strong]:text-ink [&_a]:border-b-2 [&_a]:border-brand [&_a]:text-ink [&_h3]:text-ink [&_h3]:font-semibold [&_h3]:mt-6 [&_h3]:mb-2 [&_h3]:text-[1.05rem] [&_code]:font-mono [&_code]:text-[.9em] [&_code]:text-ink [&_ol]:my-4 [&_ol]:list-decimal [&_ol]:pl-5 [&_ol>li]:mb-2 [&_ul]:my-4 [&_ul]:list-disc [&_ul]:pl-5 [&_ul>li]:mb-2">
+        <p>When you are reading and playing at the same time, losing your place is the fastest way to break down. <strong>Follow</strong> keeps the score scrolled to the exact spot that is sounding, so the notation comes to you instead of you chasing it.</p>
+        <h3>How it works</h3>
+        <ul>
+          <li>Follow is <strong>on by default</strong>. As the piece plays, the view scrolls to keep the currently playing bar in sight, whether the sound is the app's own Notes, a synced audio recording, or a YouTube video.</li>
+          <li>The current note is highlighted, so even on a busy page your eye lands on the right beat.</li>
+          <li>If you <strong>scroll the score by hand</strong> (to peek ahead at what is coming, or check a spot you just played), Follow politely steps aside and lets you look around. A few seconds after you stop scrolling, it quietly resumes and snaps back to the playing bar. You are never fighting the page for control.</li>
+          <li>You can turn Follow off entirely if you would rather the page stay put, for example when you are studying a single system and do not want it to move at all.</li>
+        </ul>
+        <h3>Why it matters for practice</h3>
+        <ul>
+          <li>On a tablet or laptop on a music stand, Follow turns the app into a page-turner that never turns too early or too late. Your hands stay on the instrument.</li>
+          <li>When you loop a passage, Follow keeps that passage centered every time it comes around, so your eyes are always in the right place for the repeat.</li>
+          <li>Because it yields when you scroll, you can glance ahead at the next line without stopping playback, then let it pull you back to where the music actually is.</li>
+        </ul>
+        <div class="my-5 border-l-2 border-brand bg-[#faf7f7] px-4 py-3 text-[.95rem]">
+          <strong class="text-ink">Tip.</strong> Leave Follow on for run-throughs and looped drills. Turn it off only when you are dissecting one spot and want the page frozen while you study it.
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 02.8 Suggested routine -->
+  <section id="routine" class="shell border-t border-hair">
+    <div class="grid grid-cols-12 gap-x-gutter py-[clamp(28px,4vw,52px)]">
+      <div class="col-span-full md:col-span-4">
+        <span class="text-[.72rem] font-semibold uppercase tracking-[.14em] text-brand tabular-nums">02.8</span>
+        <h2 class="mt-2 text-h3 font-semibold leading-tight tracking-[-.02em]">A suggested practice routine</h2>
+        <p class="mt-2 text-[.9rem] text-grey">The tools tied together into a method, for one session or a week.</p>
+      </div>
+      <div class="col-span-full md:col-start-6 md:col-span-7 mt-4 md:mt-0 max-w-[62ch] text-[clamp(1rem,1.4vw,1.1rem)] leading-relaxed text-grey [&_p]:mb-4 [&_strong]:text-ink [&_a]:border-b-2 [&_a]:border-brand [&_a]:text-ink [&_h3]:text-ink [&_h3]:font-semibold [&_h3]:mt-6 [&_h3]:mb-2 [&_h3]:text-[1.05rem] [&_code]:font-mono [&_code]:text-[.9em] [&_code]:text-ink [&_ol]:my-4 [&_ol]:list-decimal [&_ol]:pl-5 [&_ol>li]:mb-2 [&_ul]:my-4 [&_ul]:list-disc [&_ul]:pl-5 [&_ul>li]:mb-2">
+        <p>Here is a routine that ties the tools together. It works for a single practice session and scales to a week of home practice. Adjust the tempos to your level; the structure is what matters.</p>
+        <h3>A single session (about 25 to 40 minutes)</h3>
+        <ol>
+          <li><strong>Warm up with a run-through (5 minutes).</strong> Set the tempo somewhere comfortable, turn <strong>Follow</strong> on, and play the whole piece (or the section you are working on) against the app's <strong>Notes</strong> sound. The goal is not perfection; it is to find where you break down. Mentally flag the two or three worst spots.</li>
+          <li><strong>Isolate and loop the worst spot (10 to 15 minutes).</strong> Press <code>[</code> and <code>]</code> during playback to lasso the exact bars that fell apart, or drag across them. <strong>Save the loop</strong> and give it a clear name. Drop the tempo with the <strong>Speed</strong> control until you can play the passage with zero mistakes and no tension, even if that is 50% or slower. Turn on a <strong>count-in</strong> (2 bars) and the <strong>metronome</strong> so every repeat starts in time and stays in time.</li>
+          <li><strong>Ramp it up with the Speed Trainer (10 minutes).</strong> With the loop still active, turn on the <strong>Speed Trainer</strong>. Set Start at the slow tempo you just found, step <strong>+5% every 2 loops</strong>, target the piece's real tempo. Play and let it climb. If you hit a wall, turn the trainer off, drop back down, clean the spot, and ramp again.</li>
+          <li><strong>Put it back in context (5 minutes).</strong> Turn the Speed Trainer and the loop off. Play a little before and after the trouble spot at a moderate tempo so the repaired passage connects to its neighbors. Isolated bars have to be sewn back into the piece.</li>
+          <li><strong>Listen to the model (optional, 5 minutes).</strong> Switch the <strong>Sound</strong> toggle to a <strong>synced recording or a YouTube performance</strong>, slow it to 70%, and shadow the phrasing and dynamics. This is where accuracy turns into musicality.</li>
+        </ol>
+        <h3>Across a week</h3>
+        <ul>
+          <li><strong>Day 1:</strong> Do the full routine on your hardest passage. Save loops for every trouble spot you find (they persist, so you are building a personal list of what to drill).</li>
+          <li><strong>Days 2 to 4:</strong> Open the piece, recall each saved loop with the <strong>number keys 1 to 9</strong>, and run the Speed Trainer on each for a few minutes. Nudge each loop's target tempo up a little from the previous day.</li>
+          <li><strong>Day 5:</strong> Play the whole piece with <strong>Follow</strong> on at a tempo just below your target. Note any spot that still wobbles and add it as a new saved loop.</li>
+          <li><strong>Day 6:</strong> Play along with a <strong>synced recording</strong> at full or near-full tempo. Focus on matching phrasing, not just notes.</li>
+          <li><strong>Day 7:</strong> Run-through at target tempo, then rest. Everything autosaved, so your loops and tempos are exactly where you left them for next week.</li>
+        </ul>
+        <h3>Habits that make it stick</h3>
+        <ul>
+          <li>Practice slow enough to be perfect, then let the Speed Trainer earn the tempo back. Speed is a byproduct of accuracy, not a goal you chase directly.</li>
+          <li>Keep loops short. The real problem is almost always one or two bars.</li>
+          <li>Use the count-in every time you loop, so you never train yourself to rush an unprepared downbeat.</li>
+          <li>End on a success. Finish each spot at a tempo where you can play it cleanly, so the last thing your hands remember is the passage done right.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- 02.9 For teachers -->
+  <section id="for-teachers" class="shell border-t border-hair">
+    <div class="grid grid-cols-12 gap-x-gutter py-[clamp(28px,4vw,52px)]">
+      <div class="col-span-full md:col-span-4">
+        <span class="text-[.72rem] font-semibold uppercase tracking-[.14em] text-brand tabular-nums">02.9</span>
+        <h2 class="mt-2 text-h3 font-semibold leading-tight tracking-[-.02em]">For teachers: assigning practice that actually gets done</h2>
+        <p class="mt-2 text-[.9rem] text-grey">For private teachers and classroom instructors setting up homework.</p>
+      </div>
+      <div class="col-span-full md:col-start-6 md:col-span-7 mt-4 md:mt-0 max-w-[62ch] text-[clamp(1rem,1.4vw,1.1rem)] leading-relaxed text-grey [&_p]:mb-4 [&_strong]:text-ink [&_a]:border-b-2 [&_a]:border-brand [&_a]:text-ink [&_h3]:text-ink [&_h3]:font-semibold [&_h3]:mt-6 [&_h3]:mb-2 [&_h3]:text-[1.05rem] [&_code]:font-mono [&_code]:text-[.9em] [&_code]:text-ink [&_ol]:my-4 [&_ol]:list-decimal [&_ol]:pl-5 [&_ol>li]:mb-2 [&_ul]:my-4 [&_ul]:list-disc [&_ul]:pl-5 [&_ul>li]:mb-2">
+        <p>OpenVoicing gives you a way to hand a student a piece that already knows how it should be practiced. Because a piece is a single self-contained <code>.ovb</code> file, you can prepare it once and the student opens exactly what you built, with your recording, your sync, and your suggested loops attached.</p>
+        <h3>Prepare a piece for a student</h3>
+        <ol>
+          <li>Open or import the score (MusicXML or Guitar Pro), or start from one you have already built.</li>
+          <li>In Practice mode, attach a <strong>recording</strong>: an MP3 of the piece (yours or a reference performance), or a <strong>YouTube video</strong> of a lesson or performance. Sync it with <strong>Auto sync</strong>, then fix any amber or red bars by dragging the markers.</li>
+          <li><strong>Save loops</strong> for the passages you want the student to drill, and name them for the challenge ("left-hand crossing," "the trill"). These travel with the piece.</li>
+          <li>Export a bundle with <strong>File, then Export bundle</strong>. You get one <code>.ovb</code> file that holds the score, the recording, and the sync map. Email it, drop it in a shared folder, or host it anywhere static.</li>
+        </ol>
+        <h3>Give practice instructions the tool can execute</h3>
+        <p>Instead of "practice bars 17 to 24 slowly," you can assign something the app will run for the student:</p>
+        <ul>
+          <li>"Recall the saved loop <strong>left-hand crossing</strong> (press 3) and run the <strong>Speed Trainer</strong> from 60% up to 100%, +5% every 2 loops. Do this until you can start it at 80% and finish clean."</li>
+          <li>"Play along with the <strong>synced recording</strong> at 70% with <strong>Follow</strong> on, matching the phrasing in bars 30 to 40."</li>
+          <li>"Turn on <strong>count-in</strong> and the <strong>metronome</strong> and play the whole B section at 85% with no stops."</li>
+        </ul>
+        <p>Because the tempos are exact percentages, you and the student are talking about the same numbers, and the student cannot lose the assignment: the loops are saved in the piece and everything autosaves to their browser.</p>
+        <h3>Why this beats a PDF and a link to a video</h3>
+        <ul>
+          <li>The recording is <strong>locked to the notation</strong>, so the student is never guessing which bar the performer is on. The cursor and Follow show it.</li>
+          <li>Slowing your reference recording down keeps it <strong>in the right key</strong>, so a beginner can hear a hard passage taken slowly and correctly.</li>
+          <li>The student cannot accidentally practice the wrong tempo relationship: pitch and speed are independent, always.</li>
+          <li>There is <strong>no account and no sign-up</strong> for the student. They open the file (or an embedded player you put on your studio site) and start.</li>
+        </ul>
+        <h3>Publish it on your own studio site</h3>
+        <p>If you keep a website for your studio, you can embed any piece directly on a lesson page: host the <code>.ovb</code> bundle, drop in the embed script, and point a <code>&lt;div&gt;</code> at it. Students get the same interactive, practice-ready player without leaving your site, and you keep the files. The full embed reference is in the <a href="./publish.html">Publish guide</a>.</p>
+        <div class="my-5 border-l-2 border-brand bg-[#faf7f7] px-4 py-3 text-[.95rem]">
+          <strong class="text-ink">Tip.</strong> Build a small library: one <code>.ovb</code> per assigned piece, each with your recording, sync, and named loops. Over a term you accumulate a set of ready-to-practice pieces you can reuse for every student who reaches that level.
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- keep going -->
+  <section class="shell border-t border-ink py-[clamp(28px,4vw,52px)]">
+    <p class="text-[.72rem] font-semibold uppercase tracking-[.14em] text-grey mb-4">Keep going</p>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-x-gutter gap-y-6">
+      <a href="./publish.html" class="group block"><span class="text-[.82rem] text-grey">Next</span><h3 class="mt-1 text-[1.15rem] font-semibold group-hover:text-brand">Publish and embed &rarr;</h3><p class="mt-1 text-[.92rem] text-grey">Turn a prepared piece into one .ovb file and put a live player on your own site.</p></a>
+      <a href="./start.html" class="group block"><span class="text-[.82rem] text-grey">If you are new</span><h3 class="mt-1 text-[1.15rem] font-semibold group-hover:text-brand">Get started &rarr;</h3><p class="mt-1 text-[.92rem] text-grey">Open the app, import a score, and attach your first recording.</p></a>
+      <a href="./reference.html" class="group block"><span class="text-[.82rem] text-grey">Look it up</span><h3 class="mt-1 text-[1.15rem] font-semibold group-hover:text-brand">Reference &rarr;</h3><p class="mt-1 text-[.92rem] text-grey">Every keyboard shortcut, setting, and file-format detail in one place.</p></a>
+    </div>
+  </section>
+  </main>
+
+  <footer class="shell flex flex-wrap items-baseline justify-between gap-4 py-10 pb-16 border-t border-ink">
+    <span class="font-bold">OpenVoicing</span>
+    <span class="text-[.8rem] text-greymid">Free and open source · Engraving by alphaTab</span>
+    <span class="text-[.82rem] text-grey">
+      <a href="https://github.com/pjdoland/openvoicing" class="border-b border-hair hover:text-ink">GitHub</a>
+      &nbsp;
+      <a href="https://github.com/pjdoland/openvoicing/blob/main/docs/index.md" class="border-b border-hair hover:text-ink">Docs</a>
+      &nbsp;
+      <a href="./app/" class="border-b border-hair hover:text-ink">App</a>
+    </span>
+  </footer>
+</body>
+</html>

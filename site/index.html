@@ -17,10 +17,11 @@
     <div class="shell flex items-center gap-x-6 h-15">
       <a href="./" class="shrink-0 text-[1.05rem] font-bold tracking-tight">OpenVoicing</a>
       <nav class="hidden md:flex gap-x-6 ml-3">
-        <a href="#demo" class="text-[.82rem] text-grey hover:text-ink">Demo</a>
-        <a href="#concept" class="text-[.82rem] text-grey hover:text-ink">The idea</a>
-        <a href="#embed" class="text-[.82rem] text-grey hover:text-ink">Embed</a>
-        <a href="https://github.com/pjdoland/openvoicing/blob/main/docs/index.md" class="text-[.82rem] text-grey hover:text-ink">Docs</a>
+        <a href="./start.html" class="text-[.82rem] text-grey hover:text-ink">Get started</a>
+        <a href="./practice.html" class="text-[.82rem] text-grey hover:text-ink">Practice</a>
+        <a href="./publish.html" class="text-[.82rem] text-grey hover:text-ink">Publish</a>
+        <a href="./why.html" class="text-[.82rem] text-grey hover:text-ink">Why open</a>
+        <a href="./reference.html" class="text-[.82rem] text-grey hover:text-ink">Reference</a>
       </nav>
       <span class="flex-1"></span>
       <a href="https://github.com/pjdoland/openvoicing" class="hidden sm:inline text-[.82rem] text-grey hover:text-ink">GitHub</a>
@@ -81,21 +82,25 @@
       <span class="col-span-full md:col-span-1 mb-0.5 md:mb-0 text-base font-semibold text-brand tabular-nums">01</span>
       <h3 class="col-span-full md:col-span-4 m-0 mb-2.5 md:mb-0 text-h3 font-semibold leading-tight tracking-[-.02em]">An open format, not a hosted service</h3>
       <p class="col-span-full md:col-start-7 md:col-span-5 m-0 max-w-[52ch] text-[clamp(1rem,1.5vw,1.12rem)] text-grey">Every piece is a self-contained <code class="font-mono text-[.9em] text-ink border-b-2 border-brand">.ovb</code> file holding the score, its recordings, and the sync map. You own it, host it anywhere, and the player is just static files. No account, no lock-in.</p>
+      <a href="./why.html" class="col-span-full md:col-start-7 md:col-span-5 mt-3 inline-block w-fit border-b-2 border-brand text-[.9rem] font-semibold">Why an open format &rarr;</a>
     </div>
     <div class="grid grid-cols-12 gap-x-gutter py-[clamp(28px,4vw,52px)] border-b border-hair">
       <span class="col-span-full md:col-span-1 mb-0.5 md:mb-0 text-base font-semibold text-brand tabular-nums">02</span>
       <h3 class="col-span-full md:col-span-4 m-0 mb-2.5 md:mb-0 text-h3 font-semibold leading-tight tracking-[-.02em]">Practice, not just playback</h3>
       <p class="col-span-full md:col-start-7 md:col-span-5 m-0 max-w-[52ch] text-[clamp(1rem,1.5vw,1.12rem)] text-grey">Slow a passage down without changing pitch, loop it, add a count-in, and follow a metronome. The tools you actually reach for when learning a piece.</p>
+      <a href="./practice.html" class="col-span-full md:col-start-7 md:col-span-5 mt-3 inline-block w-fit border-b-2 border-brand text-[.9rem] font-semibold">How to practice with it &rarr;</a>
     </div>
     <div class="grid grid-cols-12 gap-x-gutter py-[clamp(28px,4vw,52px)] border-b border-hair">
       <span class="col-span-full md:col-span-1 mb-0.5 md:mb-0 text-base font-semibold text-brand tabular-nums">03</span>
       <h3 class="col-span-full md:col-span-4 m-0 mb-2.5 md:mb-0 text-h3 font-semibold leading-tight tracking-[-.02em]">Sync to a recording, or a YouTube video</h3>
       <p class="col-span-full md:col-start-7 md:col-span-5 m-0 max-w-[52ch] text-[clamp(1rem,1.5vw,1.12rem)] text-grey">Line a real performance up with the score, bar by bar, so playback follows the notation, and you can loop and slow the real thing. It works with an audio file or a <strong class="text-ink">YouTube video</strong> (a lesson or a performance), the notation following along as it plays.</p>
+      <a href="./practice.html#play-along" class="col-span-full md:col-start-7 md:col-span-5 mt-3 inline-block w-fit border-b-2 border-brand text-[.9rem] font-semibold">Play along with a recording &rarr;</a>
     </div>
     <div class="grid grid-cols-12 gap-x-gutter py-[clamp(28px,4vw,52px)] border-b border-hair">
       <span class="col-span-full md:col-span-1 mb-0.5 md:mb-0 text-base font-semibold text-brand tabular-nums">04</span>
       <h3 class="col-span-full md:col-span-4 m-0 mb-2.5 md:mb-0 text-h3 font-semibold leading-tight tracking-[-.02em]">A real editor, and it's yours to keep</h3>
       <p class="col-span-full md:col-start-7 md:col-span-5 m-0 max-w-[52ch] text-[clamp(1rem,1.5vw,1.12rem)] text-grey">Import MusicXML or Guitar Pro, edit notes, voices, ornaments, and dynamics, then export a portable bundle that plays the same everywhere, forever.</p>
+      <a href="./start.html#open-your-files" class="col-span-full md:col-start-7 md:col-span-5 mt-3 inline-block w-fit border-b-2 border-brand text-[.9rem] font-semibold">Import and edit your own music &rarr;</a>
     </div>
   </section>
 
@@ -108,7 +113,7 @@
         <p class="mb-4 text-[#c4c4c4]">Host a bundle anywhere static, drop in the script, and point a div at it. That's the whole integration. The same player you see above.</p>
         <pre class="m-0 overflow-x-auto border border-[#2a2a2a] bg-black p-[18px] font-mono text-[.85rem] leading-relaxed text-[#e8e8e8]">&lt;<span class="text-[#ff8a80]">script</span> src="https://your-host/openvoicing-embed.js"&gt;&lt;/<span class="text-[#ff8a80]">script</span>&gt;
 &lt;<span class="text-[#ff8a80]">div</span> data-openvoicing-bundle="https://example.com/tune.ovb"&gt;&lt;/<span class="text-[#ff8a80]">div</span>&gt;</pre>
-        <a href="https://github.com/pjdoland/openvoicing/blob/main/docs/embed-api.md" class="mt-4 inline-block border-b-2 border-brand text-[.92rem] font-semibold text-white">Embed API reference &rarr;</a>
+        <a href="./publish.html#embed" class="mt-4 inline-block border-b-2 border-brand text-[.92rem] font-semibold text-white">How to publish and embed &rarr;</a>
       </div>
     </div>
   </section>
@@ -120,19 +125,19 @@
         <span class="text-[.72rem] font-semibold uppercase tracking-[.14em] text-grey">For musicians</span>
         <h3 class="mt-3.5 mb-1.5 text-[1.1rem] font-semibold">Load, practice, edit.</h3>
         <p class="mb-3.5 text-[.95rem] text-grey">Open a piece and start playing. No sign-up.</p>
-        <a href="./app/" class="border-b-2 border-brand pb-px text-[.9rem] font-semibold">Open the app &rarr;</a>
+        <a href="./start.html" class="border-b-2 border-brand pb-px text-[.9rem] font-semibold">Get started &rarr;</a>
       </div>
       <div class="border-t border-ink py-[clamp(28px,4vw,48px)] pr-gutter md:border-l md:border-l-hair md:pl-gutter">
         <span class="text-[.72rem] font-semibold uppercase tracking-[.14em] text-grey">For self-hosters</span>
         <h3 class="mt-3.5 mb-1.5 text-[1.1rem] font-semibold">Deploy and embed.</h3>
         <p class="mb-3.5 text-[.95rem] text-grey">Static hosting, an open format, an embed SDK.</p>
-        <a href="https://github.com/pjdoland/openvoicing/blob/main/docs/deploy-app.md" class="border-b-2 border-brand pb-px text-[.9rem] font-semibold">Deployment guide &rarr;</a>
+        <a href="./publish.html" class="border-b-2 border-brand pb-px text-[.9rem] font-semibold">Publish and embed &rarr;</a>
       </div>
       <div class="border-t border-ink py-[clamp(28px,4vw,48px)] pr-gutter md:border-l md:border-l-hair md:pl-gutter">
         <span class="text-[.72rem] font-semibold uppercase tracking-[.14em] text-grey">For developers</span>
         <h3 class="mt-3.5 mb-1.5 text-[1.1rem] font-semibold">Open source.</h3>
         <p class="mb-3.5 text-[.95rem] text-grey">Libraries MPL-2.0, the app AGPL-3.0.</p>
-        <a href="https://github.com/pjdoland/openvoicing/blob/main/CONTRIBUTING.md" class="border-b-2 border-brand pb-px text-[.9rem] font-semibold">Contribute &rarr;</a>
+        <a href="./why.html#licensing" class="border-b-2 border-brand pb-px text-[.9rem] font-semibold">How the licensing works &rarr;</a>
       </div>
     </div>
   </section>

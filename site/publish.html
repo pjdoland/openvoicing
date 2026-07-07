@@ -1,0 +1,558 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Publish · OpenVoicing</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23111'/%3E%3Ccircle cx='16' cy='16' r='7' fill='%23fff'/%3E%3C/svg%3E" />
+<meta name="description" content="The full creator and self-hoster reference: export an .ovb bundle, host it on any static host, embed the interactive player, drive it from JavaScript, deep-link into a passage, publish YouTube-backed pieces, and deploy your own instance." />
+<link rel="stylesheet" href="./style.css" />
+</head>
+<body class="bg-paper text-ink font-sans antialiased">
+  <header class="sticky top-0 z-20 bg-paper border-b border-ink">
+    <div class="shell flex items-center gap-x-6 h-15">
+      <a href="./" class="shrink-0 text-[1.05rem] font-bold tracking-tight">OpenVoicing</a>
+      <nav class="hidden md:flex gap-x-6 ml-3">
+        <a href="./start.html" class="text-[.82rem] text-grey hover:text-ink">Get started</a>
+        <a href="./practice.html" class="text-[.82rem] text-grey hover:text-ink">Practice</a>
+        <a href="./publish.html" class="text-[.82rem] font-semibold text-ink">Publish</a>
+        <a href="./why.html" class="text-[.82rem] text-grey hover:text-ink">Why open</a>
+        <a href="./reference.html" class="text-[.82rem] text-grey hover:text-ink">Reference</a>
+      </nav>
+      <span class="flex-1"></span>
+      <a href="https://github.com/pjdoland/openvoicing" class="hidden sm:inline text-[.82rem] text-grey hover:text-ink">GitHub</a>
+      <a href="./app/" class="whitespace-nowrap text-[.82rem] font-semibold border border-ink px-4 py-2 transition-colors hover:bg-ink hover:text-paper">Launch&nbsp;the&nbsp;app&nbsp;&rarr;</a>
+    </div>
+  </header>
+
+  <main>
+  <section class="shell grid grid-cols-12 gap-x-gutter pt-[clamp(40px,7vw,96px)] pb-[clamp(28px,4vw,56px)]">
+    <p class="col-span-full mb-1.5 flex items-center gap-x-3.5 text-[.72rem] font-semibold uppercase tracking-[.14em] text-grey">
+      Publish
+      <span class="h-px flex-1 bg-hair"></span>
+    </p>
+    <h1 class="col-span-full lg:col-span-9 m-0 text-[clamp(2rem,5vw,3.6rem)] font-bold leading-[1.02] tracking-[-.03em] text-balance">Ship a piece anywhere files go</h1>
+    <p class="col-span-full md:col-span-8 mt-6 max-w-[54ch] text-[clamp(1.05rem,1.7vw,1.3rem)] leading-normal text-grey">Publishing in OpenVoicing is not a service you rent. You export one portable file, host it on any static server, and embed a sandboxed player on your page. This is the full reference for creators and developers: the format, hosting, the embed and its JavaScript SDK, deep links, YouTube bundles, security, self-hosting, and the CLI.</p>
+  </section>
+
+  <!-- 03.1 Overview -->
+  <section id="overview" class="shell border-t border-hair">
+    <div class="grid grid-cols-12 gap-x-gutter py-[clamp(28px,4vw,52px)]">
+      <div class="col-span-full md:col-span-4">
+        <span class="text-[.72rem] font-semibold uppercase tracking-[.14em] text-brand tabular-nums">03.1</span>
+        <h2 class="mt-2 text-h3 font-semibold leading-tight tracking-[-.02em]">How it fits together</h2>
+        <p class="mt-2 text-[.9rem] text-grey">The three jobs, and why there is no backend.</p>
+      </div>
+      <div class="col-span-full md:col-start-6 md:col-span-7 mt-4 md:mt-0 max-w-[62ch] text-[clamp(1rem,1.4vw,1.1rem)] leading-relaxed text-grey [&_p]:mb-4 [&_strong]:text-ink [&_a]:border-b-2 [&_a]:border-brand [&_a]:text-ink [&_h3]:text-ink [&_h3]:font-semibold [&_h3]:mt-6 [&_h3]:mb-2 [&_h3]:text-[1.05rem] [&_code]:font-mono [&_code]:text-[.9em] [&_code]:text-ink [&_ol]:my-4 [&_ol]:list-decimal [&_ol]:pl-5 [&_ol>li]:mb-2 [&_ul]:my-4 [&_ul]:list-disc [&_ul]:pl-5 [&_ul>li]:mb-2">
+        <p>OpenVoicing has no backend. A finished piece is a single file, and the player that renders it is a set of static assets. Publishing here is not uploading to someone's cloud and hoping it stays online. It is exporting a file you own and putting it wherever you already put files.</p>
+        <p>There are three distinct jobs in this area, and you rarely need all three:</p>
+        <ol>
+          <li><strong>Export the piece.</strong> Inside the app you turn your work (a score, an optional recording, and the sync map that ties them together) into one portable <code>.ovb</code> file. This is the only step every creator does.</li>
+          <li><strong>Host the file.</strong> You upload that <code>.ovb</code> anywhere that serves static files over HTTPS: GitHub Pages, Netlify, Cloudflare Pages, an S3 bucket, or your own Nginx or Apache server. There is nothing to install and no process to keep running.</li>
+          <li><strong>Show it to people.</strong> You can hand someone the file directly, or embed the interactive player on any web page so visitors press play, slow the music down, and loop passages right there on your site.</li>
+        </ol>
+        <p>A useful way to think about the moving parts: the <strong>bundle</strong> (<code>.ovb</code>) is the content, the <strong>player</strong> (a small script plus a sandboxed iframe page) is the viewer, and they are decoupled on purpose. One player can render thousands of bundles, and one bundle plays in anyone's player. You can host the bundle and the player on the same site or on entirely separate hosts.</p>
+        <p>Most people never run their own player at all: they point the embed script at a shared copy of the player and only host their own <code>.ovb</code> files. Self-hosters who want full control, offline capability, or their own branding can also deploy the whole app and player, which is covered further down.</p>
+        <div class="my-5 border-l-2 border-brand bg-[#faf7f7] px-4 py-3 text-[.95rem]">
+          <strong class="text-ink">What you never need:</strong> an account, a database, a server-side runtime, or a paid plan. If your host can serve an image, it can serve OpenVoicing.
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 03.2 Export -->
+  <section id="export" class="shell border-t border-hair">
+    <div class="grid grid-cols-12 gap-x-gutter py-[clamp(28px,4vw,52px)]">
+      <div class="col-span-full md:col-span-4">
+        <span class="text-[.72rem] font-semibold uppercase tracking-[.14em] text-brand tabular-nums">03.2</span>
+        <h2 class="mt-2 text-h3 font-semibold leading-tight tracking-[-.02em]">Export a single .ovb bundle</h2>
+        <p class="mt-2 text-[.9rem] text-grey">The one step every creator does.</p>
+      </div>
+      <div class="col-span-full md:col-start-6 md:col-span-7 mt-4 md:mt-0 max-w-[62ch] text-[clamp(1rem,1.4vw,1.1rem)] leading-relaxed text-grey [&_p]:mb-4 [&_strong]:text-ink [&_a]:border-b-2 [&_a]:border-brand [&_a]:text-ink [&_h3]:text-ink [&_h3]:font-semibold [&_h3]:mt-6 [&_h3]:mb-2 [&_h3]:text-[1.05rem] [&_code]:font-mono [&_code]:text-[.9em] [&_code]:text-ink [&_ol]:my-4 [&_ol]:list-decimal [&_ol]:pl-5 [&_ol>li]:mb-2 [&_ul]:my-4 [&_ul]:list-disc [&_ul]:pl-5 [&_ul>li]:mb-2">
+        <p>Everything you publish starts with an export. A bundle captures the piece exactly as it plays in the app, so what you hand out behaves the same for everyone.</p>
+        <p>Before you export, get the piece into the state you want to ship. That usually means the score is loaded or composed, any recording is attached, and the sync is good enough that playback follows the notation. Your work autosaves to the browser as you go (the header reads "All changes saved."), but autosave lives only in that one browser on that one machine. Exporting is how you get a durable, movable copy.</p>
+        <h3>To export</h3>
+        <ol>
+          <li>Open the <strong>File</strong> menu, or press <code>Cmd/Ctrl+K</code> and search for it in the command palette.</li>
+          <li>Choose <strong>Export bundle</strong>.</li>
+          <li>The app writes a single <code>.ovb</code> file and your browser downloads it. Name it something URL-friendly and stable, for example <code>chopin-prelude-4.ovb</code>, because that filename can end up in a public URL.</li>
+        </ol>
+        <p>That one file contains the score, any audio recording you added, and the sync map. Anyone with the file, or with the embeddable player pointed at it, sees the identical interactive piece: same notation, same recording, same bar-by-bar alignment, no account required.</p>
+        <div class="my-5 border-l-2 border-brand bg-[#faf7f7] px-4 py-3 text-[.95rem]">
+          <strong class="text-ink">Tip: also keep a MusicXML copy.</strong> File &rarr; <strong>Export MusicXML</strong> writes a plain notation file you can open in other notation software. It does not carry the recording or the sync, so it is a portability backup for the notes themselves, not a substitute for the bundle.
+        </div>
+        <div class="my-5 border-l-2 border-brand bg-[#faf7f7] px-4 py-3 text-[.95rem]">
+          <strong class="text-ink">Tip: bundles are immutable in practice.</strong> Treat each exported file as a fixed snapshot. When you change the piece, export again and publish the new file under a new name (or a content-hashed filename). This plays nicely with the long-lived caching covered in the hosting section.
+        </div>
+        <h3>Self-contained versus external bundles</h3>
+        <p>If your recording is an audio file (OpenVoicing uses MP3, which plays in Safari, Chrome, and Firefox), the bundle is fully self-contained: the audio is packed inside the file and it plays offline. If instead the piece follows a <strong>YouTube video</strong>, the bundle only references that video by id and is marked <code>external</code>. External bundles are smaller but need a network connection to play, and they break if the video is later removed from YouTube. Pick audio when you want a piece that will keep working forever with nothing else online.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 03.3 Inside the file -->
+  <section id="format" class="shell border-t border-hair">
+    <div class="grid grid-cols-12 gap-x-gutter py-[clamp(28px,4vw,52px)]">
+      <div class="col-span-full md:col-span-4">
+        <span class="text-[.72rem] font-semibold uppercase tracking-[.14em] text-brand tabular-nums">03.3</span>
+        <h2 class="mt-2 text-h3 font-semibold leading-tight tracking-[-.02em]">What is inside an .ovb file</h2>
+        <p class="mt-2 text-[.9rem] text-grey">A ZIP, a manifest, and sync points.</p>
+      </div>
+      <div class="col-span-full md:col-start-6 md:col-span-7 mt-4 md:mt-0 max-w-[62ch] text-[clamp(1rem,1.4vw,1.1rem)] leading-relaxed text-grey [&_p]:mb-4 [&_strong]:text-ink [&_a]:border-b-2 [&_a]:border-brand [&_a]:text-ink [&_h3]:text-ink [&_h3]:font-semibold [&_h3]:mt-6 [&_h3]:mb-2 [&_h3]:text-[1.05rem] [&_code]:font-mono [&_code]:text-[.9em] [&_code]:text-ink [&_ol]:my-4 [&_ol]:list-decimal [&_ol]:pl-5 [&_ol>li]:mb-2 [&_ul]:my-4 [&_ul]:list-disc [&_ul]:pl-5 [&_ul>li]:mb-2">
+        <p>You never have to open a bundle by hand, but understanding its shape makes hosting, embedding, and debugging far less mysterious. The full normative spec lives in the bundle format document; this is the working summary.</p>
+        <h3>An .ovb is an ordinary ZIP archive</h3>
+        <p>The recommended extension is <code>.ovb</code> and the recommended MIME type is <code>application/zip</code>. If you rename a bundle to <code>.zip</code> you can open it with any unzip tool and look inside. At the root of the archive there is always a <code>manifest.json</code>, and any reader that cannot find that manifest, or that does not recognize the format, refuses the file rather than guessing.</p>
+        <h3>The manifest describes the piece</h3>
+        <ul>
+          <li><code>format</code>: always <code>"openvoicing-bundle"</code>.</li>
+          <li><code>formatVersion</code>: the spec version (currently <code>1</code>). Readers reject major versions they do not implement, so a bundle either loads correctly or fails loudly. It never renders wrong.</li>
+          <li><code>title</code>: the display title.</li>
+          <li><code>attribution</code> (optional): free-text metadata such as <code>composer</code>, <code>artist</code>, <code>copyright</code>, <code>license</code>, and <code>source</code>. Filling this in is good citizenship when you publish other people's material.</li>
+          <li><code>score</code>: the score file's path inside the archive plus its <code>type</code> (<code>musicxml</code>, <code>guitarpro</code>, or <code>alphatex</code>).</li>
+          <li><code>recordings</code>: a list (possibly empty) of takes tied to the score.</li>
+          <li><code>external</code>: <code>true</code> when any recording points at media not packed inside the file (a YouTube video). Set automatically at export.</li>
+        </ul>
+        <h3>Each recording</h3>
+        <p>Every recording has a stable <code>id</code>, a display <code>name</code>, a <code>media</code> source, and an optional list of <code>syncPoints</code>. The <code>media</code> source is one of two kinds:</p>
+        <ul>
+          <li><code>audio</code>: a decoded-audio take packed in the archive at some <code>path</code>. This is the self-contained case.</li>
+          <li><code>youtube</code>: an external video referenced by its 11-character <code>videoId</code>, played through YouTube's official IFrame Player API. No video is ever downloaded. It can optionally carry an <code>audioPath</code> (a packed audio copy of the same performance) used only to draw a waveform and auto-sync in the editor; playback is still the video.</li>
+        </ul>
+        <h3>Sync points make notation follow a recording</h3>
+        <p>Each sync point anchors a musical position (<code>tick</code>, in MIDI ticks at 960 pulses per quarter note) to a moment in the recording (<code>timeSeconds</code>). Playback between anchors is interpolated linearly, so a handful of well-placed anchors (typically one per bar, denser for rubato) is enough to keep the cursor glued to a real performance. This is exactly what Auto sync and tap sync produce for you in the app.</p>
+        <div class="my-5 border-l-2 border-brand bg-[#faf7f7] px-4 py-3 text-[.95rem]">
+          <strong class="text-ink">Forward compatibility is built in.</strong> Readers ignore manifest fields and archive entries they do not recognize, so newer bundles keep working in older players within the same major version. Planned additions (cover images, precomputed waveform peaks, more video providers) will slot in without breaking today's files.
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 03.4 Host -->
+  <section id="host" class="shell border-t border-hair">
+    <div class="grid grid-cols-12 gap-x-gutter py-[clamp(28px,4vw,52px)]">
+      <div class="col-span-full md:col-span-4">
+        <span class="text-[.72rem] font-semibold uppercase tracking-[.14em] text-brand tabular-nums">03.4</span>
+        <h2 class="mt-2 text-h3 font-semibold leading-tight tracking-[-.02em]">Host a bundle on any static host</h2>
+        <p class="mt-2 text-[.9rem] text-grey">Three headers, and a snippet per platform.</p>
+      </div>
+      <div class="col-span-full md:col-start-6 md:col-span-7 mt-4 md:mt-0 max-w-[62ch] text-[clamp(1rem,1.4vw,1.1rem)] leading-relaxed text-grey [&_p]:mb-4 [&_strong]:text-ink [&_a]:border-b-2 [&_a]:border-brand [&_a]:text-ink [&_h3]:text-ink [&_h3]:font-semibold [&_h3]:mt-6 [&_h3]:mb-2 [&_h3]:text-[1.05rem] [&_code]:font-mono [&_code]:text-[.9em] [&_code]:text-ink [&_ol]:my-4 [&_ol]:list-decimal [&_ol]:pl-5 [&_ol>li]:mb-2 [&_ul]:my-4 [&_ul]:list-disc [&_ul]:pl-5 [&_ul>li]:mb-2">
+        <p>Because a bundle is just a file, hosting it is just uploading a file. The only thing to get right is that your host serves it with the correct headers so browsers treat it as the archive it is.</p>
+        <h3>The short version</h3>
+        <ol>
+          <li>Export your <code>.ovb</code> from the app.</li>
+          <li>Upload it to any host that serves static files over <strong>HTTPS</strong>: GitHub Pages, Netlify, Cloudflare Pages, S3 behind CloudFront, or your own Nginx or Apache box.</li>
+          <li>Note the public URL. That URL is what you will hand to the player.</li>
+        </ol>
+        <p>HTTPS matters because the player and its assets run over HTTPS, and browsers block mixed content. A bundle served over plain HTTP will fail to load inside a secure page.</p>
+        <h3>Three headers to set on .ovb files</h3>
+        <ul>
+          <li><strong>Content-Type: <code>application/zip</code>.</strong> A bundle is a ZIP archive. Do not let the host sniff it as <code>text/html</code> or the player cannot read it. <code>application/octet-stream</code> is an acceptable fallback on hosts that will not emit <code>application/zip</code>.</li>
+          <li><strong>CORS, only if cross-origin.</strong> If the bundle lives on a different origin than the page embedding it, the file host must send <code>Access-Control-Allow-Origin</code> for that origin (or <code>*</code> for public bundles). If the bundle and the page share an origin, you need no CORS at all. This single missing header is the most common cause of a "Failed to fetch" error on an otherwise correct embed.</li>
+          <li><strong>Cache-Control for immutability.</strong> Bundles do not change once published, so serve them with <code>Cache-Control: public, max-age=31536000, immutable</code> and change the URL (content-hashed filenames work well) whenever the content changes. This gives you instant repeat loads without stale-cache headaches.</li>
+        </ul>
+        <h3>Server snippets</h3>
+        <p><strong>Nginx:</strong></p>
+        <pre class="my-5 overflow-x-auto border border-[#2a2a2a] bg-black p-[18px] font-mono text-[.85rem] leading-relaxed text-[#e8e8e8]">location ~ \.ovb$ {
+  types { application/zip ovb; }
+  add_header Access-Control-Allow-Origin *;
+  add_header Cache-Control "public, max-age=31536000, immutable";
+}</pre>
+        <p><strong>Apache</strong> (<code>.htaccess</code>):</p>
+        <pre class="my-5 overflow-x-auto border border-[#2a2a2a] bg-black p-[18px] font-mono text-[.85rem] leading-relaxed text-[#e8e8e8]">AddType application/zip .ovb
+&lt;FilesMatch "\.ovb$"&gt;
+  Header set Access-Control-Allow-Origin "*"
+  Header set Cache-Control "public, max-age=31536000, immutable"
+&lt;/FilesMatch&gt;</pre>
+        <p><strong>Netlify</strong> (<code>_headers</code>):</p>
+        <pre class="my-5 overflow-x-auto border border-[#2a2a2a] bg-black p-[18px] font-mono text-[.85rem] leading-relaxed text-[#e8e8e8]">/*.ovb
+  Content-Type: application/zip
+  Access-Control-Allow-Origin: *
+  Cache-Control: public, max-age=31536000, immutable</pre>
+        <p>For S3, set the object's <code>Content-Type</code> metadata to <code>application/zip</code> and enable CORS on the bucket. Most managed static hosts (GitHub Pages, Netlify, Cloudflare Pages) already send permissive CORS or let you configure it, so in practice you often only need to confirm the MIME type.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 03.5 Embed quickstart -->
+  <section id="embed" class="shell border-t border-hair">
+    <div class="grid grid-cols-12 gap-x-gutter py-[clamp(28px,4vw,52px)]">
+      <div class="col-span-full md:col-span-4">
+        <span class="text-[.72rem] font-semibold uppercase tracking-[.14em] text-brand tabular-nums">03.5</span>
+        <h2 class="mt-2 text-h3 font-semibold leading-tight tracking-[-.02em]">Embed the interactive player</h2>
+        <p class="mt-2 text-[.9rem] text-grey">Two lines, no build tooling.</p>
+      </div>
+      <div class="col-span-full md:col-start-6 md:col-span-7 mt-4 md:mt-0 max-w-[62ch] text-[clamp(1rem,1.4vw,1.1rem)] leading-relaxed text-grey [&_p]:mb-4 [&_strong]:text-ink [&_a]:border-b-2 [&_a]:border-brand [&_a]:text-ink [&_h3]:text-ink [&_h3]:font-semibold [&_h3]:mt-6 [&_h3]:mb-2 [&_h3]:text-[1.05rem] [&_code]:font-mono [&_code]:text-[.9em] [&_code]:text-ink [&_ol]:my-4 [&_ol]:list-decimal [&_ol]:pl-5 [&_ol>li]:mb-2 [&_ul]:my-4 [&_ul]:list-disc [&_ul]:pl-5 [&_ul>li]:mb-2">
+        <p>The embeddable player is a small, dependency-free script. It finds a placeholder element on your page and upgrades it into a sandboxed iframe that plays your bundle: press play, drop the speed to 50 percent with the pitch preserved, loop a passage, go fullscreen. It is the same player you meet in the app's Listen mode.</p>
+        <h3>The whole integration is two lines</h3>
+        <p>Add the script once, then add a <code>div</code> that points at your hosted bundle:</p>
+        <pre class="my-5 overflow-x-auto border border-[#2a2a2a] bg-black p-[18px] font-mono text-[.85rem] leading-relaxed text-[#e8e8e8]">&lt;script src="https://YOUR-PLAYER-HOST/openvoicing-embed.js"&gt;&lt;/script&gt;
+&lt;div data-openvoicing-bundle="https://YOUR-FILES/your-piece.ovb"&gt;&lt;/div&gt;</pre>
+        <p>Every matching <code>div</code> on the page is upgraded automatically when the script loads, so you can drop several pieces on one page and they all just work.</p>
+        <h3>Let the app write the snippet for you</h3>
+        <p>In the app, run <strong>Copy embed code</strong> (in the File/Share actions and in the command palette under <code>Cmd/Ctrl+K</code>). It copies a ready-made snippet with the script tag and the <code>div</code>, using a <code>YOUR_BUNDLE_URL</code> placeholder. Paste it into your page and replace the placeholder with the public URL of your hosted <code>.ovb</code>. The script src in that snippet points at the origin you are running the app from, so change it if your player lives elsewhere.</p>
+        <h3>Declarative attributes</h3>
+        <p>These let you tune the embed without any JavaScript:</p>
+        <div class="my-5 overflow-x-auto">
+          <table class="w-full border-collapse text-[.92rem]">
+            <thead><tr class="border-b border-ink text-left"><th class="py-2 pr-4 font-semibold">Attribute</th><th class="py-2 font-semibold">Purpose</th></tr></thead>
+            <tbody>
+              <tr class="border-b border-hair"><td class="py-2 pr-4"><code>data-openvoicing-bundle</code></td><td class="py-2">The bundle URL (required unless you pass it in code).</td></tr>
+              <tr class="border-b border-hair"><td class="py-2 pr-4"><code>data-openvoicing-player</code></td><td class="py-2">Override which player page loads (see the SDK section for why).</td></tr>
+              <tr class="border-b border-hair"><td class="py-2 pr-4"><code>data-openvoicing-height</code></td><td class="py-2">Override the iframe height.</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p>The default height is 480 pixels. Give a synced, scrolling piece more room (the site's own demo uses 720) so the notation is comfortable to read.</p>
+        <h3>Where the player script comes from</h3>
+        <p>You have two choices, both fine:</p>
+        <ul>
+          <li>Point the script at a shared player host (the simplest path, no deployment of your own).</li>
+          <li>Host <code>openvoicing-embed.js</code> yourself alongside the player page, covered in the deploy section.</li>
+        </ul>
+        <p>Either way, keep <code>openvoicing-embed.js</code> and its companion player page together and pin a version, which the SDK and security sections explain.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 03.6 SDK -->
+  <section id="sdk" class="shell border-t border-hair">
+    <div class="grid grid-cols-12 gap-x-gutter py-[clamp(28px,4vw,52px)]">
+      <div class="col-span-full md:col-span-4">
+        <span class="text-[.72rem] font-semibold uppercase tracking-[.14em] text-brand tabular-nums">03.6</span>
+        <h2 class="mt-2 text-h3 font-semibold leading-tight tracking-[-.02em]">Drive the player from JavaScript</h2>
+        <p class="mt-2 text-[.9rem] text-grey">The SDK: create, options, methods, events, types.</p>
+      </div>
+      <div class="col-span-full md:col-start-6 md:col-span-7 mt-4 md:mt-0 max-w-[62ch] text-[clamp(1rem,1.4vw,1.1rem)] leading-relaxed text-grey [&_p]:mb-4 [&_strong]:text-ink [&_a]:border-b-2 [&_a]:border-brand [&_a]:text-ink [&_h3]:text-ink [&_h3]:font-semibold [&_h3]:mt-6 [&_h3]:mb-2 [&_h3]:text-[1.05rem] [&_code]:font-mono [&_code]:text-[.9em] [&_code]:text-ink [&_ol]:my-4 [&_ol]:list-decimal [&_ol]:pl-5 [&_ol>li]:mb-2 [&_ul]:my-4 [&_ul]:list-disc [&_ul]:pl-5 [&_ul>li]:mb-2">
+        <p>When you need more than a static embed (custom controls, syncing the player to other content on the page, analytics on how far people listen), use the JavaScript SDK. Loading <code>openvoicing-embed.js</code> exposes a global <code>OpenVoicing</code> object.</p>
+        <h3>Create a player programmatically</h3>
+        <pre class="my-5 overflow-x-auto border border-[#2a2a2a] bg-black p-[18px] font-mono text-[.85rem] leading-relaxed text-[#e8e8e8]">const player = OpenVoicing.create("#slot", {
+  bundle: "https://example.com/tune.ovb",
+});
+player.on("ready", (e) =&gt; console.log("loaded:", e.title));
+player.play();
+player.setSpeed(0.5);
+player.seek(30);</pre>
+        <p><code>OpenVoicing.create(target, options)</code> takes a CSS selector string or an <code>HTMLElement</code> and returns a player object.</p>
+        <h3>Options</h3>
+        <div class="my-5 overflow-x-auto">
+          <table class="w-full border-collapse text-[.92rem]">
+            <thead><tr class="border-b border-ink text-left"><th class="py-2 pr-4 font-semibold">Option</th><th class="py-2 font-semibold">Meaning</th></tr></thead>
+            <tbody>
+              <tr class="border-b border-hair"><td class="py-2 pr-4"><code>bundle</code></td><td class="py-2">String. The bundle URL. Falls back to the element's <code>data-openvoicing-bundle</code>.</td></tr>
+              <tr class="border-b border-hair"><td class="py-2 pr-4"><code>player</code></td><td class="py-2">String. The player page URL. Defaults to <code>embed.html</code> resolved next to the script.</td></tr>
+              <tr class="border-b border-hair"><td class="py-2 pr-4"><code>height</code></td><td class="py-2">Number or string. Iframe height in pixels (number) or any CSS length (string). Default 480.</td></tr>
+              <tr class="border-b border-hair"><td class="py-2 pr-4"><code>title</code></td><td class="py-2">String. The iframe title for assistive technology. Set this for accessibility.</td></tr>
+              <tr class="border-b border-hair"><td class="py-2 pr-4"><code>lazy</code></td><td class="py-2">Boolean. When <code>true</code>, the player loads only when scrolled near, instead of immediately. Good for long pages with many embeds.</td></tr>
+              <tr class="border-b border-hair"><td class="py-2 pr-4"><code>params</code></td><td class="py-2">Object. Extra query params passed through to the player, for example <code>{ speed: 0.75, loop: "2-6" }</code>. See deep links.</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <h3>The player object</h3>
+        <pre class="my-5 overflow-x-auto border border-[#2a2a2a] bg-black p-[18px] font-mono text-[.85rem] leading-relaxed text-[#e8e8e8]">interface OpenVoicingPlayer {
+  readonly element: HTMLIFrameElement;
+  play(): void;
+  pause(): void;
+  toggle(): void;
+  seek(seconds: number): void;      // seek to a time in seconds
+  setSpeed(value: number): void;    // 0.25 to 1.5; pitch is preserved
+  on(type, handler): () =&gt; void;    // returns an unsubscribe function
+  destroy(): void;                  // remove the iframe and its listeners
+}</pre>
+        <p><code>setSpeed</code> accepts 0.25 to 1.5 and preserves pitch, the same time-stretch you get in the app. For YouTube-backed bundles, speed snaps to YouTube's own steps (0.25, 0.5, and so on).</p>
+        <h3>Events</h3>
+        <p>Subscribe with <code>player.on(type, handler)</code>; the return value unsubscribes.</p>
+        <ul>
+          <li><code>ready</code>: <code>{ type: "ready", title: string, hasRecording: boolean, duration: number }</code>, fired when the bundle has loaded.</li>
+          <li><code>state</code>: <code>{ type: "state", playing: boolean }</code>, fired on play or pause.</li>
+          <li><code>position</code>: <code>{ type: "position", current: number, total: number }</code>, fired as playback advances.</li>
+        </ul>
+        <pre class="my-5 overflow-x-auto border border-[#2a2a2a] bg-black p-[18px] font-mono text-[.85rem] leading-relaxed text-[#e8e8e8]">const off = player.on("position", (e) =&gt; updateBar(e.current / e.total));
+// later, to stop listening:
+off();</pre>
+        <p>Call <code>player.destroy()</code> when you tear down the surrounding UI (for example in a single-page app route change) to remove the iframe and detach listeners cleanly.</p>
+        <h3>TypeScript</h3>
+        <p>Type definitions ship next to the script as <code>openvoicing-embed.d.ts</code>, and the global is typed as <code>window.OpenVoicing: OpenVoicingSDK</code>. Keep the <code>.d.ts</code> alongside the <code>.js</code> so editors pick it up.</p>
+        <div class="my-5 border-l-2 border-brand bg-[#faf7f7] px-4 py-3 text-[.95rem]">
+          <strong class="text-ink">How the iframe finds its player page.</strong> The script derives the default <code>embed.html</code> relative to its own <code>&lt;script src&gt;</code>. If you load <code>openvoicing-embed.js</code> from <code>https://host/v1/openvoicing-embed.js</code>, the player loads from <code>https://host/v1/embed.html</code>. Keep the two files together, or set <code>player</code> (or <code>data-openvoicing-player</code>) explicitly to point elsewhere.
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 03.7 Deep links -->
+  <section id="deep-links" class="shell border-t border-hair">
+    <div class="grid grid-cols-12 gap-x-gutter py-[clamp(28px,4vw,52px)]">
+      <div class="col-span-full md:col-span-4">
+        <span class="text-[.72rem] font-semibold uppercase tracking-[.14em] text-brand tabular-nums">03.7</span>
+        <h2 class="mt-2 text-h3 font-semibold leading-tight tracking-[-.02em]">Deep-link into a passage</h2>
+        <p class="mt-2 text-[.9rem] text-grey">Preset the speed, start time, or loop.</p>
+      </div>
+      <div class="col-span-full md:col-start-6 md:col-span-7 mt-4 md:mt-0 max-w-[62ch] text-[clamp(1rem,1.4vw,1.1rem)] leading-relaxed text-grey [&_p]:mb-4 [&_strong]:text-ink [&_a]:border-b-2 [&_a]:border-brand [&_a]:text-ink [&_h3]:text-ink [&_h3]:font-semibold [&_h3]:mt-6 [&_h3]:mb-2 [&_h3]:text-[1.05rem] [&_code]:font-mono [&_code]:text-[.9em] [&_code]:text-ink [&_ol]:my-4 [&_ol]:list-decimal [&_ol]:pl-5 [&_ol>li]:mb-2 [&_ul]:my-4 [&_ul]:list-disc [&_ul]:pl-5 [&_ul>li]:mb-2">
+        <p>You can preset how the player opens, which is invaluable for teaching: link a student straight to bars 5 through 8 at 70 percent speed, and it starts there.</p>
+        <p>Pass these as query params on the player page (<code>embed.html?...</code>) or, from the SDK, through the <code>params</code> option:</p>
+        <div class="my-5 overflow-x-auto">
+          <table class="w-full border-collapse text-[.92rem]">
+            <thead><tr class="border-b border-ink text-left"><th class="py-2 pr-4 font-semibold">Param</th><th class="py-2 font-semibold">Effect</th></tr></thead>
+            <tbody>
+              <tr class="border-b border-hair"><td class="py-2 pr-4"><code>speed=0.75</code></td><td class="py-2">Initial playback speed (pitch preserved).</td></tr>
+              <tr class="border-b border-hair"><td class="py-2 pr-4"><code>t=12</code></td><td class="py-2">Start position, in seconds.</td></tr>
+              <tr class="border-b border-hair"><td class="py-2 pr-4"><code>loop=8-14</code></td><td class="py-2">Loop a range in seconds.</td></tr>
+              <tr class="border-b border-hair"><td class="py-2 pr-4"><code>loop=b3-6</code></td><td class="py-2">Loop by bar numbers, with a <code>b</code> prefix. Works once the piece is synced, since bar numbers only mean something after the score is aligned to time.</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <h3>Declarative example</h3>
+        <p>Params ride on the player URL:</p>
+        <pre class="my-5 overflow-x-auto border border-[#2a2a2a] bg-black p-[18px] font-mono text-[.85rem] leading-relaxed text-[#e8e8e8]">&lt;div
+  data-openvoicing-bundle="https://YOUR-FILES/etude.ovb"
+  data-openvoicing-player="https://YOUR-PLAYER-HOST/embed.html?speed=0.7&amp;loop=b5-8"
+&gt;&lt;/div&gt;</pre>
+        <h3>SDK example</h3>
+        <p>Params passed in code:</p>
+        <pre class="my-5 overflow-x-auto border border-[#2a2a2a] bg-black p-[18px] font-mono text-[.85rem] leading-relaxed text-[#e8e8e8]">OpenVoicing.create("#slot", {
+  bundle: "https://YOUR-FILES/etude.ovb",
+  params: { speed: 0.7, loop: "b5-8", t: 12 },
+});</pre>
+        <div class="my-5 border-l-2 border-brand bg-[#faf7f7] px-4 py-3 text-[.95rem]">
+          <strong class="text-ink">Tip.</strong> Combine <code>t</code> and <code>loop</code> to open at the top of a hard passage already looping, so a student can drill it immediately without touching a single control.
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 03.8 YouTube bundles -->
+  <section id="youtube" class="shell border-t border-hair">
+    <div class="grid grid-cols-12 gap-x-gutter py-[clamp(28px,4vw,52px)]">
+      <div class="col-span-full md:col-span-4">
+        <span class="text-[.72rem] font-semibold uppercase tracking-[.14em] text-brand tabular-nums">03.8</span>
+        <h2 class="mt-2 text-h3 font-semibold leading-tight tracking-[-.02em]">Hosting YouTube-backed bundles</h2>
+        <p class="mt-2 text-[.9rem] text-grey">External bundles, the network, and CSP origins.</p>
+      </div>
+      <div class="col-span-full md:col-start-6 md:col-span-7 mt-4 md:mt-0 max-w-[62ch] text-[clamp(1rem,1.4vw,1.1rem)] leading-relaxed text-grey [&_p]:mb-4 [&_strong]:text-ink [&_a]:border-b-2 [&_a]:border-brand [&_a]:text-ink [&_h3]:text-ink [&_h3]:font-semibold [&_h3]:mt-6 [&_h3]:mb-2 [&_h3]:text-[1.05rem] [&_code]:font-mono [&_code]:text-[.9em] [&_code]:text-ink [&_ol]:my-4 [&_ol]:list-decimal [&_ol]:pl-5 [&_ol>li]:mb-2 [&_ul]:my-4 [&_ul]:list-disc [&_ul]:pl-5 [&_ul>li]:mb-2">
+        <p>A piece can follow a real audio recording or a <strong>YouTube video</strong> (a lesson or a performance), with the notation scrolling along as the video plays. Publishing a YouTube-backed bundle is almost the same as any other, with two things to know.</p>
+        <h3>It is marked external and needs the network</h3>
+        <p>When a bundle references a YouTube video, the video is embedded through YouTube's official player and never downloaded, so the bundle only stores the video id. The manifest sets <code>external: true</code>. That means the file is small, but playback requires an internet connection and will break if the video is removed from YouTube. If you want a piece that keeps working forever with nothing else online, use an audio recording instead (MP3 audio is packed inside the bundle and plays fully offline).</p>
+        <h3>Allow YouTube's origins in your Content-Security-Policy</h3>
+        <p>If the page embedding the player sends a CSP, the video cannot play unless you allow YouTube to load and frame. Add:</p>
+        <pre class="my-5 overflow-x-auto border border-[#2a2a2a] bg-black p-[18px] font-mono text-[.85rem] leading-relaxed text-[#e8e8e8]">frame-src   https://www.youtube-nocookie.com;
+script-src  https://www.youtube.com;</pre>
+        <p>The player loads the official YouTube IFrame API and embeds <code>https://www.youtube-nocookie.com</code>, the privacy-friendly domain. If you do not send a CSP at all, there is nothing to configure; the video just plays.</p>
+        <p><strong>Audio-only bundles need none of this.</strong> They are fully self-contained, so they require no YouTube origins and no network. Reserve the CSP additions above for pages that actually host video-backed pieces.</p>
+        <div class="my-5 border-l-2 border-brand bg-[#faf7f7] px-4 py-3 text-[.95rem]">
+          <strong class="text-ink">A practical middle path.</strong> In the editor you can pair a YouTube video with an audio file of the same performance purely to draw a waveform and enable Auto sync (and finer speed control). Playback is still the video, and the bundle stays external. This is worth doing when a video is your intended playback source but tapping every bar by hand is tedious.
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 03.9 Security -->
+  <section id="security" class="shell border-t border-hair">
+    <div class="grid grid-cols-12 gap-x-gutter py-[clamp(28px,4vw,52px)]">
+      <div class="col-span-full md:col-span-4">
+        <span class="text-[.72rem] font-semibold uppercase tracking-[.14em] text-brand tabular-nums">03.9</span>
+        <h2 class="mt-2 text-h3 font-semibold leading-tight tracking-[-.02em]">Security, sandboxing, and CSP</h2>
+        <p class="mt-2 text-[.9rem] text-grey">Hardening an embed you control.</p>
+      </div>
+      <div class="col-span-full md:col-start-6 md:col-span-7 mt-4 md:mt-0 max-w-[62ch] text-[clamp(1rem,1.4vw,1.1rem)] leading-relaxed text-grey [&_p]:mb-4 [&_strong]:text-ink [&_a]:border-b-2 [&_a]:border-brand [&_a]:text-ink [&_h3]:text-ink [&_h3]:font-semibold [&_h3]:mt-6 [&_h3]:mb-2 [&_h3]:text-[1.05rem] [&_code]:font-mono [&_code]:text-[.9em] [&_code]:text-ink [&_ol]:my-4 [&_ol]:list-decimal [&_ol]:pl-5 [&_ol>li]:mb-2 [&_ul]:my-4 [&_ul]:list-disc [&_ul]:pl-5 [&_ul>li]:mb-2">
+        <p>The player is designed to be safe to drop onto a page you control, and it gives you the levers to keep it that way.</p>
+        <h3>The player runs in a sandboxed iframe</h3>
+        <p>Your page and the player communicate only through <code>postMessage</code>, so the player cannot reach into your page's DOM or scripts, and vice versa. The SDK methods and events you saw earlier are that message channel, wrapped in a friendly API.</p>
+        <h3>If your site sends a CSP, allow the player to load and frame</h3>
+        <p>Two directives matter:</p>
+        <ul>
+          <li><code>script-src</code> must allow the origin serving <code>openvoicing-embed.js</code>.</li>
+          <li><code>frame-src</code> (or <code>child-src</code>) must allow the origin serving the player page (<code>embed.html</code>).</li>
+        </ul>
+        <p>If you host video-backed bundles, add the YouTube origins from the previous section on top of these.</p>
+        <h3>Control who is allowed to embed your instance</h3>
+        <p>If you run your own player and do not want other sites framing it, set <code>Content-Security-Policy: frame-ancestors</code> (and/or the older <code>X-Frame-Options</code>) on <code>embed.html</code> to restrict which origins may embed it.</p>
+        <div class="my-5 border-l-2 border-brand bg-[#faf7f7] px-4 py-3 text-[.95rem]">
+          <strong class="text-ink">Only embed bundles you trust.</strong> A bundle is arbitrary content rendered inside the player iframe. The sandbox limits its blast radius, but you should still treat an untrusted <code>.ovb</code> the way you would treat any untrusted media: host and embed material you or people you trust produced.
+        </div>
+        <h3>Pin a version so an update cannot break live embeds</h3>
+        <p>The script resolves its player page relative to its own URL, so point <code>&lt;script src&gt;</code> at an immutable, versioned path such as <code>/v1/openvoicing-embed.js</code> rather than a "latest" URL. That way a future player change cannot silently alter or break pieces that are already published on your site. When you do want the newer player, move to <code>/v2/...</code> deliberately and test.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 03.10 Deploy your own -->
+  <section id="deploy" class="shell border-t border-hair">
+    <div class="grid grid-cols-12 gap-x-gutter py-[clamp(28px,4vw,52px)]">
+      <div class="col-span-full md:col-span-4">
+        <span class="text-[.72rem] font-semibold uppercase tracking-[.14em] text-brand tabular-nums">03.10</span>
+        <h2 class="mt-2 text-h3 font-semibold leading-tight tracking-[-.02em]">Deploy your own instance</h2>
+        <p class="mt-2 text-[.9rem] text-grey">Build the whole app and player to static files.</p>
+      </div>
+      <div class="col-span-full md:col-start-6 md:col-span-7 mt-4 md:mt-0 max-w-[62ch] text-[clamp(1rem,1.4vw,1.1rem)] leading-relaxed text-grey [&_p]:mb-4 [&_strong]:text-ink [&_a]:border-b-2 [&_a]:border-brand [&_a]:text-ink [&_h3]:text-ink [&_h3]:font-semibold [&_h3]:mt-6 [&_h3]:mb-2 [&_h3]:text-[1.05rem] [&_code]:font-mono [&_code]:text-[.9em] [&_code]:text-ink [&_ol]:my-4 [&_ol]:list-decimal [&_ol]:pl-5 [&_ol>li]:mb-2 [&_ul]:my-4 [&_ul]:list-disc [&_ul]:pl-5 [&_ul>li]:mb-2">
+        <p>Most people only ever host <code>.ovb</code> files and point the embed at a shared player. But you can also run the entire thing yourself: the authoring app, the embeddable player, and all their assets. There is no server to operate; it builds down to static files.</p>
+        <h3>Build it</h3>
+        <p>You need Node 22 or newer and pnpm.</p>
+        <pre class="my-5 overflow-x-auto border border-[#2a2a2a] bg-black p-[18px] font-mono text-[.85rem] leading-relaxed text-[#e8e8e8]">pnpm install
+pnpm build</pre>
+        <p>The static site lands in <code>apps/web/dist/</code>:</p>
+        <ul>
+          <li><code>index.html</code>, the authoring app (Listen, Practice, and Edit modes).</li>
+          <li><code>embed.html</code>, the embeddable player page.</li>
+          <li><code>openvoicing-embed.js</code> and <code>openvoicing-embed.d.ts</code>, the embed SDK and its types.</li>
+          <li><code>alphatab/</code>, the notation renderer's worker and font assets.</li>
+          <li><code>soundfont/</code>, the General MIDI soundfont used for "Notes" playback (roughly 24 MB).</li>
+        </ul>
+        <p>Upload the contents of <code>dist/</code> to any static host: Netlify, Cloudflare Pages, GitHub Pages, S3 behind CloudFront, Nginx, and so on. There is no backend process.</p>
+        <h3>Serving from a sub-path</h3>
+        <p>By default the app assumes it lives at the domain root (<code>/</code>). To serve it from something like <code>https://example.com/music/</code>, build with a matching base so asset and service-worker URLs resolve:</p>
+        <pre class="my-5 overflow-x-auto border border-[#2a2a2a] bg-black p-[18px] font-mono text-[.85rem] leading-relaxed text-[#e8e8e8]">OPENVOICING_BASE=/music/ pnpm build</pre>
+        <p>Then confirm the PWA manifest's <code>start_url</code> and icon paths also point under the sub-path. If a deploy shows a blank page with 404s for <code>/assets/*.js</code>, a wrong base is almost always the cause.</p>
+        <h3>Platform notes</h3>
+        <ul>
+          <li>GitHub Pages, Netlify, Cloudflare Pages, and S3: upload <code>dist</code> as-is.</li>
+          <li>Serve <code>.ovb</code> files with <code>Content-Type: application/zip</code> (or <code>application/octet-stream</code>), per the hosting section.</li>
+          <li>The service worker precaches the app for offline use with no configuration. After you push an upgrade, an old cached version can linger for one load; a hard reload updates it, and the worker cache-busts on the next visit.</li>
+        </ul>
+        <h3>Offline capability</h3>
+        <p>Because of that service worker, a deployed instance plus a self-contained (audio-only) bundle can run with no network. YouTube-backed bundles still need connectivity to stream their video.</p>
+        <div class="my-5 border-l-2 border-brand bg-[#faf7f7] px-4 py-3 text-[.95rem]">
+          <strong class="text-ink">License obligation for modified deployments (AGPL-3.0).</strong> The app in <code>apps/web</code> is licensed AGPL-3.0-only. Under section 13, offering a modified version over a network counts as distribution: if you change the app and let other people use it, you must offer those users the complete corresponding source of your modified version. A link to your public fork in the UI or docs satisfies this. Running the app unmodified carries no such obligation. The reusable libraries are MPL-2.0, a lighter touch; see the packages section and the project's licensing document for the full picture.
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 03.11 CLI -->
+  <section id="cli" class="shell border-t border-hair">
+    <div class="grid grid-cols-12 gap-x-gutter py-[clamp(28px,4vw,52px)]">
+      <div class="col-span-full md:col-span-4">
+        <span class="text-[.72rem] font-semibold uppercase tracking-[.14em] text-brand tabular-nums">03.11</span>
+        <h2 class="mt-2 text-h3 font-semibold leading-tight tracking-[-.02em]">Build bundles with the ovb CLI</h2>
+        <p class="mt-2 text-[.9rem] text-grey">Create, validate, and inspect from the terminal.</p>
+      </div>
+      <div class="col-span-full md:col-start-6 md:col-span-7 mt-4 md:mt-0 max-w-[62ch] text-[clamp(1rem,1.4vw,1.1rem)] leading-relaxed text-grey [&_p]:mb-4 [&_strong]:text-ink [&_a]:border-b-2 [&_a]:border-brand [&_a]:text-ink [&_h3]:text-ink [&_h3]:font-semibold [&_h3]:mt-6 [&_h3]:mb-2 [&_h3]:text-[1.05rem] [&_code]:font-mono [&_code]:text-[.9em] [&_code]:text-ink [&_ol]:my-4 [&_ol]:list-decimal [&_ol]:pl-5 [&_ol>li]:mb-2 [&_ul]:my-4 [&_ul]:list-disc [&_ul]:pl-5 [&_ul>li]:mb-2">
+        <p>The <code>ovb</code> command (from <code>@openvoicing/bundle</code>) creates, validates, and inspects <code>.ovb</code> bundles without opening the app. It is built for scripting, CI pipelines, and batch-preparing pieces to host. If you have one score and one recording, the app is faster; if you have fifty, the CLI is the tool.</p>
+        <h3>Getting it (from the repo)</h3>
+        <pre class="my-5 overflow-x-auto border border-[#2a2a2a] bg-black p-[18px] font-mono text-[.85rem] leading-relaxed text-[#e8e8e8]">pnpm --filter @openvoicing/bundle build
+node packages/bundle/bin/ovb.mjs &lt;command&gt;</pre>
+        <h3>ovb create</h3>
+        <p>Packages a score, and optionally a recording, into a bundle.</p>
+        <pre class="my-5 overflow-x-auto border border-[#2a2a2a] bg-black p-[18px] font-mono text-[.85rem] leading-relaxed text-[#e8e8e8]">ovb create --score &lt;file&gt; --out &lt;file.ovb&gt; [--title &lt;T&gt;] [--recording &lt;audio&gt;] [--youtube &lt;url&gt;]</pre>
+        <p>Flags:</p>
+        <ul>
+          <li><code>--score &lt;file&gt;</code> (required): source score, a <code>.musicxml</code>, <code>.xml</code>, <code>.mxl</code>, or Guitar Pro file.</li>
+          <li><code>--out &lt;file.ovb&gt;</code> (required): where to write the bundle.</li>
+          <li><code>--title &lt;T&gt;</code>: the title stored in the manifest.</li>
+          <li><code>--recording &lt;audio&gt;</code>: an audio file to pack in, for example <code>.mp3</code>, <code>.ogg</code>, or <code>.wav</code>. MP3 is the safest for cross-browser playback.</li>
+          <li><code>--youtube &lt;url&gt;</code>: a YouTube URL or video id to attach as a video recording. This marks the bundle external.</li>
+        </ul>
+        <p>Examples:</p>
+        <pre class="my-5 overflow-x-auto border border-[#2a2a2a] bg-black p-[18px] font-mono text-[.85rem] leading-relaxed text-[#e8e8e8]"># Audio recording packed into the bundle (self-contained):
+ovb create --score song.musicxml --recording take.mp3 --title "My Tune" --out song.ovb
+
+# YouTube video recording (referenced, not downloaded; marks the bundle external):
+ovb create --score song.musicxml --youtube https://youtu.be/VIDEO_ID --out song.ovb
+
+# YouTube video plus a paired audio file for the waveform and auto-sync:
+ovb create --score song.musicxml --youtube VIDEO_ID --recording take.mp3 --out song.ovb</pre>
+        <p>Note that the CLI packages the score and media; the fine-grained bar-by-bar sync map is what the app's Auto sync and tap sync produce, so pieces that need precise alignment are usually finished in the app.</p>
+        <h3>ovb validate</h3>
+        <p>Checks that a bundle is well-formed and that its <code>formatVersion</code> is supported. It exits non-zero on failure, so it drops straight into CI as a gate.</p>
+        <pre class="my-5 overflow-x-auto border border-[#2a2a2a] bg-black p-[18px] font-mono text-[.85rem] leading-relaxed text-[#e8e8e8]">ovb validate song.ovb</pre>
+        <h3>ovb inspect</h3>
+        <p>Prints the manifest and the list of files inside a bundle, which is the quickest way to confirm what actually got packed.</p>
+        <pre class="my-5 overflow-x-auto border border-[#2a2a2a] bg-black p-[18px] font-mono text-[.85rem] leading-relaxed text-[#e8e8e8]">ovb inspect song.ovb</pre>
+        <h3>ovb help</h3>
+        <p>Lists the commands.</p>
+        <pre class="my-5 overflow-x-auto border border-[#2a2a2a] bg-black p-[18px] font-mono text-[.85rem] leading-relaxed text-[#e8e8e8]">ovb help</pre>
+        <div class="my-5 border-l-2 border-brand bg-[#faf7f7] px-4 py-3 text-[.95rem]">
+          <strong class="text-ink">Tip for CI.</strong> Run <code>ovb validate</code> on every bundle you generate before publishing, and fail the build if it exits non-zero. Combined with content-hashed filenames and long-lived caching, this gives you a reliable, reproducible publish pipeline with no server in the loop.
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 03.12 npm packages -->
+  <section id="packages" class="shell border-t border-hair">
+    <div class="grid grid-cols-12 gap-x-gutter py-[clamp(28px,4vw,52px)]">
+      <div class="col-span-full md:col-span-4">
+        <span class="text-[.72rem] font-semibold uppercase tracking-[.14em] text-brand tabular-nums">03.12</span>
+        <h2 class="mt-2 text-h3 font-semibold leading-tight tracking-[-.02em]">Publish the reusable packages</h2>
+        <p class="mt-2 text-[.9rem] text-grey">The npm libraries and the release workflow.</p>
+      </div>
+      <div class="col-span-full md:col-start-6 md:col-span-7 mt-4 md:mt-0 max-w-[62ch] text-[clamp(1rem,1.4vw,1.1rem)] leading-relaxed text-grey [&_p]:mb-4 [&_strong]:text-ink [&_a]:border-b-2 [&_a]:border-brand [&_a]:text-ink [&_h3]:text-ink [&_h3]:font-semibold [&_h3]:mt-6 [&_h3]:mb-2 [&_h3]:text-[1.05rem] [&_code]:font-mono [&_code]:text-[.9em] [&_code]:text-ink [&_ol]:my-4 [&_ol]:list-decimal [&_ol]:pl-5 [&_ol>li]:mb-2 [&_ul]:my-4 [&_ul]:list-disc [&_ul]:pl-5 [&_ul>li]:mb-2">
+        <p>The player, the score model, and the bundle format are meant to be reused by others, so the reusable packages are published to npm under the MPL-2.0 license (a lighter obligation than the AGPL-3.0 app).</p>
+        <h3>Packages intended for npm</h3>
+        <ul>
+          <li><code>@openvoicing/score-model</code>: the document format and its converters.</li>
+          <li><code>@openvoicing/bundle</code>: the <code>.ovb</code> reader/writer and the <code>ovb</code> CLI.</li>
+          <li><code>@openvoicing/audio-engine</code>: time-stretch and analysis.</li>
+          <li><code>@openvoicing/player</code>: the rendering and playback wrapper.</li>
+        </ul>
+        <p>Each is currently consumed as TypeScript source inside the monorepo. Before a first npm release they need a build step that emits <code>.js</code> plus <code>.d.ts</code> (the <code>bundle</code> package already does this via <code>tsconfig.build.json</code>; the others follow the same pattern) and a <code>publishConfig</code> with <code>"access": "public"</code>.</p>
+        <h3>Release checklist</h3>
+        <ol>
+          <li><code>pnpm test &amp;&amp; pnpm typecheck &amp;&amp; pnpm build</code>.</li>
+          <li>Bump versions (keep the four packages in lockstep for now).</li>
+          <li><code>pnpm --filter &lt;pkg&gt; build</code> to emit <code>dist</code>.</li>
+          <li><code>npm publish --access public</code> from each package (requires an npm token with publish rights to the <code>@openvoicing</code> scope).</li>
+          <li>Tag the release: <code>git tag vX.Y.Z &amp;&amp; git push --tags</code>.</li>
+        </ol>
+        <p>Automating steps 3 through 5 in CI on tag push is the natural next step. It needs an <code>NPM_TOKEN</code> secret, which is why it is not enabled in the repo by default.</p>
+        <h3>The embed script on a CDN</h3>
+        <p><code>openvoicing-embed.js</code> is a dependency-free file, and its companion <code>openvoicing-embed.d.ts</code> sits next to it. Publish the script to any CDN and point <code>&lt;script src&gt;</code> at it. Because the script resolves its player page (<code>embed.html</code>) relative to its own URL, keep those files together on the CDN. And, as covered in the security section, pin a versioned, immutable path (for example <code>/v1/openvoicing-embed.js</code>) rather than a "latest" URL, so a player update can never silently break embeds that are already live on other people's pages.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 03.13 Troubleshooting -->
+  <section id="troubleshooting" class="shell border-t border-hair">
+    <div class="grid grid-cols-12 gap-x-gutter py-[clamp(28px,4vw,52px)]">
+      <div class="col-span-full md:col-span-4">
+        <span class="text-[.72rem] font-semibold uppercase tracking-[.14em] text-brand tabular-nums">03.13</span>
+        <h2 class="mt-2 text-h3 font-semibold leading-tight tracking-[-.02em]">Troubleshooting</h2>
+        <p class="mt-2 text-[.9rem] text-grey">Symptom, cause, and fix.</p>
+      </div>
+      <div class="col-span-full md:col-start-6 md:col-span-7 mt-4 md:mt-0 max-w-[62ch] text-[clamp(1rem,1.4vw,1.1rem)] leading-relaxed text-grey [&_p]:mb-4 [&_strong]:text-ink [&_a]:border-b-2 [&_a]:border-brand [&_a]:text-ink [&_h3]:text-ink [&_h3]:font-semibold [&_h3]:mt-6 [&_h3]:mb-2 [&_h3]:text-[1.05rem] [&_code]:font-mono [&_code]:text-[.9em] [&_code]:text-ink [&_ol]:my-4 [&_ol]:list-decimal [&_ol]:pl-5 [&_ol>li]:mb-2 [&_ul]:my-4 [&_ul]:list-disc [&_ul]:pl-5 [&_ul>li]:mb-2">
+        <p>Most problems in this area come down to a wrong header, a wrong path, or a browser policy behaving exactly as designed. This table maps the symptom you see to the fix.</p>
+        <div class="my-5 overflow-x-auto">
+          <table class="w-full border-collapse text-[.92rem]">
+            <thead><tr class="border-b border-ink text-left"><th class="py-2 pr-4 font-semibold">Symptom</th><th class="py-2 pr-4 font-semibold">Likely cause</th><th class="py-2 font-semibold">Fix</th></tr></thead>
+            <tbody>
+              <tr class="border-b border-hair"><td class="py-2 pr-4">Blank page, 404s for <code>/assets/*.js</code></td><td class="py-2 pr-4">Wrong base path for a sub-path deploy</td><td class="py-2">Rebuild with <code>OPENVOICING_BASE</code> set to your sub-path</td></tr>
+              <tr class="border-b border-hair"><td class="py-2 pr-4">Embed iframe is blank</td><td class="py-2 pr-4">Bundle 404, or served as the wrong MIME type</td><td class="py-2">Check the bundle URL and that it is served as <code>application/zip</code></td></tr>
+              <tr class="border-b border-hair"><td class="py-2 pr-4">"Failed to fetch" on a cross-origin bundle</td><td class="py-2 pr-4">Missing CORS header</td><td class="py-2">Add <code>Access-Control-Allow-Origin</code> on the bundle host</td></tr>
+              <tr class="border-b border-hair"><td class="py-2 pr-4">Video-backed embed will not play</td><td class="py-2 pr-4">CSP blocks YouTube</td><td class="py-2">Allow <code>https://www.youtube-nocookie.com</code> in <code>frame-src</code> and <code>https://www.youtube.com</code> in <code>script-src</code></td></tr>
+              <tr class="border-b border-hair"><td class="py-2 pr-4">No audio until the user clicks</td><td class="py-2 pr-4">Browser autoplay policy</td><td class="py-2">Expected. Audio starts on the first user gesture</td></tr>
+              <tr class="border-b border-hair"><td class="py-2 pr-4">Old version keeps loading after an upgrade</td><td class="py-2 pr-4">Service-worker cache</td><td class="py-2">Hard-reload once; the worker updates on the next load and cache-busts</td></tr>
+              <tr class="border-b border-hair"><td class="py-2 pr-4">Notes playback silent or slow on the first note</td><td class="py-2 pr-4">The roughly 24 MB soundfont is still downloading</td><td class="py-2">Wait for it, or host the <code>soundfont/</code> directory on a fast CDN</td></tr>
+              <tr class="border-b border-hair"><td class="py-2 pr-4">A live embed changed behavior after an update</td><td class="py-2 pr-4">Script pinned to a moving "latest" URL</td><td class="py-2">Pin an immutable, versioned script path and upgrade deliberately</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="my-5 border-l-2 border-brand bg-[#faf7f7] px-4 py-3 text-[.95rem]">
+          <strong class="text-ink">A quick diagnostic order when an embed is blank.</strong> First open the bundle URL directly in a browser tab (does the file download, and does the response header say <code>application/zip</code>?), then check the browser console for a CORS or CSP message, then confirm that <code>openvoicing-embed.js</code> and <code>embed.html</code> are the same version and sit together. Those three checks catch the large majority of failures.
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Keep going -->
+  <section class="shell border-t border-ink py-[clamp(28px,4vw,52px)]">
+    <p class="text-[.72rem] font-semibold uppercase tracking-[.14em] text-grey mb-4">Keep going</p>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-x-gutter gap-y-6">
+      <a href="./practice.html" class="group block"><span class="text-[.82rem] text-grey">Back a step</span><h3 class="mt-1 text-[1.15rem] font-semibold group-hover:text-brand">Practice a piece &rarr;</h3><p class="mt-1 text-[.92rem] text-grey">Slow it down, loop a passage, and sync notation to a recording before you export.</p></a>
+      <a href="./why.html" class="group block"><span class="text-[.82rem] text-grey">The idea</span><h3 class="mt-1 text-[1.15rem] font-semibold group-hover:text-brand">Why open &rarr;</h3><p class="mt-1 text-[.92rem] text-grey">A file you own, not a service you rent, and what the open format means for you.</p></a>
+      <a href="./reference.html" class="group block"><span class="text-[.82rem] text-grey">Go deeper</span><h3 class="mt-1 text-[1.15rem] font-semibold group-hover:text-brand">Reference &rarr;</h3><p class="mt-1 text-[.92rem] text-grey">Keyboard shortcuts, the full bundle spec, and the rest of the technical details.</p></a>
+    </div>
+  </section>
+  </main>
+
+  <footer class="shell flex flex-wrap items-baseline justify-between gap-4 py-10 pb-16 border-t border-ink">
+    <span class="font-bold">OpenVoicing</span>
+    <span class="text-[.8rem] text-greymid">Free and open source · Engraving by alphaTab</span>
+    <span class="text-[.82rem] text-grey">
+      <a href="https://github.com/pjdoland/openvoicing" class="border-b border-hair hover:text-ink">GitHub</a>
+      &nbsp;
+      <a href="https://github.com/pjdoland/openvoicing/blob/main/docs/index.md" class="border-b border-hair hover:text-ink">Docs</a>
+      &nbsp;
+      <a href="./app/" class="border-b border-hair hover:text-ink">App</a>
+    </span>
+  </footer>
+</body>
+</html>
