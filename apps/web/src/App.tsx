@@ -31,7 +31,9 @@ import {
 // FluidR3 (full General MIDI, MIT) self-hosted; cached on first play. Much
 // richer than alphaTab's bundled sonivox, at ~24MB loaded once.
 const soundFontUrl = `${import.meta.env.BASE_URL}soundfont/FluidR3Mono_GM.sf3`;
-import { DEMO_TEX } from "./demo";
+// First-time visitors land on this bundle: score, recording, and sync, so the
+// play-along experience is there to try immediately.
+const demoBundleUrl = `${import.meta.env.BASE_URL}invention8.ovb`;
 import { RecordingPanel } from "./RecordingPanel";
 import { SpeedControl, clampSpeed } from "./SpeedControl";
 import { clampSyncMove as clampSyncMovePure, computeSyncConfidence } from "./sync-utils";
@@ -380,6 +382,10 @@ export function App() {
   // Guards the RecordingPlayer "loaded" reset when loading paired audio, so the
   // video's existing sync map and source selection are preserved.
   const loadingPairedAudioRef = useRef(false);
+  // Set before a recording.load() whose caller supplies its own sync + follow
+  // (bundle load, recording select). Tells the "loaded" handler to skip the
+  // fresh-recording reset that would otherwise clobber follow.
+  const suppressLoadedResetRef = useRef(false);
   function media(): MediaPlayer {
     return youtubeRef.current ?? recording;
   }
@@ -596,8 +602,8 @@ export function App() {
   }
   const [syncPoints, setSyncPoints] = useState<SyncPoint[] | null>(null);
   const syncPointsRef = useRef<SyncPoint[] | null>(null);
-  const [follow, setFollow] = useState(false);
-  const followRef = useRef(false);
+  const [follow, setFollow] = useState(true);
+  const followRef = useRef(true);
   const [tapCount, setTapCount] = useState<number | null>(null);
   // Per-bar tap times; null = skipped, to be interpolated from neighbours.
   const tapsRef = useRef<Array<number | null>>([]);
@@ -736,9 +742,16 @@ export function App() {
         // Prove autosave by demonstration: the piece you left is back.
         showToast("Restored your last session");
       } else {
-        const data = new TextEncoder().encode(DEMO_TEX).buffer as ArrayBuffer;
-        scoreSourceRef.current = { name: "demo.alphatex", type: "alphatex", data };
-        player.loadTex(DEMO_TEX);
+        // Default demo: the Invention 8 bundle (score + recording + sync).
+        try {
+          const resp = await fetch(demoBundleUrl);
+          if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+          const bytes = new Uint8Array(await resp.arrayBuffer());
+          if (disposed) return;
+          await loadBundleBytes(bytes);
+        } catch (error) {
+          console.error("[openvoicing] failed to load the default demo", error);
+        }
       }
     })();
     return () => {
@@ -790,6 +803,10 @@ export function App() {
         return;
       }
       applyPreferred("recording"); // a loaded recording is the focus
+      if (suppressLoadedResetRef.current) {
+        suppressLoadedResetRef.current = false;
+        return;
+      }
       setSyncPoints(null);
       setFollow(false);
       setTapCount(null);
@@ -2305,6 +2322,7 @@ export function App() {
         } else {
           setActiveMediaKind("audio");
           const bytes = bundle.files.get(recordingAudioPath(firstEntry.media)!)!;
+          suppressLoadedResetRef.current = true;
           await recording.load(bytes.slice().buffer as ArrayBuffer);
         }
         if (firstEntry.syncPoints?.length) {
