@@ -190,19 +190,17 @@
         <p class="mt-2 text-[.9rem] text-grey">For developers, self-hosters, and license-conscious users.</p>
       </div>
       <div class="col-span-full md:col-start-6 md:col-span-7 mt-4 md:mt-0 max-w-[62ch] text-[clamp(1rem,1.4vw,1.1rem)] leading-relaxed text-grey [&_p]:mb-4 [&_strong]:text-ink [&_a]:border-b-2 [&_a]:border-brand [&_a]:text-ink [&_h3]:text-ink [&_h3]:font-semibold [&_h3]:mt-6 [&_h3]:mb-2 [&_h3]:text-[1.05rem] [&_code]:font-mono [&_code]:text-[.9em] [&_code]:text-ink [&_ol]:my-4 [&_ol]:list-decimal [&_ol]:pl-5 [&_ol>li]:mb-2 [&_ul]:my-4 [&_ul]:list-disc [&_ul]:pl-5 [&_ul>li]:mb-2">
-        <p>OpenVoicing is a mixed-license open-source project. Two licenses are in play, and which one applies depends on which part of the code you mean. Here is the plain-language version; the authoritative details live in the LICENSING document.</p>
-        <h3>The reusable libraries are MPL-2.0</h3>
-        <p>These are the building blocks: the score model (document format, importers and exporters, sync math), the player (notation rendering and playback), the audio engine (time-stretch playback, onset detection, waveforms), and the bundle tooling (the <code>.ovb</code> format and the <code>ovb</code> CLI). The Mozilla Public License 2.0 is a file-level copyleft license. In practice that means you can combine these libraries with your own code, including proprietary code, and you only have to share back changes you make to the MPL-licensed files themselves. This is deliberately permissive so that developers can build tools on the format.</p>
-        <h3>The application is AGPL-3.0</h3>
-        <p>The authoring app and the embeddable player page (<code>apps/web</code>), and the project as a whole, are licensed under the GNU Affero General Public License, version 3. The important clause is section 13, which treats running the software as a network service the same as distributing it. In plain terms: if you modify the app and then run your modified version so other people can use it over a network, you must make the complete corresponding source of your modified version available to those users. Publishing a link to your fork's source in the UI or the docs is enough to satisfy this.</p>
+        <p>OpenVoicing is released under the <strong>MIT license</strong>, one of the most permissive open-source licenses there is. This is the plain-language version; the authoritative details live in the LICENSING document.</p>
+        <h3>MIT, in one paragraph</h3>
+        <p>You can use, modify, host, embed, and redistribute OpenVoicing freely, including inside commercial and closed-source products. The only condition is that you keep the copyright and permission notice. There is no copyleft, no share-back requirement, and no network-use clause. This applies to the whole project: the authoring app, the embeddable player, the score model, the audio engine, and the bundle tooling (the <code>.ovb</code> format and the <code>ovb</code> CLI).</p>
         <h3>What this means for you, by situation</h3>
         <ol>
-          <li><strong>You just use the hosted app or self-host it unchanged.</strong> Nothing is required of you. Use it freely.</li>
-          <li><strong>You embed a piece on your own site with the standard player.</strong> Nothing is required of you beyond the normal license notices; you are using the software, not modifying and redistributing it.</li>
-          <li><strong>You build your own tool on the libraries.</strong> You work under MPL-2.0: keep the libraries' files under MPL and share back changes to those files; your surrounding code stays yours.</li>
-          <li><strong>You modify the app and run your modified version publicly.</strong> AGPL-3.0 applies: publish the source of your modified app to your users.</li>
+          <li><strong>You use the hosted app or self-host it, changed or unchanged.</strong> Nothing is required of you. Use it freely.</li>
+          <li><strong>You embed a piece on your own site with the standard player.</strong> Nothing is required of you beyond keeping the license notice.</li>
+          <li><strong>You build your own tool on the libraries.</strong> Use them however you like and keep the MIT notice. Your surrounding code is entirely yours, under whatever license you choose.</li>
+          <li><strong>You ship a product built on OpenVoicing, including commercially.</strong> That is fine. Keep the notice.</li>
         </ol>
-        <p>Two more things worth knowing. Bundled and dependency licenses (alphaTab, which does the engraving, the Signalsmith Stretch time-stretch worklet, and the FluidR3 soundfont) are listed in the project's third-party notices.</p>
+        <p>A few bundled and dependency components keep their own permissive licenses, and you preserve their notices when you redistribute a build: alphaTab (which does the engraving) under MPL-2.0, the fonts under the SIL Open Font License, and the FluidR3Mono soundfont under MIT. These are listed in the project's third-party notices.</p>
         <div class="my-5 border-l-2 border-brand bg-[#faf7f7] px-4 py-3 text-[.95rem]">
           <strong class="text-ink">On the name.</strong> The name "OpenVoicing" and any logo are not covered by the code licenses. You are free to fork and redistribute the code, but you are asked to rename your fork if you distribute or run it publicly, so users are not confused about which project they are dealing with.
         </div>

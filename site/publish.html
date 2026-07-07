@@ -411,7 +411,7 @@ pnpm build</pre>
         <h3>Offline capability</h3>
         <p>Because of that service worker, a deployed instance plus a self-contained (audio-only) bundle can run with no network. YouTube-backed bundles still need connectivity to stream their video.</p>
         <div class="my-5 border-l-2 border-brand bg-[#faf7f7] px-4 py-3 text-[.95rem]">
-          <strong class="text-ink">License obligation for modified deployments (AGPL-3.0).</strong> The app in <code>apps/web</code> is licensed AGPL-3.0-only. Under section 13, offering a modified version over a network counts as distribution: if you change the app and let other people use it, you must offer those users the complete corresponding source of your modified version. A link to your public fork in the UI or docs satisfies this. Running the app unmodified carries no such obligation. The reusable libraries are MPL-2.0, a lighter touch; see the packages section and the project's licensing document for the full picture.
+          <strong class="text-ink">Licensing for deployments.</strong> OpenVoicing is MIT licensed, so you can deploy it, modify it, and run it publicly with no share-back obligation. Just keep the copyright notice. A few bundled components (alphaTab, the fonts, the soundfont) keep their own permissive notices; preserve those in your build. See the project's licensing document for the full picture.
         </div>
       </div>
     </div>
@@ -476,7 +476,7 @@ ovb create --score song.musicxml --youtube VIDEO_ID --recording take.mp3 --out s
         <p class="mt-2 text-[.9rem] text-grey">The npm libraries and the release workflow.</p>
       </div>
       <div class="col-span-full md:col-start-6 md:col-span-7 mt-4 md:mt-0 max-w-[62ch] text-[clamp(1rem,1.4vw,1.1rem)] leading-relaxed text-grey [&_p]:mb-4 [&_strong]:text-ink [&_a]:border-b-2 [&_a]:border-brand [&_a]:text-ink [&_h3]:text-ink [&_h3]:font-semibold [&_h3]:mt-6 [&_h3]:mb-2 [&_h3]:text-[1.05rem] [&_code]:font-mono [&_code]:text-[.9em] [&_code]:text-ink [&_ol]:my-4 [&_ol]:list-decimal [&_ol]:pl-5 [&_ol>li]:mb-2 [&_ul]:my-4 [&_ul]:list-disc [&_ul]:pl-5 [&_ul>li]:mb-2">
-        <p>The player, the score model, and the bundle format are meant to be reused by others, so the reusable packages are published to npm under the MPL-2.0 license (a lighter obligation than the AGPL-3.0 app).</p>
+        <p>The player, the score model, and the bundle format are meant to be reused by others, so the reusable packages are published to npm under the permissive MIT license, the same as the rest of the project.</p>
         <h3>Packages intended for npm</h3>
         <ul>
           <li><code>@openvoicing/score-model</code>: the document format and its converters.</li>

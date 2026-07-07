@@ -39,6 +39,7 @@ jobs:
           cp site/*.html _site/
           cp site/style.css _site/style.css
           cp site/*.png _site/
+          cp -R site/shots _site/shots
           cp -R site/fonts _site/fonts
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
