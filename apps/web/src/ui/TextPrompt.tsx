@@ -35,8 +35,11 @@ export function TextPrompt({
   }, [onClose]);
 
   function commit() {
-    request.submit(value);
+    // Close first, then submit: a submit handler may chain a new prompt (e.g.
+    // title -> composer), and closing afterwards would clobber it. Ordering the
+    // close before submit lets the chained prompt win the final state update.
     onClose();
+    request.submit(value);
   }
 
   const preview = request.preview?.(value) ?? null;

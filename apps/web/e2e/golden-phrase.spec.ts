@@ -86,6 +86,15 @@ async function blur(page: Page) {
   await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
 }
 
+/** Fill and submit one of the in-app TextPrompt modals (title/tempo/composer). */
+async function fillPrompt(page: Page, label: string, value: string) {
+  const dialog = page.getByRole("dialog", { name: label, exact: true });
+  await expect(dialog).toBeVisible();
+  await dialog.locator(".prompt-input").fill(value);
+  await dialog.locator(".prompt-input").press("Enter");
+  await expect(dialog).toHaveCount(0);
+}
+
 test.describe("golden phrase", () => {
   test("constructs a score from scratch exercising every editing feature", async ({ page }) => {
     const errors: string[] = [];
@@ -167,7 +176,12 @@ test.describe("golden phrase", () => {
     await page.locator(".etb-select select").selectOption("mf");
     await blur(page);
     await selectBeat(page, 0, 0, 0);
-    await page.keyboard.press("k"); // chord symbol prompt -> "Cmaj7"
+    await page.keyboard.press("k"); // opens the chord editor modal
+    const chordDialog = page.getByRole("dialog", { name: "Chord" });
+    await expect(chordDialog).toBeVisible();
+    await chordDialog.locator(".prompt-input").fill("Cmaj7");
+    await chordDialog.locator(".prompt-input").press("Enter");
+    await expect(chordDialog).toHaveCount(0);
     await page.waitForTimeout(150);
     expect((await readBeat(page, 0, 0, 0))?.chordSymbol, "chord symbol").toBe("Cmaj7");
 
@@ -198,9 +212,11 @@ test.describe("golden phrase", () => {
     await page.locator(".etb-popover select").nth(0).selectOption("3/4"); // Time
     await page.locator(".etb-popover select").nth(1).selectOption("2"); // Key: 2 sharps
     await page.locator(".etb-popover button", { hasText: "Bar" }).first().click(); // + Bar
-    await page.locator(".etb-popover button", { hasText: "Tempo" }).click(); // prompt -> 132
-    await page.waitForTimeout(100);
-    await page.locator(".etb-popover button", { hasText: "Title" }).click(); // prompts -> title + composer
+    await page.locator(".etb-popover button", { hasText: "Tempo" }).click();
+    await fillPrompt(page, "Tempo (bpm)", "132");
+    await page.locator(".etb-popover button", { hasText: "Title" }).click();
+    await fillPrompt(page, "Title", "Golden Phrase"); // then chains to the composer prompt
+    await fillPrompt(page, "Composer", "J.S. Test");
     await page.waitForTimeout(150);
     await blur(page);
     sum = await summary(page);

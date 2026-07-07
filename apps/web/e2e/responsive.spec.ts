@@ -18,20 +18,22 @@ test.describe("responsive layout", () => {
     }
   });
 
-  test("collapses the header menus to icons on narrow screens", async ({ page }) => {
+  test("collapses the header menus on narrow screens", async ({ page }) => {
     await freshApp(page);
     await page.setViewportSize({ width: 1440, height: 800 });
     await page.waitForTimeout(300);
     const labelWide = page.locator(".menubar .menu-trigger-label", { hasText: "File" });
     await expect(labelWide).toBeVisible();
+    // On wide screens the four labeled menus show; the compact hamburger is hidden.
+    await expect(page.getByRole("button", { name: "Menu", exact: true })).toBeHidden();
 
-    // Labels stay visible on tablets and only collapse to icons on true
-    // phones (<=600px), so newcomers can read them for as long as possible.
+    // Labels stay visible on tablets and only collapse on true phones (<=600px),
+    // where the four menus fold into one labeled "Menu" hamburger.
     await page.setViewportSize({ width: 500, height: 800 });
     await page.waitForTimeout(300);
     await expect(labelWide).toBeHidden();
-    // The File menu is still operable by its accessible name.
-    await expect(page.getByRole("button", { name: "File", exact: true })).toBeVisible();
+    // The menus are still operable via the single labeled "Menu" button.
+    await expect(page.getByRole("button", { name: "Menu", exact: true })).toBeVisible();
   });
 
   test("reflows the score to the container width", async ({ page }) => {

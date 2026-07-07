@@ -4,6 +4,9 @@ import { freshApp } from "./helpers";
 test.describe("practice tools", () => {
   test("plays the synth and reflects state in the UI", async ({ page }) => {
     await freshApp(page);
+    // The default demo loads with a recording as the active source, so pick the
+    // written notes (synth) before asserting the synth player is running.
+    await page.locator(".source-toggle button", { hasText: "Notes" }).click();
     const play = page.locator(".btn-primary", { hasText: "Play" });
     await expect(play).toBeEnabled();
     await play.click();
@@ -12,22 +15,25 @@ test.describe("practice tools", () => {
     await page.locator(".btn-primary", { hasText: "Pause" }).click();
   });
 
-  test("nudges speed with the stepper and clamps at the floor", async ({ page }) => {
+  test("nudges speed with the keyboard and clamps at the floor", async ({ page }) => {
     await freshApp(page);
     const value = page.locator(".speed-value").first();
-    await expect(value).toHaveText("100%");
-    const slower = page.locator('button[aria-label="Slower"]').first();
-    for (let i = 0; i < 20 && (await slower.isEnabled()); i++) await slower.click();
-    await expect(value).toHaveText("25%");
-    await expect(slower).toBeDisabled();
+    await expect(value).toHaveText("100%▾");
+    // Focus the speed button and nudge down with Arrow keys (5% each).
+    await value.focus();
+    for (let i = 0; i < 20; i++) await page.keyboard.press("ArrowDown");
+    await expect(value).toHaveText("25%▾"); // clamps at the 25% floor
+    await page.keyboard.press("ArrowDown"); // further nudges stay clamped
+    await expect(value).toHaveText("25%▾");
   });
 
   test("loops a bar range from the Loop popover", async ({ page }) => {
     await freshApp(page);
     await page.locator(".popover-trigger", { hasText: "Loop" }).click();
-    const input = page.locator(".popover-panel .bars-input");
-    await input.fill("1-2");
-    await input.press("Enter");
+    const panel = page.locator(".popover-panel");
+    await panel.locator('input[aria-label="Loop from bar"]').fill("1");
+    await panel.locator('input[aria-label="Loop to bar"]').fill("2");
+    await panel.locator('button[aria-label="Loop these bars"]').click();
     await page.waitForTimeout(300);
     const range = await page.evaluate(() => (window as any).__ovPlayer.api.playbackRange);
     expect(range).not.toBeNull();

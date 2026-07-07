@@ -8,7 +8,7 @@ test.describe("embed player", () => {
     await expect(page.locator(".embed-title")).toContainText("OpenVoicing Demo");
     await expect(page.locator(".embed-badge")).toContainText("recording");
     await expect(page.locator(".embed-position")).toContainText("0:02");
-    expect(await page.locator(".embed-toolbar select").inputValue()).toBe("0.7");
+    await expect(page.locator(".embed-toolbar .speed-value")).toHaveText("70%▾");
   });
 
   test("shows a graceful error with retry for a bad bundle URL", async ({ page }) => {
@@ -43,13 +43,15 @@ test.describe("menus, themes, and shortcuts", () => {
     await expect(page.locator(".tb-zone-label", { hasText: "Practice" })).toHaveCount(0);
     await page.locator(".mode-toggle button", { hasText: "Practice" }).click();
     await expect(page.locator(".tb-zone-label", { hasText: "Practice" })).toBeVisible();
-    await expect(page.locator(".tb-zone-label", { hasText: "Record my take" })).toBeVisible();
+    await expect(page.locator(".tb-zone-label", { hasText: "Record" })).toBeVisible();
   });
 
   test("locked mode hides the File menu and editing", async ({ page }) => {
     await freshApp(page, "/?lock=1");
     await expect(page.locator(".menu-trigger", { hasText: "File" })).toHaveCount(0);
-    await expect(page.locator(".mode-toggle")).toHaveCount(0);
+    // The Listen/Practice mode toggle is hidden; the Sound-source toggle shares
+    // the .mode-toggle class, so scope the assertion to the Mode group.
+    await expect(page.locator('.mode-toggle[aria-label="Mode"]')).toHaveCount(0);
     // Playback and the score remain.
     await expect(page.locator(".btn-primary", { hasText: "Play" })).toBeVisible();
     await expect(page.locator("main.score")).toBeVisible();
