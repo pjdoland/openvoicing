@@ -1,8 +1,12 @@
-FluidR3Mono_GM SoundFont
+FluidR3Mono_GM.sf3 SoundFont
 
 The General MIDI soundfont OpenVoicing uses for "Notes" (notation) playback.
 FluidR3Mono is a mono conversion of Frank Wen's FluidR3_GM soundfont, as
 distributed with MuseScore.
+
+Note: the vite build also copies alphaTab's own bundled soundfont into this
+folder (sonivox.sf2/.sf3 with an Apache-2.0 LICENSE and README). OpenVoicing does
+not use those; they are alphaTab's, and their own notices apply to them.
 
 License: MIT
 

@@ -34,3 +34,10 @@ apps/web/public/alphatab/
 /*.jpg
 /*.jpeg
 /scratchpad/
+# alphaTab's bundled soundfont + its notices are copied into public/soundfont/
+# by the vite plugin on every dev/build. FluidR3Mono_GM.sf3 (the soundfont we
+# actually use) is committed; these are regenerated artifacts.
+apps/web/public/soundfont/sonivox.sf2
+apps/web/public/soundfont/sonivox.sf3
+apps/web/public/soundfont/LICENSE
+apps/web/public/soundfont/README.md

@@ -65,7 +65,12 @@ build at `apps/web/public/soundfont/FluidR3Mono_GM.sf3`.
 - A mono conversion of Frank Wen's FluidR3_GM soundfont, as distributed with
   MuseScore.
 - Copyright (c) Frank Wen and the FluidR3Mono contributors.
-- Full text: `apps/web/public/soundfont/LICENSE`
+- Full text: `apps/web/public/soundfont/FluidR3Mono_GM.LICENSE`
+
+alphaTab's own bundled soundfont (`sonivox.sf2` / `sonivox.sf3`) is also copied
+into that folder by the vite build. OpenVoicing does not use it (we override to
+FluidR3Mono), but it ships in the build; it is **Apache-2.0**, copyright Sonic
+Network Inc., with its notice alongside it (`apps/web/public/soundfont/LICENSE`).
 
 ---
 
