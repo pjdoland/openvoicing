@@ -781,6 +781,16 @@ button.speed-value {
   background: var(--accent-soft);
   border-color: var(--accent-soft-border);
 }
+/* The generic `.popover-panel button` padding (6px 12px) is too wide for the
+   preset chips in their tight 4-column grid, so the numbers overflow the box.
+   Compact the padding (higher specificity wins) and center the text. */
+.popover-panel .speed-preset {
+  min-width: 0;
+  padding: 6px 4px;
+  font-size: 13px;
+  text-align: center;
+  justify-content: center;
+}
 .speed-numeric {
   display: flex;
   align-items: center;
