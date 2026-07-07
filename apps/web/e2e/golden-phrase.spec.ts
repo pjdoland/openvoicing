@@ -98,9 +98,12 @@ async function fillPrompt(page: Page, label: string, value: string) {
 test.describe("golden phrase", () => {
   test("constructs a score from scratch exercising every editing feature", async ({ page }) => {
     const errors: string[] = [];
-    page.on("pageerror", (e) => errors.push(e.message));
+    page.on("pageerror", (e) => errors.push(e.stack ?? e.message));
     page.on("console", (m) => {
-      if (m.type() === "error") errors.push(m.text());
+      if (m.type() === "error") {
+        const l = m.location();
+        errors.push(m.text() + (l?.url ? ` @ ${l.url}:${l.lineNumber}:${l.columnNumber}` : ""));
+      }
     });
     // Answer every prompt (chord symbol, tempo, title, composer) deterministically.
     page.on("dialog", (d) => {
