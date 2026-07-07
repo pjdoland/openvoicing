@@ -90,6 +90,13 @@ export class Player {
         // Needed for note-level click selection (noteMouseDown) and per-note
         // bounds used to highlight the exact selected note.
         includeNoteBounds: true,
+        // Render on the main thread. alphaTab's worker renderer serializes its
+        // BoundsLookup back to the main thread via BoundsLookup.fromJson, which
+        // crashes on some multi-staff note bounds ("Cannot read properties of
+        // undefined (reading 'notes')") under CI's Linux headless timing.
+        // Practice-piece scores lay out fast enough that main-thread rendering
+        // is imperceptible, and it avoids the fragile serialization path.
+        useWorkers: false,
       },
       display: {
         scale: options.scale ?? 1,
