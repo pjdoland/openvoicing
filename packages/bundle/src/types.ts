@@ -7,8 +7,8 @@ export interface SyncPoint {
 export const BUNDLE_FORMAT = "openvoicing-bundle";
 /** Current manifest schema version this app writes. */
 export const BUNDLE_FORMAT_VERSION = 1;
-/** Oldest version this app can read (migrating forward to current). */
-export const MIN_BUNDLE_FORMAT_VERSION = 0;
+/** Oldest version this app can read. v0 is no longer supported. */
+export const MIN_BUNDLE_FORMAT_VERSION = 1;
 
 export type ScoreType = "guitarpro" | "musicxml" | "alphatex";
 

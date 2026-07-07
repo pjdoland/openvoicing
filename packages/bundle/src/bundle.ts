@@ -20,41 +20,9 @@ function fail(message: string): never {
 
 type RawManifest = Record<string, unknown>;
 
-/**
- * Ordered manifest migrations, keyed by the version they upgrade *from*. Adding
- * a bundle-schema field means bumping BUNDLE_FORMAT_VERSION and registering the
- * v(n)->v(n+1) step here, so older bundles keep opening instead of being
- * rejected outright.
- */
-const MANIFEST_MIGRATIONS: Record<number, (m: RawManifest) => RawManifest> = {
-  // v0 -> v1: recordings gained a discriminated `media` source. The old
-  // top-level `path` (always an audio file) becomes `media:{kind:"audio",path}`.
-  0: (m) => {
-    const recordings = Array.isArray(m["recordings"]) ? m["recordings"] : [];
-    return {
-      ...m,
-      recordings: (recordings as Array<Record<string, unknown>>).map((r) => {
-        if (r["media"] || typeof r["path"] !== "string") return r;
-        const { path, ...rest } = r;
-        return { ...rest, media: { kind: "audio", path } };
-      }),
-    };
-  },
-};
-
-function migrateManifest(m: RawManifest, fromVersion: number): RawManifest {
-  let current = m;
-  for (let v = fromVersion; v < BUNDLE_FORMAT_VERSION; v++) {
-    const step = MANIFEST_MIGRATIONS[v];
-    if (!step) fail(`no migration path from bundle version ${v}`);
-    current = { ...step(current), formatVersion: v + 1 };
-  }
-  return current;
-}
-
 export function validateManifest(value: unknown): BundleManifest {
   if (typeof value !== "object" || value === null) fail("manifest is not an object");
-  let m = value as RawManifest;
+  const m = value as RawManifest;
   if (m["format"] !== BUNDLE_FORMAT) fail(`unknown format ${JSON.stringify(m["format"])}`);
   const version = m["formatVersion"];
   if (typeof version !== "number" || !Number.isInteger(version)) {
@@ -69,8 +37,6 @@ export function validateManifest(value: unknown): BundleManifest {
   if (version < MIN_BUNDLE_FORMAT_VERSION) {
     fail(`bundle version ${version} is too old to open (minimum ${MIN_BUNDLE_FORMAT_VERSION}).`);
   }
-  // Bring older-but-supported manifests up to the current schema.
-  m = migrateManifest(m, version);
   if (typeof m["title"] !== "string") fail("missing title");
   if (m["attribution"] !== undefined) {
     const attribution = m["attribution"];

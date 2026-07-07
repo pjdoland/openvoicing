@@ -85,7 +85,7 @@ describe("bundle round-trip", () => {
     expect(() => createBundle(bundle)).toThrow(/invalid bundle version/);
   });
 
-  it("accepts the current version (migration chain is a no-op at head)", () => {
+  it("accepts the current version", () => {
     const bundle = demoBundle();
     expect(() => readBundle(createBundle(bundle))).not.toThrow();
   });
@@ -231,7 +231,7 @@ describe("recording media (YouTube + audio)", () => {
     expect(() => createBundle(bundle)).toThrow(/videoId/);
   });
 
-  it("migrates a v0 path-based recording to media", () => {
+  it("rejects a v0 manifest (no longer supported)", () => {
     const v0 = {
       format: BUNDLE_FORMAT,
       formatVersion: 0,
@@ -239,10 +239,7 @@ describe("recording media (YouTube + audio)", () => {
       score: { path: "s", type: "alphatex" },
       recordings: [{ id: "r", name: "take.wav", path: "recordings/take.wav" }],
     };
-    const m = validateManifest(v0);
-    expect(m.formatVersion).toBe(1);
-    expect(m.recordings[0]!.media).toEqual({ kind: "audio", path: "recordings/take.wav" });
-    expect((m.recordings[0] as { path?: string }).path).toBeUndefined();
+    expect(() => validateManifest(v0)).toThrow(/too old/);
   });
 
   it("recordingAudioPath returns the packed audio path", () => {
