@@ -350,6 +350,50 @@ textarea {
   max-width: 60ch;
 }
 
+/* Video + notation share a workspace: stacked on narrow screens, side by side
+   on wide ones so you can watch the video and read the following notation at
+   once. The video-wrap is kept mounted here (never in a collapsible panel) so
+   playback and the synced cursor survive collapsing the sync controls. */
+.workspace {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  min-width: 0;
+}
+.workspace > .video-wrap {
+  margin: 10px 12px;
+}
+@media (min-width: 1000px) {
+  .workspace {
+    flex-direction: row;
+    align-items: stretch;
+    gap: 4px;
+  }
+  .workspace > .video-wrap {
+    align-self: flex-start;
+    flex: 0 0 340px;
+    width: 340px;
+    position: sticky;
+    top: 8px;
+    margin: 10px 4px 10px 12px;
+  }
+  .workspace > .video-wrap.large {
+    flex-basis: 520px;
+    width: 520px;
+  }
+  /* Hidden video (audio still playing): give the space back to the score,
+     leaving just the compact "Show video" control. */
+  .workspace > .video-wrap.video-off {
+    flex: 0 0 auto;
+    width: auto;
+  }
+  .workspace > .score {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+}
+
 /* Empty state inviting the headline play-along feature. */
 .rec-empty {
   display: flex;
