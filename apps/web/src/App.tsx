@@ -2250,6 +2250,9 @@ export function App() {
         data: scoreData,
       };
       scoreSourceRef.current = source;
+      // A freshly opened piece should start at the top so its title is visible,
+      // not scrolled to the cursor at bar 1.
+      player?.pinScrollTopOnNextRender();
       if (player) adoptEditor(loadScoreIntoPlayer(player, source));
       void storage.set("score", { name: source.name, type: source.type, data: scoreData });
       saveAssignment(manifest.assignment ?? "");

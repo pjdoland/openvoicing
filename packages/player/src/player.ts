@@ -71,6 +71,9 @@ export class Player {
   private highlightLayer: HTMLDivElement | null = null;
   private selection: EditSelection | null = null;
   private pendingScrollTop: number | null = null;
+  // Set by the app before loading a new piece so the first render pins the view
+  // to the top (showing the title) instead of alphaTab scrolling to the cursor.
+  private pinTopNextRender = false;
   private watermarkObserver: MutationObserver | null = null;
   private readonly listeners: { [K in keyof PlayerEvents]: Set<PlayerEvents[K]> } = {
     scoreLoaded: new Set(),
@@ -160,20 +163,14 @@ export class Player {
       // view stays where the user was working. alphaTab scrolls a few frames
       // later (its cursor update), so pin the position across that window.
       if (this.pendingScrollTop !== null) {
-        const pane = this.container.parentElement;
         const top = this.pendingScrollTop;
         this.pendingScrollTop = null;
-        if (pane) {
-          pane.scrollTop = top;
-          let frames = 0;
-          const pin = () => {
-            pane.scrollTop = top;
-            if (++frames < 20) requestAnimationFrame(pin);
-          };
-          requestAnimationFrame(pin);
-          setTimeout(() => (pane.scrollTop = top), 60);
-          setTimeout(() => (pane.scrollTop = top), 180);
-        }
+        this.pinScrollTop(top);
+      } else if (this.pinTopNextRender) {
+        // A fresh piece just loaded: keep the top (title) in view rather than
+        // letting alphaTab's cursor scroll jump past it.
+        this.pinTopNextRender = false;
+        this.pinScrollTop(0);
       }
     });
     // Hide alphaTab's "rendered by alphaTab" annotation. postRenderFinished
@@ -596,6 +593,30 @@ export class Player {
     const pane = this.container.parentElement;
     this.pendingScrollTop = opts.preserveScroll && pane ? pane.scrollTop : null;
     this.renderScore(toAlphaTabScore(doc, { colorVoices: opts.colorVoices }));
+  }
+
+  /**
+   * Ask the next render to keep the view pinned at the top (so the piece title
+   * is visible) instead of letting alphaTab scroll to the cursor. Call right
+   * before loading a new piece; it applies to the load's first render only.
+   */
+  pinScrollTopOnNextRender(): void {
+    this.pinTopNextRender = true;
+  }
+
+  /** Hold the scroll pane at `top` across alphaTab's delayed cursor scroll. */
+  private pinScrollTop(top: number): void {
+    const pane = this.container.parentElement;
+    if (!pane) return;
+    pane.scrollTop = top;
+    let frames = 0;
+    const pin = () => {
+      pane.scrollTop = top;
+      if (++frames < 20) requestAnimationFrame(pin);
+    };
+    requestAnimationFrame(pin);
+    setTimeout(() => (pane.scrollTop = top), 60);
+    setTimeout(() => (pane.scrollTop = top), 180);
   }
 
   /**
