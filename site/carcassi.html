@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Guitar demo: Carcassi Étude, Op. 60 No. 3 &middot; OpenVoicing</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23111'/%3E%3Ccircle cx='16' cy='16' r='7' fill='%23fff'/%3E%3C/svg%3E" />
+<meta name="description" content="A live OpenVoicing demo: Carcassi's guitar étude in A, its tablature synced bar by bar to a Creative Commons performance on YouTube. Watch it, slow it down, loop a phrase, then open the same file in the editor." />
+<meta property="og:title" content="Guitar demo: Carcassi Étude, Op. 60 No. 3" />
+<meta property="og:description" content="Guitar tablature following a YouTube performance, embedded and fully editable. A live OpenVoicing demo you can also open in the editor." />
+<link rel="stylesheet" href="./style.css" />
+</head>
+<body class="bg-paper text-ink font-sans antialiased">
+
+  <!-- masthead -->
+  <header class="sticky top-0 z-20 bg-paper border-b border-ink">
+    <div class="shell flex items-center gap-x-6 h-15">
+      <a href="./" class="shrink-0 text-[1.05rem] font-bold tracking-tight">OpenVoicing</a>
+      <nav class="hidden md:flex gap-x-6 ml-3">
+        <a href="./carcassi.html" class="text-[.82rem] font-semibold text-ink">Guitar demo</a>
+        <a href="./start.html" class="text-[.82rem] text-grey hover:text-ink">Get started</a>
+        <a href="./practice.html" class="text-[.82rem] text-grey hover:text-ink">Practice</a>
+        <a href="./publish.html" class="text-[.82rem] text-grey hover:text-ink">Publish</a>
+        <a href="./why.html" class="text-[.82rem] text-grey hover:text-ink">Why open</a>
+        <a href="./reference.html" class="text-[.82rem] text-grey hover:text-ink">Reference</a>
+      </nav>
+      <span class="flex-1"></span>
+      <a href="https://github.com/pjdoland/openvoicing" class="hidden sm:inline text-[.82rem] text-grey hover:text-ink">GitHub</a>
+      <a href="./app/" class="whitespace-nowrap text-[.82rem] font-semibold border border-ink px-4 py-2 transition-colors hover:bg-ink hover:text-paper">Launch&nbsp;the&nbsp;app&nbsp;&rarr;</a>
+    </div>
+  </header>
+
+  <!-- hero -->
+  <section class="shell grid grid-cols-12 gap-x-gutter pt-[clamp(44px,8vw,104px)] pb-[clamp(28px,5vw,56px)]">
+    <p class="col-span-full mb-1.5 flex items-center gap-x-3.5 text-[.72rem] font-semibold uppercase tracking-[.14em] text-grey">
+      Guitar demo &middot; YouTube + tablature
+      <span class="inline-flex items-center border border-hair px-2 py-0.5 text-[.66rem] tracking-[.12em] text-grey">Alpha</span>
+      <span class="h-px flex-1 bg-hair"></span>
+    </p>
+    <h1 class="col-span-full lg:col-span-10 m-0 text-display font-bold leading-[.98] tracking-[-.035em] text-balance">A guitar étude that follows a YouTube&nbsp;performance.</h1>
+    <p class="col-span-full md:col-span-8 mt-[clamp(22px,3vw,34px)] max-w-[54ch] text-[clamp(1.05rem,1.7vw,1.3rem)] leading-normal text-grey">Carcassi's Étude in A, Op.&nbsp;60 No.&nbsp;3: the tablature lined up bar by bar with a Creative Commons performance. Press play and the video leads while the tab follows; slow it down, loop a phrase, or open the same file in the editor.</p>
+  </section>
+
+  <!-- watch / embed -->
+  <section id="watch" class="shell pb-[clamp(36px,6vw,80px)]">
+    <div class="grid grid-cols-12 gap-x-gutter items-baseline py-[22px]">
+      <span class="hidden md:block col-span-1 text-[.9rem] font-semibold text-brand tabular-nums">01</span>
+      <h2 class="col-span-full md:col-span-6 m-0 text-[clamp(1.2rem,2.4vw,1.7rem)] font-semibold tracking-[-.02em]">Watch and follow</h2>
+      <p class="col-span-full md:col-span-5 mt-1.5 md:mt-0 text-[.92rem] text-grey">The player below is a real OpenVoicing embed. The video sits beside the tablature, and the cursor tracks the performance bar by bar.</p>
+    </div>
+    <div class="border border-ink">
+      <div data-openvoicing-bundle="./app/carcassi-op60-3.ovb" data-openvoicing-height="760"></div>
+    </div>
+    <div class="flex flex-wrap justify-between gap-2 px-0.5 pt-3 text-[.82rem] text-greymid">
+      <span>Press play, then drop the speed to 75% for a hard passage. Use the &#9906; button for fullscreen.</span>
+      <span>Guitar tablature, standard tuning.</span>
+    </div>
+  </section>
+
+  <!-- edit -->
+  <section id="edit" class="shell pb-[clamp(36px,6vw,80px)]">
+    <div class="grid grid-cols-12 gap-x-gutter items-baseline py-[22px]">
+      <span class="hidden md:block col-span-1 text-[.9rem] font-semibold text-brand tabular-nums">02</span>
+      <h2 class="col-span-full md:col-span-6 m-0 text-[clamp(1.2rem,2.4vw,1.7rem)] font-semibold tracking-[-.02em]">Open it in the editor</h2>
+      <p class="col-span-full md:col-span-5 mt-1.5 md:mt-0 text-[.92rem] text-grey">The same file opens in the full editor: change frets and notes, retime the sync to the video, or attach your own recording. It's the same piece, not a copy.</p>
+    </div>
+    <a href="./app/?bundle=./carcassi-op60-3.ovb&amp;edit=1" class="group block border border-ink" title="Open the Carcassi étude in the editor">
+      <img src="./carcassi-editor.png" alt="The OpenVoicing editor open on Carcassi's Étude Op. 60 No. 3: the edit toolbar above the tablature, with the YouTube performance alongside" width="1360" height="720" class="block w-full transition-opacity group-hover:opacity-90" />
+    </a>
+    <div class="flex flex-wrap justify-between gap-2 px-0.5 pt-3 text-[.82rem] text-greymid">
+      <span>Click a note to select it, then edit; everything autosaves as you go.</span>
+      <a href="./app/?bundle=./carcassi-op60-3.ovb&amp;edit=1" class="font-semibold text-ink border-b-2 border-brand">Open this piece in the editor &rarr;</a>
+    </div>
+  </section>
+
+  <!-- how it's built -->
+  <section id="how" class="shell border-t border-ink">
+    <div class="grid grid-cols-12 gap-x-gutter py-[clamp(28px,4vw,52px)] border-b border-hair">
+      <span class="col-span-full md:col-span-1 mb-0.5 md:mb-0 text-base font-semibold text-brand tabular-nums">01</span>
+      <h3 class="col-span-full md:col-span-4 m-0 mb-2.5 md:mb-0 text-h3 font-semibold leading-tight tracking-[-.02em]">One open file, nothing hosted</h3>
+      <p class="col-span-full md:col-start-7 md:col-span-5 m-0 max-w-[52ch] text-[clamp(1rem,1.5vw,1.12rem)] text-grey">This whole demo is a single <code class="font-mono text-[.9em] text-ink border-b-2 border-brand">.ovb</code> file: the public-domain Carcassi étude as tablature, the YouTube performance it points to, and a sync map that lines the two up. You could host that file yourself and embed it the same way.</p>
+      <a href="./publish.html#embed" class="col-span-full md:col-start-7 md:col-span-5 mt-3 inline-block w-fit border-b-2 border-brand text-[.9rem] font-semibold">Publish and embed your own &rarr;</a>
+    </div>
+    <div class="grid grid-cols-12 gap-x-gutter py-[clamp(28px,4vw,52px)] border-b border-hair">
+      <span class="col-span-full md:col-span-1 mb-0.5 md:mb-0 text-base font-semibold text-brand tabular-nums">02</span>
+      <h3 class="col-span-full md:col-span-4 m-0 mb-2.5 md:mb-0 text-h3 font-semibold leading-tight tracking-[-.02em]">Synced to a real performance</h3>
+      <p class="col-span-full md:col-start-7 md:col-span-5 m-0 max-w-[52ch] text-[clamp(1rem,1.5vw,1.12rem)] text-grey">The performance is a Creative Commons (CC BY) recording by Eduardo Minozzi Costa. Its downbeats were found from the bass notes that open each bar, so the tab follows the actual timing, not a fixed metronome. You can nudge any bar by hand in the editor.</p>
+      <a href="./practice.html#play-along" class="col-span-full md:col-start-7 md:col-span-5 mt-3 inline-block w-fit border-b-2 border-brand text-[.9rem] font-semibold">Play along with a recording &rarr;</a>
+    </div>
+    <div class="grid grid-cols-12 gap-x-gutter py-[clamp(28px,4vw,52px)] border-b border-hair">
+      <span class="col-span-full md:col-span-1 mb-0.5 md:mb-0 text-base font-semibold text-brand tabular-nums">03</span>
+      <h3 class="col-span-full md:col-span-4 m-0 mb-2.5 md:mb-0 text-h3 font-semibold leading-tight tracking-[-.02em]">A different kind of piece</h3>
+      <p class="col-span-full md:col-start-7 md:col-span-5 m-0 max-w-[52ch] text-[clamp(1rem,1.5vw,1.12rem)] text-grey">The home page demo is Bach's Invention No.&nbsp;8, a harpsichord recording behind two-staff notation. This one is a single guitar with tablature and a video. Same format, same tools, very different music.</p>
+      <a href="./" class="col-span-full md:col-start-7 md:col-span-5 mt-3 inline-block w-fit border-b-2 border-brand text-[.9rem] font-semibold">See the Invention No. 8 demo &rarr;</a>
+    </div>
+  </section>
+
+  <!-- CTA band -->
+  <section class="mt-[clamp(36px,6vw,80px)] bg-ink text-paper">
+    <div class="shell grid grid-cols-12 gap-x-gutter py-[clamp(40px,6vw,84px)]">
+      <p class="col-span-full text-[.72rem] font-semibold uppercase tracking-[.14em] text-greymid">Your turn</p>
+      <h2 class="col-span-full md:col-span-6 mt-4 text-h2 font-bold leading-none tracking-[-.03em]">Open a piece and start playing.</h2>
+      <div class="col-span-full md:col-start-7 md:col-span-6 mt-6 md:mt-0 md:self-end">
+        <p class="mb-5 text-[#c4c4c4]">No sign-up, no upload. Import your own MusicXML or Guitar Pro, sync it to a recording or a YouTube video, and keep the file.</p>
+        <div class="flex flex-wrap gap-3">
+          <a href="./app/?bundle=./carcassi-op60-3.ovb" class="inline-flex items-center gap-x-2.5 border border-paper bg-paper px-[22px] py-3.5 text-[.95rem] font-semibold text-ink transition-colors hover:bg-brand hover:border-brand hover:text-white">Open this piece &rarr;</a>
+          <a href="./start.html" class="inline-flex items-center gap-x-2.5 border border-[#3a3a3a] px-[22px] py-3.5 text-[.95rem] font-semibold text-paper transition-colors hover:border-paper">Get started</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- footer -->
+  <footer class="shell flex flex-wrap items-baseline justify-between gap-4 py-10 pb-16">
+    <span class="font-bold">OpenVoicing</span>
+    <span class="text-[.8rem] text-greymid">Free and open source &middot; Engraving by alphaTab</span>
+    <span class="text-[.82rem] text-grey">
+      <a href="https://github.com/pjdoland/openvoicing" class="border-b border-hair hover:text-ink">GitHub</a>
+      &nbsp;
+      <a href="https://github.com/pjdoland/openvoicing/blob/main/docs/index.md" class="border-b border-hair hover:text-ink">Docs</a>
+      &nbsp;
+      <a href="./app/" class="border-b border-hair hover:text-ink">App</a>
+    </span>
+  </footer>
+
+  <script src="./app/openvoicing-embed.js"></script>
+</body>
+</html>
