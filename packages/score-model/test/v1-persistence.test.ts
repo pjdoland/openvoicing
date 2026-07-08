@@ -3,11 +3,11 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { canonicalizeV1, importMusicXmlV1, ScoreEditorV1, validationErrors } from "../src/v1";
 
-const GOLDBERG = readFileSync(fileURLToPath(new URL("./fixtures/v1/goldberg-aria.musicxml", import.meta.url)), "utf8");
+const FIXTURE = readFileSync(fileURLToPath(new URL("./fixtures/v1/two-staff-aria.musicxml", import.meta.url)), "utf8");
 
 describe("v1 persistence & determinism", () => {
   it("survives a JSON serialize/parse round-trip losslessly", () => {
-    const doc = importMusicXmlV1(GOLDBERG);
+    const doc = importMusicXmlV1(FIXTURE);
     const reloaded = JSON.parse(JSON.stringify(doc));
     // The plain-JSON document must reload byte-identical, still validate, and
     // canonicalize the same, so persisting it (IndexedDB / bundle) is lossless.
@@ -17,8 +17,8 @@ describe("v1 persistence & determinism", () => {
   });
 
   it("produces identical ids on deterministic re-import", () => {
-    const a = importMusicXmlV1(GOLDBERG, { deterministic: true });
-    const b = importMusicXmlV1(GOLDBERG, { deterministic: true });
+    const a = importMusicXmlV1(FIXTURE, { deterministic: true });
+    const b = importMusicXmlV1(FIXTURE, { deterministic: true });
     // Same source + deterministic ids => byte-identical documents, so id-keyed
     // state (sync anchors, comments) survives a reopen.
     expect(JSON.stringify(b)).toBe(JSON.stringify(a));
@@ -26,7 +26,7 @@ describe("v1 persistence & determinism", () => {
   });
 
   it("returns to an identical document after a random edit sequence is undone", () => {
-    const doc = importMusicXmlV1(GOLDBERG, { deterministic: true });
+    const doc = importMusicXmlV1(FIXTURE, { deterministic: true });
     const before = JSON.stringify(canonicalizeV1(doc));
     const editor = new ScoreEditorV1(doc);
     // Collect editable note ids up front.

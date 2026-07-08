@@ -45,7 +45,7 @@ const XML_TO_NOTE_TYPE: Record<string, NoteType> = {
 /**
  * Import score-partwise MusicXML into the full-fidelity v1 model. Unlike v0,
  * this replays the <note>/<backup>/<forward> cursor so multi-staff, multi-voice
- * writing (piano, the Goldberg) maps correctly, stores rhythm symbolically, and
+ * writing (piano, a two-staff score) maps correctly, stores rhythm symbolically, and
  * records staves/clefs, ties, and tuplets. Notation not yet modeled (ornaments,
  * dynamics, articulations) is dropped at this tier and belongs to a later phase.
  */

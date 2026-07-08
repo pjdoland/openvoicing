@@ -6,7 +6,7 @@ Every score that OpenVoicing can *display* should also be *editable* and
 *exportable*, regardless of the file it was loaded from. The loaded file is a
 source; edits produce a new document/bundle and never mutate the original. Today
 only scores that round-trip through our simplified `ScoreDocument` are editable;
-complex scores (multi-staff piano like the Goldberg, Guitar Pro, `.mxl`) render
+complex scores (multi-staff piano, Guitar Pro, `.mxl`) render
 natively through alphaTab and are read-only.
 
 ## Principles
@@ -128,7 +128,7 @@ keep opening. Define forward-compat rules for `unknown` blobs.
 - **P0, Foundations & harness.** New schema types behind a flag; MusicXML
   round-trip harness + corpus; `unknown` pass-through; no UI change.
 - **P1, Staves & clefs.** Model staves; import multi-staff; programmatic
-  alphaTab render; the Goldberg becomes editable (notes) & round-trips. Retire
+  alphaTab render; multi-staff scores become editable (notes) & round-trip. Retire
   `isMultiStaffMusicXml` read-only routing.
 - **P2, Core notation.** Slurs, articulations, ornaments, dynamics, grace
   notes, model, render, import/export, edit ops.

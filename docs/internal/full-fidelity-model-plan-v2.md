@@ -100,7 +100,7 @@ fix this (persist edits into the exported bundle).
 
 ## MVP slice & Definition of Done (Goal A, ~1 month / 1 dev)
 
-"**The Goldberg's notes become editable and it still exports.**"
+"**The two-staff piano's notes become editable and it still exports.**"
 
 - Load multi-staff MusicXML / `.mxl`; renders full-fidelity (already true).
 - Select a note on any staff/voice; **change pitch, change duration, delete,
@@ -142,7 +142,7 @@ edit fidelity (keep GP read-only); retiring alphaTex.
 ## The decision for the product owner
 
 The council's near-unanimous engineering read: **pursue Goal A via Option D**,
-ship the Goldberg-editable slice in ~a month, and let full-notation editing
+ship the multi-staff-editable slice in ~a month, and let full-notation editing
 (Goal B) be pulled in feature-by-feature only when a real user needs it, rather
 than pre-building a second notation engine. Goal B remains possible later; D does
 not paint us into a corner (the source is always preserved).

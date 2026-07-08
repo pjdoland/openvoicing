@@ -3,13 +3,13 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { canonicalizeMusicXml, exportMusicXmlV1, importMusicXmlV1, validationErrors } from "../src/v1";
 
-const GOLDBERG = fileURLToPath(new URL("./fixtures/v1/goldberg-aria.musicxml", import.meta.url));
+const FIXTURE = fileURLToPath(new URL("./fixtures/v1/two-staff-aria.musicxml", import.meta.url));
 
-// Real-world proof: the Goldberg aria (two-staff, 64 bars, ties, ornaments,
+// Real-world proof: a two-staff aria (64 bars, ties, ornaments,
 // multiple voices) is exactly the kind of score the v0 model could not edit.
 // This asserts v1 imports it soundly and round-trips its tier-0 structure.
-describe("v1 on the Goldberg aria", () => {
-  const xml = readFileSync(GOLDBERG, "utf8");
+describe("v1 on a two-staff aria", () => {
+  const xml = readFileSync(FIXTURE, "utf8");
 
   it("imports without structural violations", () => {
     const doc = importMusicXmlV1(xml);

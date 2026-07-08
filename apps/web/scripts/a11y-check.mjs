@@ -9,9 +9,9 @@ import { chromium } from "playwright";
 import { AxeBuilder } from "@axe-core/playwright";
 
 const base = process.argv[2] || "http://localhost:4173";
-// goldberg-aria.ovb ships in the built app (from public/); use it so the embed
+// invention8.ovb (the default demo) ships in the built app; use it so the embed
 // page actually renders a player rather than an error state.
-const pages = ["/", "/embed.html?bundle=/goldberg-aria.ovb"];
+const pages = ["/", "/embed.html?bundle=/invention8.ovb"];
 
 const browser = await chromium.launch();
 // @axe-core/playwright requires a page from an explicit context, not the

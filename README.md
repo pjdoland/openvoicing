@@ -14,7 +14,7 @@ the embeddable player plays those bundles from any static URL.
 
 **[▶ Try the live demo](https://pjdoland.github.io/openvoicing/app/)** · [User guide](docs/user-guide.md) · [Docs](docs/index.md)
 
-![The OpenVoicing app: a Goldberg Variations score synced to a real recording, with the waveform, sync flags, and practice tools](docs/assets/hero.png)
+![The OpenVoicing app: a Carcassi guitar étude synced to a performance video, with the waveform, per-bar sync flags, and practice tools](docs/assets/hero.png)
 
 ## Why OpenVoicing
 

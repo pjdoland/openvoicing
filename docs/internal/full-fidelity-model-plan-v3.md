@@ -45,11 +45,11 @@ council review that shaped it.
   3. New semantic schema types behind a flag; `startTick` derived; validator.
   4. Version-range gate + migration scaffold; bundle model slot; fix
      edits-dropped-on-export bug.
-- **P1, Staves & clefs → the Goldberg becomes editable.** Import multi-staff to
+- **P1, Staves & clefs → multi-staff scores become editable.** Import multi-staff to
   the new model; render via the adapter; ID cursor + patch undo; edit
   pitch/duration/add/delete/lyric across staves/voices; retire the read-only
   routing for the edit subset; MusicXML/MIDI export from the model. Gate:
-  multistaff + polyphony corpus at tier-0 100%; Goldberg editable e2e.
+  multistaff + polyphony corpus at tier-0 100%; multi-staff editable e2e.
 - **P2, Core notation.** Slurs, articulations, ornaments, dynamics, grace
   notes, model + render + import/export + edit ops + inspector UX (Basic/
   Advanced). Gate: notation corpus tier-1 ≥90%; tier-0 stays 100%.
