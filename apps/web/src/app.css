@@ -323,7 +323,7 @@ textarea {
   display: flex;
   justify-content: flex-end;
   gap: 6px;
-  margin-bottom: 4px;
+  margin-top: 4px;
 }
 .video-host {
   width: 100%;

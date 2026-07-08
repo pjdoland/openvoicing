@@ -3907,6 +3907,7 @@ export function App() {
           }
           style={activeMediaKind === "youtube" ? undefined : { display: "none" }}
         >
+          <div className="video-host" ref={videoHostRef} />
           <div className="video-controls">
             <button
               className="btn-icon"
@@ -3927,7 +3928,6 @@ export function App() {
               </button>
             )}
           </div>
-          <div className="video-host" ref={videoHostRef} />
         </div>
         <main className="score" aria-label="Score" aria-describedby="score-summary" tabIndex={0}>
           <div ref={containerRef} className="score-surface" role="img" aria-label="Musical notation" />
