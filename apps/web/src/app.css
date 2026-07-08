@@ -728,6 +728,10 @@ textarea {
   min-width: 0;
   min-height: 0;
   overflow: auto;
+  /* Breathing room under the last system: it clears the bottom edge when
+     scrolled down, and can rise into a comfortable reading position while the
+     follow-scroll tracks the final bars. */
+  padding-bottom: 30vh;
   background: var(--score-bg);
   /* Sandbox every score-internal overlay in its own stacking context. alphaTab
      renders its cursor layer (.at-cursors) at z-index:1000; without isolation
