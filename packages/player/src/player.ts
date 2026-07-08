@@ -74,6 +74,10 @@ export class Player {
   // Set by the app before loading a new piece so the first render pins the view
   // to the top (showing the title) instead of alphaTab scrolling to the cursor.
   private pinTopNextRender = false;
+  // True while a scroll-pin loop is holding the pane at a position. The
+  // follow-scroll clears it so playback's cursor-follow is never fought by a
+  // still-running pin (e.g. the load-time pin-to-top when you hit play at once).
+  private pinActive = false;
   private watermarkObserver: MutationObserver | null = null;
   private readonly listeners: { [K in keyof PlayerEvents]: Set<PlayerEvents[K]> } = {
     scoreLoaded: new Set(),
@@ -321,6 +325,9 @@ export class Player {
     const pane = this.container.parentElement;
     const b = this.barBounds(barIndex);
     if (!pane || !b) return;
+    // Following the cursor (playback/seek/loop) supersedes any running scroll
+    // pin, e.g. the load-time pin-to-top, so the view is not yanked back.
+    this.pinActive = false;
     const top = b.y;
     const bottom = b.y + b.h;
     if (top < pane.scrollTop + 8 || bottom > pane.scrollTop + pane.clientHeight - 8) {
@@ -604,19 +611,30 @@ export class Player {
     this.pinTopNextRender = true;
   }
 
-  /** Hold the scroll pane at `top` across alphaTab's delayed cursor scroll. */
+  /**
+   * Hold the scroll pane at `top` across alphaTab's delayed cursor scroll.
+   * Cancellable: the follow-scroll clears `pinActive` so it wins immediately.
+   */
   private pinScrollTop(top: number): void {
     const pane = this.container.parentElement;
     if (!pane) return;
+    this.pinActive = true;
     pane.scrollTop = top;
     let frames = 0;
     const pin = () => {
+      if (!this.pinActive) return;
       pane.scrollTop = top;
       if (++frames < 20) requestAnimationFrame(pin);
+      else this.pinActive = false;
     };
     requestAnimationFrame(pin);
-    setTimeout(() => (pane.scrollTop = top), 60);
-    setTimeout(() => (pane.scrollTop = top), 180);
+    setTimeout(() => {
+      if (this.pinActive) pane.scrollTop = top;
+    }, 60);
+    setTimeout(() => {
+      if (this.pinActive) pane.scrollTop = top;
+      this.pinActive = false;
+    }, 180);
   }
 
   /**
