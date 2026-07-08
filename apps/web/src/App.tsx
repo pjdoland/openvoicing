@@ -797,7 +797,12 @@ export function App() {
       recording.speed = speedRef.current; // carry the current practice tempo over
       // Paired audio for a video: keep the video as the source and its sync map;
       // we only want the channels (for the waveform + auto-sync).
-      if (loadingPairedAudioRef.current) {
+      // Paired audio for a video take (waveform + auto-sync): keep the video as
+      // the source and never touch its sync/follow. The loadingPairedAudioRef
+      // flag is a one-shot and can be missed if the audio loads twice (bundle +
+      // session restore, or StrictMode), so also guard on the active take being
+      // a video, which a paired-audio load never changes.
+      if (loadingPairedAudioRef.current || activeMediaKindRef.current === "youtube") {
         loadingPairedAudioRef.current = false;
         setHasPairedAudio(true);
         return;
@@ -1781,6 +1786,13 @@ export function App() {
   useEffect(() => {
     activeRecIdRef.current = activeRecId;
   }, [activeRecId]);
+  // Read inside the recording "loaded" handler: when the active take is a video,
+  // any audio that loads is its paired audio (waveform/auto-sync), not a new
+  // recording, so it must not clear the video's sync map.
+  const activeMediaKindRef = useRef<"audio" | "youtube">("audio");
+  useEffect(() => {
+    activeMediaKindRef.current = activeMediaKind;
+  }, [activeMediaKind]);
   // Which source the transport acts on: flips to "recording" when one loads and
   // back to "synth" via the source toggle, so play/stop/position/speed follow
   // what you hear. The ref is read inside event handlers; the state drives UI.
