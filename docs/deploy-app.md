@@ -114,6 +114,27 @@ The player runs inside a sandboxed `<iframe>` and talks to the host page via
 - To control **who may embed your** instance, set `Content-Security-Policy:
   frame-ancestors` (and/or `X-Frame-Options`) on `embed.html`.
 
+If you serve the **player pages themselves** (`embed.html`, the app) under a
+CSP, the audio engine has requirements beyond the usual script and style
+directives:
+
+- `script-src` must include `blob:` and `'wasm-unsafe-eval'`. The time-stretch
+  engine (Signalsmith Stretch) and alphaTab's synthesizer load their
+  AudioWorklet modules from `blob:` URLs and instantiate WebAssembly.
+- `worker-src` must include `'self'` and `blob:` for the notation renderer's
+  worker.
+- `media-src` should include `blob:` for recording playback.
+- If a bundle syncs a YouTube recording, `frame-src` must allow
+  `https://www.youtube.com` and `https://www.youtube-nocookie.com`.
+- The response serving `embed.html` must not send `X-Frame-Options: DENY`;
+  use `SAMEORIGIN` (or rely on `frame-ancestors`) or the embed iframe will be
+  blocked even on the same origin.
+
+Note that a missing audio directive does not fail at page load: the score
+renders normally and playback silently refuses to start, with only
+"Unable to load a worklet's module" in the console. Test with audio after
+tightening a CSP.
+
 Only embed bundles you trust: a bundle is arbitrary content rendered in the player
 iframe.
 
