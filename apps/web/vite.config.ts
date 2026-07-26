@@ -19,15 +19,25 @@ export default defineConfig({
       // alphaTab's worker/worklet bundles are ~2.3MB each and must be cached
       // for offline playback.
       workbox: {
-        globPatterns: ["**/*.{js,css,html,svg,png,woff,woff2,sf3,wasm,ovb}"],
+        // HTML documents are never precached (see the "pages" runtimeCaching
+        // entry below): a precached index.html/embed.html freezes the
+        // RESPONSE HEADERS from install time, so a self-hoster fixing e.g.
+        // their CSP header never reaches clients already running the old
+        // service worker. Only hashed, immutable build assets go in the
+        // precache manifest.
+        globPatterns: ["**/*.{js,css,svg,png,woff,woff2,sf3,wasm,ovb}"],
         // The FluidR3 soundfont (~24MB) is too big to precache; it is cached on
-        // first play via runtimeCaching below instead.
-        globIgnores: ["**/soundfont/FluidR3Mono_GM.sf3"],
+        // first play via runtimeCaching below instead. HTML is excluded from
+        // the manifest by globPatterns above; listed again here for clarity.
+        globIgnores: ["**/soundfont/FluidR3Mono_GM.sf3", "**/*.html"],
         maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
         // The embed page is addressed as /embed.html?bundle=<url>; params must
-        // not break the precache match, and it must not fall back to index.html.
+        // not break the precache match for the assets it references.
         ignoreURLParametersMatching: [/.*/],
-        navigateFallbackDenylist: [/\/embed\.html/],
+        // index.html is no longer precached, so there is nothing to fall back
+        // to offline; navigations are served NetworkFirst instead (below),
+        // which also serves embed.html correctly without a denylist.
+        navigateFallback: null,
         runtimeCaching: [
           {
             urlPattern: ({ url }) => url.pathname.endsWith(".sf3"),
@@ -36,6 +46,21 @@ export default defineConfig({
               cacheName: "soundfont",
               rangeRequests: true,
               expiration: { maxEntries: 2, maxAgeSeconds: 60 * 60 * 24 * 90 },
+              cacheableResponse: { statuses: [0, 200] },
+            },
+          },
+          {
+            // Navigations/documents (index.html, embed.html, and any
+            // integrator page embedding the player in an iframe): always try
+            // the network first so a header fix (e.g. a corrected CSP) is
+            // picked up immediately, falling back to the cache briefly only
+            // when offline or the network is slow.
+            urlPattern: ({ request }) =>
+              request.destination === "document" || request.mode === "navigate",
+            handler: "NetworkFirst",
+            options: {
+              cacheName: "pages",
+              networkTimeoutSeconds: 3,
               cacheableResponse: { statuses: [0, 200] },
             },
           },
