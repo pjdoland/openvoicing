@@ -58,6 +58,7 @@ import {
   PlayIcon,
   RecordIcon,
   ShareIcon,
+  SpinnerIcon,
   StopIcon,
   TrashIcon,
   ViewIcon,
@@ -391,6 +392,14 @@ export function App() {
   }
   const [playing, setPlaying] = useState(false);
   const [ready, setReady] = useState(false);
+  // True from the moment Play is pressed until the engine actually reports
+  // playing (or fails): the synth/worklet/soundfont init can take a visible
+  // few seconds, and with no feedback that reads as a broken button.
+  const [playPending, setPlayPending] = useState(false);
+  const playPendingRef = useRef(false);
+  useEffect(() => {
+    playPendingRef.current = playPending;
+  }, [playPending]);
   const [speed, setSpeed] = useState(1);
   const [loop, setLoop] = useState(false);
   const [metronome, setMetronome] = useState(false);
@@ -496,6 +505,7 @@ export function App() {
       m.on("stateChanged", (p) => {
         setMediaPlaying(p);
         setAnnouncement(p ? "Recording playing" : "Paused");
+        if (p) setPlayPending(false);
       }),
       m.on("speedChanged", (s) => setAnnouncement(`Speed ${Math.round(s * 100)} percent`)),
     ];
@@ -635,6 +645,7 @@ export function App() {
     player.on("playerReady", () => setReady(true));
     player.on("playerStateChanged", (p) => {
       setPlaying(p);
+      if (p) setPlayPending(false);
       if (activeRecIdRef.current === null) setAnnouncement(p ? "Playing" : "Paused");
     });
     player.on("positionChanged", (current, total) => {
@@ -673,7 +684,10 @@ export function App() {
       setContextMenu({ x: e.clientX, y: e.clientY });
     };
     container.addEventListener("contextmenu", onScoreContext);
-    player.on("error", (error) => console.error("[openvoicing]", error));
+    player.on("error", (error) => {
+      setPlayPending(false);
+      console.error("[openvoicing]", error);
+    });
     if (import.meta.env.DEV) {
       const w = window as unknown as Record<string, unknown>;
       w.__ovPlayer = player;
@@ -1602,19 +1616,39 @@ export function App() {
   // the Space key, and the media keys all route through here so they agree.
   const togglePlayRef = useRef(() => {});
   togglePlayRef.current = () => {
+    // While a previous press is still starting up, ignore re-activation
+    // (the button is also disabled, but Space/media keys/MIDI route here too).
+    if (playPendingRef.current) return;
     // Key the decision off the source we control, not alphaTab's async player
     // state, and always silence the other source, so the two can never overlap.
     if (preferredSourceRef.current === "recording" && activeRecIdRef.current !== null) {
       playerRef.current?.stop();
-      if (media().playing) media().pause();
-      else startWithCountIn(() => void media().play());
+      if (media().playing) {
+        media().pause();
+      } else {
+        setPlayPending(true);
+        startWithCountIn(() => {
+          void media()
+            .play()
+            .catch((err) => {
+              setPlayPending(false);
+              console.error("[openvoicing] playback failed to start", err);
+            });
+        });
+      }
     } else {
       media().pause();
-      synthPlayPause();
+      if (playerRef.current?.playing) {
+        synthPlayPause();
+      } else {
+        setPlayPending(true);
+        synthPlayPause();
+      }
     }
   };
 
   function transportStop() {
+    setPlayPending(false);
     media().pause();
     media().seek(0);
     playerRef.current?.stop();
@@ -3037,7 +3071,7 @@ export function App() {
 
   // Every action, for the command palette (Cmd-K) and, where sensible, menus.
   const commands: Command[] = [
-    { id: "play", label: playing || mediaPlaying ? "Pause" : "Play", group: "Transport", shortcut: "Space", run: () => togglePlayRef.current() },
+    { id: "play", label: playPending ? "Loading…" : playing || mediaPlaying ? "Pause" : "Play", group: "Transport", shortcut: "Space", run: () => togglePlayRef.current(), enabled: !playPending },
     { id: "stop", label: "Stop", group: "Transport", run: () => playerRef.current?.stop(), enabled: ready },
     { id: "half", label: "Toggle half speed", group: "Transport", shortcut: "H", run: () => setSynthSpeed(speedRef.current === 0.5 ? 1 : 0.5) },
     { id: "loop", label: loop ? "Turn loop off" : "Turn loop on", group: "Transport", run: toggleLoop },
@@ -3213,8 +3247,9 @@ export function App() {
 
       {standMode && (
         <div className="stand-controls">
-          <button onClick={() => togglePlayRef.current()} className="stand-play">
-            {playing || mediaPlaying ? "Pause" : "Play"}
+          <button onClick={() => togglePlayRef.current()} className="stand-play" disabled={playPending}>
+            {playPending ? <SpinnerIcon /> : null}
+            {playPending ? "Loading…" : playing || mediaPlaying ? "Pause" : "Play"}
           </button>
           <button onClick={() => setStandMode(false)}>Exit stand mode</button>
         </div>
@@ -3340,12 +3375,12 @@ export function App() {
           <button
             className="btn-primary"
             onClick={() => togglePlayRef.current()}
-            disabled={!ready}
-            aria-label={isPlaying ? "Pause" : "Play"}
-            title={isPlaying ? "Pause (Space)" : "Play (Space)"}
+            disabled={!ready || playPending}
+            aria-label={playPending ? "Loading" : isPlaying ? "Pause" : "Play"}
+            title={playPending ? "Starting playback…" : isPlaying ? "Pause (Space)" : "Play (Space)"}
           >
-            {isPlaying ? <PauseIcon /> : <PlayIcon />}
-            {isPlaying ? "Pause" : "Play"}
+            {playPending ? <SpinnerIcon /> : isPlaying ? <PauseIcon /> : <PlayIcon />}
+            {playPending ? "Loading…" : isPlaying ? "Pause" : "Play"}
           </button>
           <button
             className="btn-icon"
@@ -3769,10 +3804,11 @@ export function App() {
                       type="button"
                       className="btn-icon"
                       onClick={() => togglePlayRef.current()}
-                      aria-label={isPlaying ? "Pause" : "Play"}
-                      title={isPlaying ? "Pause (Space)" : "Play (Space)"}
+                      disabled={playPending}
+                      aria-label={playPending ? "Loading" : isPlaying ? "Pause" : "Play"}
+                      title={playPending ? "Starting playback…" : isPlaying ? "Pause (Space)" : "Play (Space)"}
                     >
-                      {isPlaying ? <PauseIcon /> : <PlayIcon />}
+                      {playPending ? <SpinnerIcon /> : isPlaying ? <PauseIcon /> : <PlayIcon />}
                     </button>
                     <SpeedControl value={speed} onChange={setSynthSpeed} />
                     <span className="position">

@@ -1250,6 +1250,14 @@ button.speed-value {
 /* ============ UX reorganization: menus, popovers, panels, palette ============ */
 
 .icon { flex-shrink: 0; }
+.icon-spin { animation: ov-spin 0.8s linear infinite; }
+@keyframes ov-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .icon-spin { animation: none; }
+}
 
 /* Header menu bar */
 .menubar {

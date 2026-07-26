@@ -68,6 +68,14 @@ function EmbedApp() {
   const [error, setError] = useState<string | null>(null);
   const [title, setTitle] = useState("");
   const [ready, setReady] = useState(false);
+  // True from the moment Play is pressed until the engine actually reports
+  // playing (or fails). Cold start (worklet load, decode, soundfont fetch)
+  // can take a visible few seconds with otherwise no feedback.
+  const [playPending, setPlayPending] = useState(false);
+  const playPendingRef = useRef(false);
+  useEffect(() => {
+    playPendingRef.current = playPending;
+  }, [playPending]);
   const [hasRecording, setHasRecording] = useState(false);
   const [recordingIds, setRecordingIds] = useState<Array<{ id: string; name: string }>>([]);
   const [activeRecording, setActiveRecording] = useState<string | null>(null);
@@ -129,8 +137,12 @@ function EmbedApp() {
     });
     player.on("playerReady", () => setReady(true));
     player.on("playerStateChanged", (p) => {
-      if (!hasRecordingRef.current) setPlaying(p);
+      if (!hasRecordingRef.current) {
+        setPlaying(p);
+        if (p) setPlayPending(false);
+      }
     });
+    player.on("error", () => setPlayPending(false));
     player.on("positionChanged", (current, total) => {
       if (!hasRecordingRef.current) setPosition({ current, total });
     });
@@ -142,7 +154,10 @@ function EmbedApp() {
     // position readout and the synced, self-scrolling cursor.
     const bindMedia = (m: MediaPlayer) => {
       mediaRef.current = m;
-      m.on("stateChanged", setPlaying);
+      m.on("stateChanged", (p) => {
+        setPlaying(p);
+        if (p) setPlayPending(false);
+      });
       m.on("positionChanged", (current, total) => {
         setPosition({ current, total });
         const points = syncRef.current;
@@ -234,12 +249,28 @@ function EmbedApp() {
   }
 
   function togglePlay() {
+    // While a previous press is still starting up, ignore re-activation (the
+    // button is also disabled, but the cross-frame "play"/"toggle" messages
+    // route here too).
+    if (playPendingRef.current) return;
     if (hasRecordingRef.current) {
       const m = mediaRef.current;
       if (!m) return;
-      if (m.playing) m.pause();
-      else void m.play();
+      if (m.playing) {
+        m.pause();
+        return;
+      }
+      setPlayPending(true);
+      void m.play().catch((err) => {
+        setPlayPending(false);
+        console.error("[openvoicing] playback failed to start", err);
+      });
     } else {
+      if (playerRef.current?.playing) {
+        playerRef.current.playPause();
+        return;
+      }
+      setPlayPending(true);
       playerRef.current?.playPause();
     }
   }
@@ -452,8 +483,13 @@ function EmbedApp() {
   return (
     <div className="embed">
       <div className="embed-toolbar">
-        <button className="embed-play" onClick={togglePlay} disabled={!ready && !hasRecording}>
-          {playing ? "Pause" : "Play"}
+        <button
+          className="embed-play"
+          onClick={togglePlay}
+          disabled={(!ready && !hasRecording) || playPending}
+          aria-busy={playPending}
+        >
+          {playPending ? "Loading…" : playing ? "Pause" : "Play"}
         </button>
         <SpeedControl value={speed} onChange={applySpeed} />
         <Popover
